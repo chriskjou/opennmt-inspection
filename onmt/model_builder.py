@@ -80,7 +80,7 @@ def build_encoder(opt, embeddings):
         # "rnn" or "brnn"
         return RNNEncoder(opt.rnn_type, opt.brnn, opt.enc_layers,
                           opt.rnn_size, opt.dropout, embeddings,
-                          opt.bridge)
+                          opt.bridge, opt.separate_layers)
 
 
 def build_decoder(opt, embeddings):

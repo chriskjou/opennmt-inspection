@@ -65,6 +65,9 @@ def model_opts(parser):
                        are experimental. Options are
                        [rnn|transformer|cnn].""")
 
+    group.add_argument('-separate_layers', action='store_true',
+                        help="""If using an RNN, have a separate module for each layer
+                        so that intermediate activations can be extracted.""")
     group.add_argument('-layers', type=int, default=-1,
                        help='Number of layers in enc/dec.')
     group.add_argument('-enc_layers', type=int, default=2,
@@ -464,6 +467,8 @@ def translate_opts(parser):
                        help="Output logs to a file under this path.")
     group.add_argument('-attn_debug', action="store_true",
                        help='Print best attn for each word')
+    group.add_argument('-dump_layers', type=str, default="",
+                       help='File to dump intermediate layer activations to.')
     group.add_argument('-dump_beam', type=str, default="",
                        help='File to dump beam information to.')
     group.add_argument('-n_best', type=int, default=1,

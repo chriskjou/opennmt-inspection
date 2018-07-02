@@ -1,6 +1,7 @@
 """Define RNN-based encoders."""
 from __future__ import division
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -21,12 +22,13 @@ class RNNEncoder(EncoderBase):
        num_layers (int) : number of stacked layers
        hidden_size (int) : hidden size of each layer
        dropout (float) : dropout value for :obj:`nn.Dropout`
-       embeddings (:obj:`onmt.modules.Embeddings`): embedding module to use
+       embeddings (:obj:`onmt.modules.Embeddings`) : embedding module to use
+       separate_layers (bool) : use a separate module for each layer, to allow incremental forward runs
     """
 
     def __init__(self, rnn_type, bidirectional, num_layers,
                  hidden_size, dropout=0.0, embeddings=None,
-                 use_bridge=False):
+                 use_bridge=False, separate_layers=False):
         super(RNNEncoder, self).__init__()
         assert embeddings is not None
 
@@ -34,14 +36,28 @@ class RNNEncoder(EncoderBase):
         assert hidden_size % num_directions == 0
         hidden_size = hidden_size // num_directions
         self.embeddings = embeddings
+        self.separate_layers = separate_layers
 
-        self.rnn, self.no_pack_padded_seq = \
-            rnn_factory(rnn_type,
-                        input_size=embeddings.embedding_size,
+        if separate_layers:
+            layers = []
+            for n in range(num_layers):
+                layer_n, self.no_pack_padded_seq = rnn_factory(rnn_type,
+                        input_size=(embeddings.embedding_size if n == 0 else hidden_size),
                         hidden_size=hidden_size,
-                        num_layers=num_layers,
+                        num_layers=1,
                         dropout=dropout,
                         bidirectional=bidirectional)
+                layers.append(layer_n)
+            self.layers = nn.ModuleList(layers)
+            self.dropout = nn.Dropout(dropout)
+        else:
+            self.rnn, self.no_pack_padded_seq = \
+                rnn_factory(rnn_type,
+                            input_size=embeddings.embedding_size,
+                            hidden_size=hidden_size,
+                            num_layers=num_layers,
+                            dropout=dropout,
+                            bidirectional=bidirectional)
 
         # Initialize the bridge layer
         self.use_bridge = use_bridge
@@ -50,7 +66,7 @@ class RNNEncoder(EncoderBase):
                                     hidden_size,
                                     num_layers)
 
-    def forward(self, src, lengths=None):
+    def forward(self, src, lengths=None, dump_layers=False):
         "See :obj:`EncoderBase.forward()`"
         self._check_args(src, lengths)
 
@@ -63,14 +79,47 @@ class RNNEncoder(EncoderBase):
             lengths = lengths.view(-1).tolist()
             packed_emb = pack(emb, lengths)
 
-        memory_bank, encoder_final = self.rnn(packed_emb)
+        if self.separate_layers:
+            memory_bank = packed_emb
+            finals = []
+
+            if dump_layers:
+                dumped_layers = []
+
+            for i, layer in enumerate(self.layers):
+                memory_bank, final = layer(memory_bank)
+
+                # Manually apply dropout for intermediate layers
+                if i != len(self.layers) - 1:
+                    memory_bank, lengths = unpack(memory_bank)
+                    memory_bank = self.dropout(memory_bank)
+                    memory_bank = pack(memory_bank, lengths)
+
+                finals.append(final)
+
+                if dump_layers:
+                    dumped_layers.append(memory_bank)
+
+            encoder_final = tuple(
+                torch.cat([finals[l][n]
+                    for l in range(len(self.layers))
+                ], 0)
+                for n in range(len(finals[0]))
+            )
+        else:
+            memory_bank, encoder_final = self.rnn(packed_emb)
 
         if lengths is not None and not self.no_pack_padded_seq:
             memory_bank = unpack(memory_bank)[0]
 
         if self.use_bridge:
             encoder_final = self._bridge(encoder_final)
-        return encoder_final, memory_bank
+
+        if dump_layers:
+            return encoder_final, dumped_layers, memory_bank
+        else:
+            return encoder_final, memory_bank
+
 
     def _initialize_bridge(self, rnn_type,
                            hidden_size,

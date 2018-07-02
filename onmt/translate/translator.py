@@ -7,6 +7,8 @@ import os
 import math
 
 import torch
+from torch.nn.utils.rnn import pack_padded_sequence as pack
+from torch.nn.utils.rnn import pad_packed_sequence as unpack
 
 from itertools import count
 
@@ -16,7 +18,7 @@ import onmt.inputters as inputters
 import onmt.opts as opts
 
 
-def build_translator(opt, report_score=True, logger=None, out_file=None):
+def build_translator(opt, report_score=True, logger=None, out_file=None)
     if out_file is None:
         out_file = codecs.open(opt.output, 'w+', 'utf-8')
 
@@ -38,8 +40,9 @@ def build_translator(opt, report_score=True, logger=None, out_file=None):
     kwargs = {k: getattr(opt, k)
               for k in ["beam_size", "n_best", "max_length", "min_length",
                         "stepwise_penalty", "block_ngram_repeat",
-                        "ignore_when_blocking", "dump_beam", "report_bleu",
-                        "data_type", "replace_unk", "gpu", "verbose"]}
+                        "ignore_when_blocking", "dump_beam", "dump_layers",
+                        "report_bleu", "data_type", "replace_unk", "gpu",
+                        "verbose"]}
 
     translator = Translator(model, fields, global_scorer=scorer,
                             out_file=out_file, report_score=report_score,
@@ -79,6 +82,7 @@ class Translator(object):
                  logger=None,
                  gpu=False,
                  dump_beam="",
+                 dump_layers="",
                  min_length=0,
                  stepwise_penalty=False,
                  block_ngram_repeat=0,
@@ -205,9 +209,41 @@ class Translator(object):
 
         all_scores = []
         all_predictions = []
+        all_dumped_layers = []
 
         for batch in data_iter:
-            batch_data = self.translate_batch(batch, data)
+            if self.dump_layers != '':
+                batch_data, dumped_layers = self.translate_batch(batch, data)
+
+                # At this point dumped_layers is going to be an array of
+                # (num_layers) packed sequences, each of which has (batch)
+                # shape. We would like to transpose this, so that
+                # we have an array of "sentences", each of which is
+                # an array of "tokens", each of which is an array of "layers",
+                # each of which is an array of "neurons".
+                dumped_layers = [unpack(layer) for layer in dumped_layers] # Tuples of (tensor, lengths)
+                dumped_layers = [
+                    [
+                        [
+                            # Array of layers
+                            dumped_layers[i][0][s][t]
+                            for i in range(len(dumped_layers))
+                        ]
+
+                        # Array of tokens; dumped_layers[0][1] is the list of
+                        # sentence lengths for the batch, so we can look up
+                        # number of tokens here
+                        for t in range(dumped_layers[0][1][s])
+                    ]
+                    # Array of sentences
+                    for s in range(len(dumped_layers[0][0]))
+                ]
+
+                # Accumulate all the dumped layers into one big list of sentences.
+                all_dumped_layers.extend(dumped_layers)
+            else:
+                batch_data = self.translate_batch(batch, data)
+
             translations = builder.from_batch(batch_data)
 
             for trans in translations:
@@ -282,6 +318,10 @@ class Translator(object):
             import json
             json.dump(self.translator.beam_accum,
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
+
+        if self.dump_layers:
+            torch.save(all_dumped_layers, self.dump_layers)
+
         return all_scores, all_predictions
 
     def translate_batch(self, batch, data):
@@ -343,7 +383,12 @@ class Translator(object):
         if data_type == 'text':
             _, src_lengths = batch.src
 
-        enc_states, memory_bank = self.model.encoder(src, src_lengths)
+        # Collect intermediate layers if requested
+        if self.dump_layers != '':
+            enc_states, memory_bank = self.model.encoder(src, src_lengths)
+        else:
+            enc_states, dumped_layers, memory_bank = self.model.encoder(src, src_lengths, dump_layers=True)
+
         dec_states = self.model.decoder.init_decoder_state(
             src, memory_bank, enc_states)
 
@@ -419,7 +464,10 @@ class Translator(object):
             ret["gold_score"] = self._run_target(batch, data)
         ret["batch"] = batch
 
-        return ret
+        if self.dump_layers != '':
+            return ret, dumped_layers
+        else:
+            return ret
 
     def _from_beam(self, beam):
         ret = {"predictions": [],
