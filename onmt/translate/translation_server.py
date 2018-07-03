@@ -240,7 +240,7 @@ class ServerModel:
         self.load_time = timer.tick()
         self.reset_unload_timer()
 
-    def run(self, inputs):
+    def run(self, inputs, intervention=None):
         """Translate `inputs` using this model
 
             Args:
@@ -286,7 +286,8 @@ class ServerModel:
         if sscount > 0:
             try:
                 scores, predictions = self.translator.translate(
-                    src_data_iter=texts, batch_size=self.opt.batch_size)
+                    src_data_iter=texts, batch_size=self.opt.batch_size,
+                    intervention=intervention)
             except RuntimeError as e:
                 raise ServerModelError("Runtime Error: %s" % str(e))
 

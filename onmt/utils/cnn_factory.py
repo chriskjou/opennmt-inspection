@@ -48,8 +48,16 @@ class StackedCNN(nn.Module):
             self.layers.append(
                 GatedConv(input_size, cnn_kernel_width, dropout))
 
-    def forward(self, x):
-        for conv in self.layers:
+    def forward(self, x, dump_layers=False, intervention=None):
+        dumped_layers = []
+        for i, conv in enumerate(self.layers):
             x = x + conv(x)
+            if dump_layers:
+                dumped_layers.append(x)
+            if intervention is not None:
+                x = intervention(x, i)
             x *= SCALE_WEIGHT
-        return x
+        if dump_layers:
+            return dumped_layers, x
+        else:
+            return x

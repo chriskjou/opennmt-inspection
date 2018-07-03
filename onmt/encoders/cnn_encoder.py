@@ -25,7 +25,7 @@ class CNNEncoder(EncoderBase):
         self.cnn = StackedCNN(num_layers, hidden_size,
                               cnn_kernel_width, dropout)
 
-    def forward(self, input, lengths=None, hidden=None):
+    def forward(self, input, lengths=None, hidden=None, dump_layers=False, intervention=None):
         """ See :obj:`onmt.modules.EncoderBase.forward()`"""
         self._check_args(input, lengths, hidden)
 
@@ -37,7 +37,15 @@ class CNNEncoder(EncoderBase):
         emb_remap = self.linear(emb_reshape)
         emb_remap = emb_remap.view(emb.size(0), emb.size(1), -1)
         emb_remap = shape_transform(emb_remap)
-        out = self.cnn(emb_remap)
+        if dump_layers:
+            dumped_layers, out = self.cnn(emb_remap, True, intervention)
+        else:
+            out = self.cnn(emb_remap, dump_layers, False, intervention)
 
-        return emb_remap.squeeze(3).transpose(0, 1).contiguous(), \
-            out.squeeze(3).transpose(0, 1).contiguous()
+        if dump_layers:
+            return emb_remap.squeeze(3).transpose(0, 1).contiguous(), \
+                dumped_layers, \
+                out.squeeze(3).transpose(0, 1).contiguous()
+        else:
+            return emb_remap.squeeze(3).transpose(0, 1).contiguous(), \
+                out.squeeze(3).transpose(0, 1).contiguous()

@@ -126,4 +126,7 @@ class TransformerEncoder(EncoderBase):
                 out = intervention(out, i)
         out = self.layer_norm(out)
 
-        return emb, out.transpose(0, 1).contiguous()
+        if dump_layers:
+            return emb, dumped_layers, out.transpose(0, 1).contiguous()
+        else:
+            return emb, out.transpose(0, 1).contiguous()

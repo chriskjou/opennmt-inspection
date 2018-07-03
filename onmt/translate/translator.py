@@ -224,11 +224,13 @@ class Translator(object):
                 # an array of "tokens", each of which is an array of "layers",
                 # each of which is an array of "neurons".
                 dumped_layers = [unpack(layer) for layer in dumped_layers] # Tuples of (tensor, lengths)
+                print(dumped_layers[0][0].shape)
+                print(dumped_layers[0][1])
                 dumped_layers = [
                     [
                         [
                             # Array of layers
-                            dumped_layers[i][0][s][t]
+                            dumped_layers[i][0][t][s]
                             for i in range(len(dumped_layers))
                         ]
 
@@ -238,7 +240,7 @@ class Translator(object):
                         for t in range(dumped_layers[0][1][s])
                     ]
                     # Array of sentences
-                    for s in range(len(dumped_layers[0][0]))
+                    for s in range(dumped_layers[0][0].shape[1])
                 ]
 
                 # Accumulate all the dumped layers into one big list of sentences.
@@ -388,9 +390,9 @@ class Translator(object):
         # Collect intermediate layers if requested; push through a modification function if requested.
         kwargs = ({'intervention': intervention} if intervention is not None else {})
         if self.dump_layers != '':
-            enc_states, memory_bank = self.model.encoder(src, src_lengths, **kwargs)
-        else:
             enc_states, dumped_layers, memory_bank = self.model.encoder(src, src_lengths, dump_layers=True, **kwargs)
+        else:
+            enc_states, memory_bank = self.model.encoder(src, src_lengths, **kwargs)
 
         dec_states = self.model.decoder.init_decoder_state(
             src, memory_bank, enc_states)
