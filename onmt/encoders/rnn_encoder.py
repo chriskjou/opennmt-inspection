@@ -42,7 +42,8 @@ class RNNEncoder(EncoderBase):
             layers = []
             for n in range(num_layers):
                 layer_n, self.no_pack_padded_seq = rnn_factory(rnn_type,
-                        input_size=(embeddings.embedding_size if n == 0 else hidden_size),
+                        input_size=(embeddings.embedding_size if n == 0 else \
+                                hidden_size * (2 if bidirectional else 1)),
                         hidden_size=hidden_size,
                         num_layers=1,
                         dropout=dropout,
@@ -66,7 +67,7 @@ class RNNEncoder(EncoderBase):
                                     hidden_size,
                                     num_layers)
 
-    def forward(self, src, lengths=None, dump_layers=False):
+    def forward(self, src, lengths=None, dump_layers=False, intervention=None):
         "See :obj:`EncoderBase.forward()`"
         self._check_args(src, lengths)
 
@@ -89,11 +90,19 @@ class RNNEncoder(EncoderBase):
             for i, layer in enumerate(self.layers):
                 memory_bank, final = layer(memory_bank)
 
+                # Unpack so we can do other things to the intermediate
+                # layers
+                memory_bank, lengths = unpack(memory_bank)
+
                 # Manually apply dropout for intermediate layers
                 if i != len(self.layers) - 1:
-                    memory_bank, lengths = unpack(memory_bank)
                     memory_bank = self.dropout(memory_bank)
-                    memory_bank = pack(memory_bank, lengths)
+
+                # Apply an intervention function if provided
+                if intervention is not None:
+                    memory_bank = intervention(memory_bank, i)
+
+                memory_bank = pack(memory_bank, lengths)
 
                 finals.append(final)
 

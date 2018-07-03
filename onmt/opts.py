@@ -492,6 +492,26 @@ def translate_opts(parser):
     group.add_argument('-window', default='hamming',
                        help='Window type for spectrogram generation')
 
+def mask_out_opts(parser):
+    translate_opts(parser)
+
+    group = parser.add_argument_group('Masking Out')
+    group.add_argument('-mask_out_basis', type=str, default="",
+                        help="""Basis for masking-out; should be a
+                        (hidden size)x(hidden size) matrix in .pt format
+                        where the first row is hypothesized 'most
+                        important' basis vector and last row is
+                        hypothesized 'least important'. Must be orthonormal.
+                        """)
+    group.add_argument('-mask_out_layer', type=int, default=-1,
+                        help="Layer at which to mask out.")
+    group.add_argument('-mask_out_cumulative', action="store_true",
+                        help="""If set, mask neurons out cumulatively
+                        and do runs from both top and bottom.
+                        """)
+    group.add_argument('-mask_out_intervals', type=int, default=10,
+                        help="Number of intervals to divide the layer into. Default 10")
+
 
 def add_md_help_argument(parser):
     """ md help parser """

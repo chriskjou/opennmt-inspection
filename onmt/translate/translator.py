@@ -18,7 +18,7 @@ import onmt.inputters as inputters
 import onmt.opts as opts
 
 
-def build_translator(opt, report_score=True, logger=None, out_file=None)
+def build_translator(opt, report_score=True, logger=None, out_file=None):
     if out_file is None:
         out_file = codecs.open(opt.output, 'w+', 'utf-8')
 
@@ -113,6 +113,7 @@ class Translator(object):
         self.min_length = min_length
         self.stepwise_penalty = stepwise_penalty
         self.dump_beam = dump_beam
+        self.dump_layers = dump_layers
         self.block_ngram_repeat = block_ngram_repeat
         self.ignore_when_blocking = set(ignore_when_blocking)
         self.sample_rate = sample_rate
@@ -145,7 +146,8 @@ class Translator(object):
                   tgt_data_iter=None,
                   src_dir=None,
                   batch_size=None,
-                  attn_debug=False):
+                  attn_debug=False,
+                  intervention=None):
         """
         Translate content of `src_data_iter` (if not None) or `src_path`
         and get gold scores if one of `tgt_data_iter` or `tgt_path` is set.
@@ -213,7 +215,7 @@ class Translator(object):
 
         for batch in data_iter:
             if self.dump_layers != '':
-                batch_data, dumped_layers = self.translate_batch(batch, data)
+                batch_data, dumped_layers = self.translate_batch(batch, data, intervention=intervention)
 
                 # At this point dumped_layers is going to be an array of
                 # (num_layers) packed sequences, each of which has (batch)
@@ -242,7 +244,7 @@ class Translator(object):
                 # Accumulate all the dumped layers into one big list of sentences.
                 all_dumped_layers.extend(dumped_layers)
             else:
-                batch_data = self.translate_batch(batch, data)
+                batch_data = self.translate_batch(batch, data, intervention=intervention)
 
             translations = builder.from_batch(batch_data)
 
@@ -324,7 +326,7 @@ class Translator(object):
 
         return all_scores, all_predictions
 
-    def translate_batch(self, batch, data):
+    def translate_batch(self, batch, data, intervention=None):
         """
         Translate a batch of sentences.
 
@@ -339,9 +341,9 @@ class Translator(object):
            Shouldn't need the original dataset.
         """
         with torch.no_grad():
-            return self._translate_batch(batch, data)
+            return self._translate_batch(batch, data, intervention)
 
-    def _translate_batch(self, batch, data):
+    def _translate_batch(self, batch, data, intervention=None):
         # (0) Prep each of the components of the search.
         # And helper method for reducing verbosity.
         beam_size = self.beam_size
@@ -383,11 +385,12 @@ class Translator(object):
         if data_type == 'text':
             _, src_lengths = batch.src
 
-        # Collect intermediate layers if requested
+        # Collect intermediate layers if requested; push through a modification function if requested.
+        kwargs = ({'intervention': intervention} if intervention is not None else {})
         if self.dump_layers != '':
-            enc_states, memory_bank = self.model.encoder(src, src_lengths)
+            enc_states, memory_bank = self.model.encoder(src, src_lengths, **kwargs)
         else:
-            enc_states, dumped_layers, memory_bank = self.model.encoder(src, src_lengths, dump_layers=True)
+            enc_states, dumped_layers, memory_bank = self.model.encoder(src, src_lengths, dump_layers=True, **kwargs)
 
         dec_states = self.model.decoder.init_decoder_state(
             src, memory_bank, enc_states)
