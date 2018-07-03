@@ -96,7 +96,7 @@ class TransformerEncoder(EncoderBase):
              for _ in range(num_layers)])
         self.layer_norm = onmt.modules.LayerNorm(hidden_size)
 
-    def forward(self, src, lengths=None):
+    def forward(self, src, lengths=None, dump_layers=False, intervention=None):
         """ See :obj:`EncoderBase.forward()`"""
         self._check_args(src, lengths)
 
@@ -116,9 +116,14 @@ class TransformerEncoder(EncoderBase):
         padding_idx = self.embeddings.word_padding_idx
         mask = words.data.eq(padding_idx).unsqueeze(1) \
             .expand(w_batch, w_len, w_len)
+        dumped_layers = []
         # Run the forward pass of every layer of the tranformer.
         for i in range(self.num_layers):
             out = self.transformer[i](out, mask)
+            if dump_layers:
+                dumped_layers.append(out)
+            if intervention is not None:
+                out = intervention(out, i)
         out = self.layer_norm(out)
 
         return emb, out.transpose(0, 1).contiguous()
