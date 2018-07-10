@@ -16,17 +16,19 @@ import onmt.model_builder
 import onmt.modules
 import onmt.opts
 
+import os
+
 
 def main(opt):
-    translator = build_translator(opt, report_score=True, logger=logger)
+    translator = build_translator(opt, report_score=True, logger=logger, use_output=False)
 
     # We cannot run without the following arguments:
     assert opt.mask_out_layer != -1
     assert opt.mask_out_basis != ""
 
     # Load in the basis
-    basis = torch.load(opt.mask_out_basis)
-    inverse_basis = torch.transpose(basis)
+    basis = torch.load(opt.mask_out_basis).cuda()
+    inverse_basis = basis.t()
 
     h, h = basis.shape
 
@@ -34,7 +36,7 @@ def main(opt):
         # Note that layer is here a padded matrix of size
         # (sentences) x (tokens) x (hidden_size).
         # To zero out everything we'll need to reshape twice.
-        if i == opt.mask_out_layer
+        if i == opt.mask_out_layer:
             # Project onto the space spanned by basis * mask.
             s, t, h = layer.shape
             layer = torch.reshape(layer, (s * t, h))
@@ -48,15 +50,18 @@ def main(opt):
 
     def run_with(first, last):
         mask = torch.eye(h)
-        for j in range(first, last)
+        for j in range(first, last):
             mask[j] = 0
+        mask = mask.cuda()
 
-        translator.translate(src_path=opt.src,
-                             tgt_path=os.path.join(opt.tgt, 'without-%d-%d.txt' % (first, last)),
-                             src_dir=opt.src_dir,
-                             batch_size=opt.batch_size,
-                             attn_debug=opt.attn_debug,
-                             intervention=lambda l, i: intervene(l, mask,i))
+        with open(os.path.join(opt.output, 'without-%d-%d.txt' %
+                (first, last)), 'w') as out_file:
+            translator.translate(src_path=opt.src,
+                                 src_dir=opt.src_dir,
+                                 batch_size=opt.batch_size,
+                                 attn_debug=opt.attn_debug,
+                                 intervention=lambda l, i: intervene(l, mask,i),
+                                 out_file=out_file)
 
     if opt.mask_out_cumulative:
         # Remove top

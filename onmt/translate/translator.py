@@ -18,8 +18,8 @@ import onmt.inputters as inputters
 import onmt.opts as opts
 
 
-def build_translator(opt, report_score=True, logger=None, out_file=None):
-    if out_file is None:
+def build_translator(opt, report_score=True, logger=None, out_file=None, use_output=True):
+    if out_file is None and use_output:
         out_file = codecs.open(opt.output, 'w+', 'utf-8')
 
     if opt.gpu > -1:
@@ -147,7 +147,8 @@ class Translator(object):
                   src_dir=None,
                   batch_size=None,
                   attn_debug=False,
-                  intervention=None):
+                  intervention=None,
+                  out_file=None):
         """
         Translate content of `src_data_iter` (if not None) or `src_path`
         and get gold scores if one of `tgt_data_iter` or `tgt_path` is set.
@@ -215,32 +216,35 @@ class Translator(object):
 
         for batch in data_iter:
             if self.dump_layers != '':
-                batch_data, dumped_layers = self.translate_batch(batch, data, intervention=intervention)
+                batch_data, dumped_layers = self.translate_batch(batch,
+                        data, intervention=intervention)
+
+                # Get the correct order of sentences so that we can dump in
+                # the same order as input occurred.
+                inds, perm = torch.sort(batch_data['batch'].indices.data)
 
                 # At this point dumped_layers is going to be an array of
-                # (num_layers) packed sequences, each of which has (batch)
+                # (num_layers) packed sequences, each of which has (len) x (batch)
                 # shape. We would like to transpose this, so that
                 # we have an array of "sentences", each of which is
                 # an array of "tokens", each of which is an array of "layers",
                 # each of which is an array of "neurons".
                 dumped_layers = [unpack(layer) for layer in dumped_layers] # Tuples of (tensor, lengths)
-                print(dumped_layers[0][0].shape)
-                print(dumped_layers[0][1])
                 dumped_layers = [
                     [
                         [
                             # Array of layers
-                            dumped_layers[i][0][t][s]
+                            dumped_layers[i][0][t][idx]
                             for i in range(len(dumped_layers))
                         ]
 
                         # Array of tokens; dumped_layers[0][1] is the list of
                         # sentence lengths for the batch, so we can look up
                         # number of tokens here
-                        for t in range(dumped_layers[0][1][s])
+                        for t in range(dumped_layers[0][1][idx])
                     ]
                     # Array of sentences
-                    for s in range(dumped_layers[0][0].shape[1])
+                    for idx in perm
                 ]
 
                 # Accumulate all the dumped layers into one big list of sentences.
@@ -261,8 +265,13 @@ class Translator(object):
                 n_best_preds = [" ".join(pred)
                                 for pred in trans.pred_sents[:self.n_best]]
                 all_predictions += [n_best_preds]
-                self.out_file.write('\n'.join(n_best_preds) + '\n')
-                self.out_file.flush()
+
+                if out_file is None:
+                    self.out_file.write('\n'.join(n_best_preds) + '\n')
+                    self.out_file.flush()
+                else:
+                    out_file.write('\n'.join(n_best_preds) + '\n')
+                    out_file.flush()
 
                 if self.verbose:
                     sent_number = next(counter)
