@@ -1,3 +1,42 @@
+# OpenNMT-py with inspection
+
+This is a fork of OpenNMT-py that allows for inspection of the activations of intermediate neurons, as well as manual modification of those neurons at inference time. Everything is known to work with the single-direction RNN encoder; others have not been tested. This fork adds the following option to `train.py`:
+
+```
+-separate_layers
+  Train the RNN or BRNN with a separate module for each layer. This must be true at training time in order for -dump_layers to work at inference time.
+```
+
+It adds the following option to `translate.py`:
+
+```
+-dump_layers FILENAME
+  Dump the activations of all encoder layers to FILENAME. Only works on models trained with -separate_layers (or non-RNN models, theoretically). The file will be in .pt format, consisting of an array of shape (sentences) x (tokens in this sentence) x (layers) x (neurons in this layer), where only the last dimension of the array is a Tensor.
+```
+
+It adds the `correlate.py` and `correlation-to-basis.py` scripts in the `searchers/` directory. These aren't easy to use yet, but they provide functions that can be called from Python, with a usage example at the bottom of `correlate.py`.
+
+It also adds the script `mask_out.py` in the root directory. This is run with the following options:
+
+```
+-mask_out_layer INT
+  Which layer to apply masking out to
+-mask_out_basis FILENAME
+  A .pt file containing a (# of neurons in this layer) x (# neurons in this layer) matrix, where the (n)th row is the
+  hypothesized (n)th most important basis vector for the space. When testing individual neurons' importances, this will be
+  a permutation matrix. The basis must be orthonormal.
+-mask_out_cumulative
+  Use this flag to do the cumulative experiment, where more neurons are masked out at every step. If this is not set, then
+  instead each interval will be masked out independently (i.e. there will be a run without 0-50, then without 50-100, etc.)
+-mask_out_intervals INT
+  The number of intervals to divide the basis into. E.g. if this is 10, and there are 500 neurons, then at every step 50 more neurons
+  will be masked out.
+```
+
+`mask_out.py` also accepts all the same arguments as `translate.py`. When running `mask_out.py`, the `-output` option should specify a directory, and this directory will be populated with files named `without-%d-%d.txt` with the two integers indicating which range of basis vectors was masked out. Currently, `-dump_layers` will not work, as every next run will overwrite the dump. This will hopefully be fixed soon.
+
+The README from upstream OpenNMT-py follows.
+
 # OpenNMT-py: Open-Source Neural Machine Translation
 
 [![Build Status](https://travis-ci.org/OpenNMT/OpenNMT-py.svg?branch=master)](https://travis-ci.org/OpenNMT/OpenNMT-py)
