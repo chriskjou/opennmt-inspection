@@ -219,6 +219,8 @@ class Trainer(object):
         stats = onmt.utils.Statistics()
 
         for batch in valid_iter:
+            print(batch)
+
             cur_dataset = valid_iter.get_cur_dataset()
             self.valid_loss.cur_dataset = cur_dataset
 

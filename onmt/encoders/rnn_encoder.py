@@ -118,6 +118,9 @@ class RNNEncoder(EncoderBase):
         else:
             memory_bank, encoder_final = self.rnn(packed_emb)
 
+            if dump_layers:
+                dumped_layers = [memory_bank]
+
         if lengths is not None and not self.no_pack_padded_seq:
             memory_bank = unpack(memory_bank)[0]
 

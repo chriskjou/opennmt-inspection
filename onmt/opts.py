@@ -456,6 +456,7 @@ def translate_opts(parser):
                        source token that had highest attention weight. If
                        phrase_table is provided, it will lookup the
                        identified source token and give the corresponding
+                    dd
                        target token. If it is not provided(or the identified
                        source token does not exist in the table) then it
                        will copy the source token""")
@@ -512,6 +513,22 @@ def mask_out_opts(parser):
     group.add_argument('-mask_out_intervals', type=int, default=10,
                         help="Number of intervals to divide the layer into. Default 10")
 
+def modify_opts(parser):
+    translate_opts(parser)
+
+    group = parser.add_argument_group('Neuron modification')
+    group.add_argument('-modify_corpus', type=str, default="",
+                        help="""Modification corpus, specifying
+                        a neuron to modify for each sentence and
+                        containing the source sentences. Generated
+                        by another script (TODO explain).
+                        """)
+    group.add_argument('-modify_layer', type=int, default=-1,
+                        help="Layer at which to do the modification")
+    group.add_argument('-modify_neuron', type=int, default=-1,
+                        help="Neuron index to which to do the modification")
+    group.add_argument('-modify_value', type=float, default=0,
+                        help="Value to which to set the modified neuron")
 
 def add_md_help_argument(parser):
     """ md help parser """

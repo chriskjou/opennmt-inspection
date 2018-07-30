@@ -40,7 +40,7 @@ class CNNEncoder(EncoderBase):
         if dump_layers:
             dumped_layers, out = self.cnn(emb_remap, True, intervention)
         else:
-            out = self.cnn(emb_remap, dump_layers, False, intervention)
+            out = self.cnn(emb_remap, False, intervention)
 
         if dump_layers:
             return emb_remap.squeeze(3).transpose(0, 1).contiguous(), \

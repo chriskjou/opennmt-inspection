@@ -60,7 +60,7 @@ def main(opt):
                                  src_dir=opt.src_dir,
                                  batch_size=opt.batch_size,
                                  attn_debug=opt.attn_debug,
-                                 intervention=lambda l, i: intervene(l, mask,i),
+                                 intervention=lambda l, i: intervene(l, mask, i),
                                  out_file=out_file)
 
     if opt.mask_out_cumulative:

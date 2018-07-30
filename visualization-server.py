@@ -48,6 +48,8 @@ correlations = {
 loaded_models = {}
 loaded_sources = {}
 
+opened_models = {}
+
 for model_name in tqdm(model_list):
     with open(sources[model_name], 'r') as s:
         loaded_sources[model_name] = [line.split(' ') for line in s]
@@ -99,3 +101,35 @@ def source(model='demo'):
 @app.route("/correlations/<model>/<layer>")
 def get_correlations(model='demo', layer=0):
     return jsonify(correlations[model][int(layer)])
+
+@app.route("/load/<model>"):
+def load(model):
+    if model not in opened_models:
+        opt = FakeOpt() # TODO fill in the fakeopt defaults
+        opened_models[model] = build_translator(opt, report_score=False, logger=get_logger(), use_output=False)
+
+@app.route("/modify/<model>"):
+def modify(model):
+    modifications = json.loads(request.args.get('modifications'))
+    source = request.args.get('source')
+
+    if model not in opened_models:
+        load(model)
+
+    def intervene(layer, layer_index):
+        for t, l, n, v in modifications: # Token index, layer index, neuron index, target value
+            if layer_index == l:
+                layer[t][0][n] = v
+        return layer
+
+    stream = io.StringIO()
+    opened_models[model].translate(
+        src_dat_iter=[source],
+        src_dir='',
+        batch_size=1,
+        attn_debug=False,
+        intervention=intervene,
+        out_file=stream
+    )
+
+    return jsonify({'translation': stream.getvalue()})

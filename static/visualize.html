@@ -9,6 +9,16 @@
           }
           span.token {
           }
+          div#top-activations, div#bottom-activations, div#conditional-variance {
+            padding-left: 20px;
+            border: none;
+          }
+          div#top-activations {
+            padding-top: 20px;
+          }
+          div#conditional-variance {
+            padding-bottom: 20px;
+          }
           div#left {
             position: absolute;
             top: 0;
@@ -16,7 +26,7 @@
             bottom: 0;
             width: 30%;
           }
-          div#right {
+          div#right-wrapper {
             position: absolute;
             top: 0;
             right: 0;
@@ -78,7 +88,12 @@
         </div>
       </div>
       <!-- Right "viewing" pane -->
-      <div id="right">
+      <div id="right-wrapper">
+        <div id="top-activations"></div>
+        <div id="bottom-activations"></div>
+        <div id="conditional-variance"></div>
+        <div id="right">
+        </div>
       </div>
 
       <script>
@@ -117,11 +132,18 @@
               methodsList = document.getElementById('methods'),
               layerList = document.getElementById('layers'),
               neuronList = document.getElementById('neurons'),
-              display = document.getElementById('right');
+              display = document.getElementById('right'),
+              topActivations = document.getElementById('top-activations'),
+              bottomActivations = document.getElementById('bottom-activations'),
+              conditionalVariance = document.getElementById('conditional-variance');
 
         let lineElements = [];
+        let tokenTexts = [];
+        let tokenCounts = {};
+        let uniqueTokens = [];
         let currentModel = null;
         let currentLayer = null;
+        let keydownFunction = null;
 
         let currentModelSelector = null;
         let currentLayerSelector = null;
@@ -132,6 +154,7 @@
                   modelIndex = modelDescription.index,
                   layers = modelDescription.layers,
                   size = modelDescription.size;
+
 
             let tab = document.createElement('div');
             tab.className = 'model-tab';
@@ -166,22 +189,101 @@
                              Math.max.apply(this, scores.map((x) => Math.abs(x[a])));
                     });
 
+                    let clickFunctions = [];
+
+                    let selectedNeuronElement = null;
+                    let selectedNeuronIndex = -1;
+
+
                     neuronList.innerHTML = '';
 
-                    sorted.forEach((neuron) => {
+                    if (keydownFunction) document.body.removeEventListener('keydown',
+                        keydownFunction);
+
+                    document.body.addEventListener('keydown', keydownFunction = (e) => {
+                      if (e.which === 40) {
+                        selectedNeuronIndex += 1;
+                        clickFunctions[selectedNeuronIndex]();
+                      } else if (e.which == 38) {
+                        selectedNeuronIndex -= 1;
+                        clickFunctions[selectedNeuronIndex]();
+                      }
+                    });
+
+                    sorted.forEach((neuron, cIndex) => {
                       let neuronElement = document.createElement('div');
                       neuronElement.className = 'neuron-selector';
                       neuronElement.innerText = neuron.toString() + ' ( ' +
                           Math.max.apply(this, scores.map((x) => x[neuron])) + ')';
 
-                      neuronElement.addEventListener('click', () => {
+                      neuronElement.addEventListener('click', clickFunctions[cIndex] = () => {
+                        if (selectedNeuronElement) selectedNeuronElement.className = 'neuron-selector';
+                        selectedNeuronIndex = cIndex;
+                        neuronElement.className = 'neuron-selector selected';
+                        selectedNeuronElement = neuronElement;
                         getJSON('/dump/' + model + '/' + i + '/' + neuron, (activations) => {
                           let mean = activations.reduce((a, b) => a + b) / activations.length;
                           let std = Math.sqrt(
                               activations.map((x) => (x - mean) * (x - mean)).reduce((a, b) => a + b) /
                               activations.length);
-                          console.log(activations.length, lineElements.length);
+
+                          // Compute individual-token sensitivities
+                          let totals = {};
+                          const SMOOTHING_FACTOR = 10; // Adjust as needed, TODO move to top
+
+                          uniqueTokens.forEach((token) => {
+                            totals[token] = 0;
+                          });
                           activations.forEach((activation, i) => {
+                            totals[tokenTexts[i]] += (activation - mean) / std;
+                          });
+                          let trueAvg = {};
+                          uniqueTokens.forEach((token) => {
+                            if (tokenCounts[token] > 300) {
+                              console.log(token, totals[token], tokenCounts[token]);
+                            }
+                            trueAvg[token] = totals[token] / tokenCounts[token];
+                            totals[token] /= (tokenCounts[token] + SMOOTHING_FACTOR);
+                          });
+
+                          // Highest average activation individual tokens
+                          let sortedTop = uniqueTokens.slice(0).sort((a, b) => (totals[b] > totals[a] ? 1 : -1));
+                          topActivations.innerHTML = '';
+                          sortedTop.slice(0, 10).forEach((x) => {
+                            let elt = document.createElement('span');
+                            elt.innerText = x.replace(/\n/g, '');
+                            elt.style.backgroundColor = colorFor(totals[x]);
+                            elt.title = totals[x];
+                            topActivations.appendChild(elt);
+
+                            let spacer = document.createElement('span');
+                            spacer.innerText = ' ';
+                            topActivations.appendChild(spacer);
+                          });
+
+                          // Lowest average activation individual tokens
+                          let sortedBottom = uniqueTokens.slice(0).sort((a, b) => (totals[a] > totals[b] ? 1 : -1));
+                          bottomActivations.innerHTML = '';
+                          sortedBottom.slice(0, 10).forEach((x) => {
+                            let elt = document.createElement('span');
+                            elt.innerText = x.replace(/\n/g, '');
+                            elt.style.backgroundColor = colorFor(totals[x]);
+                            elt.title = totals[x];
+                            bottomActivations.appendChild(elt);
+
+                            let spacer = document.createElement('span');
+                            spacer.innerText = ' ';
+                            bottomActivations.appendChild(spacer);
+                          });
+
+                          let condVar = 0;
+                          activations.forEach((x, i) => {
+                            condVar += Math.pow((x - mean) / std - trueAvg[tokenTexts[i]], 2) / tokenTexts.length;
+                          });
+
+                          conditionalVariance.innerText = condVar;
+
+                          activations.slice(0, 2000).forEach((activation, i) => {
                             activation = (activation - mean) / std
                             lineElements[i].style.backgroundColor = colorFor(activation);
                             lineElements[i].title = Math.round(activation * 100) / 100;
@@ -200,6 +302,10 @@
                 display.innerHTML = '';
 
                 lineElements = [];
+                tokenTexts = [];
+                let usedTokens = {};
+                tokenCounts = {};
+                uniqueTokens = [];
 
                 lines.forEach((line) => {
                   lineElement = document.createElement('div');
@@ -207,6 +313,15 @@
                     tokenElement = document.createElement('span');
                     tokenElement.className = 'token';
                     tokenElement.innerHTML = token;
+
+                    tokenTexts.push(token);
+                    if (!usedTokens[token]) {
+                      uniqueTokens.push(token);
+                      tokenCounts[token] = 0;
+                    }
+                    tokenCounts[token] += 1;
+                    usedTokens[token] = true;
+
                     lineElement.appendChild(tokenElement);
 
                     if (i !== line.length - 1) {
