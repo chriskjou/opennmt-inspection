@@ -124,6 +124,10 @@ class RNNEncoder(EncoderBase):
         if lengths is not None and not self.no_pack_padded_seq:
             memory_bank = unpack(memory_bank)[0]
 
+        if intervention is not None and not self.separate_layers:
+            memory_bank = intervention(memory_bank, 0)
+
+
         if self.use_bridge:
             encoder_final = self._bridge(encoder_final)
 

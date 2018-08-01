@@ -332,8 +332,11 @@ class Translator(object):
             json.dump(self.translator.beam_accum,
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
 
-        if self.dump_layers:
+        if self.dump_layers and self.dump_layers != -1:
             torch.save(all_dumped_layers, self.dump_layers)
+
+        elif self.dump_layers == -1:
+            return all_dumped_layers, all_scores, all_predictions
 
         return all_scores, all_predictions
 
