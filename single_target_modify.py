@@ -127,10 +127,13 @@ def single_target_modification(
     mean, std = params[0][0], params[1][0]
     neg_mean, neg_std = params[0][1], params[1][1]
 
-    # Apply magnitude separation to get the desired activatio
+    # Move the neuron somewhat out of its ordinary activation range,
+    # away from the negative (i.e. doesn't have desired property) class,
+    # by an amount specified by (magnitude)
     sample = (mean + (1 if mean > neg_mean else -1) * std * magnitude).numpy().tolist()
 
-    # Round to 3 significant figures for the purposes of reproducing.
+    # Round to 3 significant figures so that small floating point fluctuations
+    # don't break the cache
     sample = round(sample, -int(floor(log10(abs(sample)))) + 2)
 
     log('Using sample value %f' % (sample,))
@@ -186,8 +189,9 @@ def single_target_modification(
         log('  %r: %d' % (k, v))
 
     # A "success" is translating to something that is aligned with something
-    # *having* the target property and *not having* anything else. There are two
-    # such cases.
+    # *having* the target property and *not having* any other tagged properties. There are two
+    # such cases: being aligned to only tokens having only the target property;
+    # and being aligned to tokens having the target property and tokens having no properties.
 
     successful_unique = frozenset([tuple(i == target_property for i in range(len(property_taggers)))])
     successful_trivial = successful_unique.union({tuple(False for _ in property_taggers)})
@@ -255,17 +259,17 @@ if __name__ == '__main__':
         return result
 
     single_target_modification(
-        model = '/data/sls/scratch/abau/model-corpus-brnn/en-es-1.pt',
+        model = 'models/en-es-1.pt',
         source = load_tokenized('un-data/test/en'),
-        target = load_tokenized('/data/sls/scratch/abau/test-results/en-es-1-brnn.txt'),
+        target = load_tokenized('output/en-es-1.txt'),
         gold = load_tokenized('un-data/test/es'),
 
-        alignment_training_source = load_tokenized('/data/sls/scratch/belinkov/mt/data/UN/6way/UNv1.0.6way.en.tok.2m'),
-        alignment_training_target = load_tokenized('/data/sls/scratch/belinkov/mt/data/UN/6way/UNv1.0.6way.es.tok.2m'),
+        alignment_training_source = load_tokenized('data/UNv1.0.6way.en.tok.2m'),
+        alignment_training_target = load_tokenized('data/UNv1.0.6way.es.tok.2m'),
 
         searching_corpus_source = load_tokenized('un-data/test/en'),
-        searching_corpus_target = load_tokenized('/data/sls/scratch/abau/test-results/en-es-1-brnn.txt'),
-        searching_dump = '/data/sls/scratch/abau/layer-dumps/en-es-1-brnn.dump.pt',
+        searching_corpus_target = load_tokenized('output/en-es-1.txt'),
+        searching_dump = 'layer-dump/en-es-1-brnn.dump.pt',
 
         property_taggers = [tag_past, tag_present],
         target_property = 1,
