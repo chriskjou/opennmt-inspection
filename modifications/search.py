@@ -40,7 +40,7 @@ def search(corpus, tags, dump, property_projection, classes = (True, False)):
 
 
     # We run gmm to search for predictive neurons of the given classes.
-    results, parameters = gmm(
+    return gmm(
         source = corpus,
         dump = dump,
         manual_tag = lambda line: tag_dict[tuple(line)],
@@ -48,13 +48,3 @@ def search(corpus, tags, dump, property_projection, classes = (True, False)):
         simulate_balanced = True,
         scoring_function = balanced_accuracy
     )
-
-    # Find the best neuron and its means, stdevs per class
-    (layer, neuron), index, score = results[0]
-
-    means, stdevs = parameters
-
-    # These will each be vectors of length (classes)
-    mean, stdev = means[:, index], stdevs[:, index]
-
-    return (layer, neuron), (mean, stdev)

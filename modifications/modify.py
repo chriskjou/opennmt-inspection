@@ -66,23 +66,22 @@ class FakeOpt(object):
 
 def _modify(
         corpus=None,
-        neuron=None,
-        layer=None,
-        value=None,
+        neurons=None,
+        values=None,
         model=None):
 
     opt = FakeOpt(model=model)
 
     translator = build_translator(opt, report_score=False, logger=get_logger(), use_output=False)
 
-    toggles = [x[1] for x in corpus]
-    sources = [x[0] for x in corpus]
-
     sources, toggles = zip(*corpus)
+    _, toggles = zip(*toggles)
 
     def intervene(layer_data, sentence_index, index):
-        if index == layer:
-            layer_data[toggles[sentence_index]][0][neuron] = value
+        for (layer, neuron), value in zip(neurons, values):
+            if index == layer:
+                for i in toggles[sentence_index]:
+                    layer_data[i][0][neuron] = value
         return layer_data
 
     modified = []
@@ -90,8 +89,9 @@ def _modify(
         stream = io.StringIO()
 
         # Logging:
-        tqdm.write('Source: %s' % source)
-        tqdm.write('Target: %s' % source[toggles[i]])
+        print(toggles[i])
+        tqdm.write('Source: %s' % ' '.join(source))
+        tqdm.write('Target: %s' % ' '.join(source[j] for j in toggles[i]))
 
         translator.translate(src_data_iter=[' '.join(source)],
                              src_dir='',

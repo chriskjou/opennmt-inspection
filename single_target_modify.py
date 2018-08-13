@@ -15,6 +15,8 @@ import json
 
 import hashlib
 
+print(sys.argv)
+
 def log(x):
     sys.stdout.flush()
     tqdm.write(x)
@@ -26,6 +28,8 @@ def single_target_modification(
         target = [],
         gold = [],
 
+        num_neurons = 1,
+
         alignment_training_source = [],
         alignment_training_target = [],
 
@@ -36,7 +40,7 @@ def single_target_modification(
         property_taggers = [],
         target_property = -1,
 
-        magnitude = 1,
+        magnitude_cap = 1,
 
         domain = lambda x, t: [True for _ in x]):
 
@@ -85,14 +89,55 @@ def single_target_modification(
     log('SEARCHING')
     log('=========')
 
-    neuron, params = search(
+    ranking, params = search(
         searching_corpus_source,
         tags,
         searching_dump,
         property_projection = lambda s, t: any(y[target_property] for y in t)
     )
 
-    log('Using neuron (%d, %d).' % neuron)
+    neurons, indices, _ = zip(*ranking[:num_neurons])
+
+    # Collect together Gaussian parameters
+    means, stdevs = params
+    positive_means = [means[0, index] for index in indices]
+    negative_means = [means[1, index] for index in indices]
+    positive_stdevs = [stdevs[0, index] for index in indices]
+    negative_stdevs = [stdevs[1, index] for index in indices]
+
+    # Compute optimal sample poitns
+    optimal_points = [
+        (mu_1 * sigma_2 ** 2 - mu_2 * sigma_1 ** 2) /
+        (sigma_2 ** 2 - sigma_1 ** 2)
+        for mu_1, mu_2, sigma_1, sigma_2 in zip(
+            positive_means,
+            negative_means,
+            positive_stdevs,
+            negative_stdevs
+        )
+    ]
+
+    # Clamp optimal points to within magnitude cap,
+    # and round for caching purposes
+    sample_points = [
+        min(max(x,
+            mu_1 - sigma_1 * magnitude_cap),
+            mu_1 + sigma_1 * magnitude_cap)
+        for x, mu_1, sigma_1 in zip(
+            optimal_points,
+            positive_means,
+            positive_stdevs
+        )
+    ]
+
+    # Make serializable and round for caching purposes
+    sample_points = [
+        round(x.numpy().tolist(),
+            -int(floor(log10(abs(x.numpy().tolist())))) + 2)
+        for x in sample_points
+    ]
+
+    log('Using neurons %s' % ', '.join('(%d, %d)' % neuron for neuron in neurons))
 
     # Collect all examples of in-domain tokens we wish to
     # modify
@@ -108,12 +153,12 @@ def single_target_modification(
     for j, (source_line, gold_line) in enumerate(zip(source, gold)):
         domain_locus = domain(source_line, active_tags[j])
         example_corpus.extend([
-            (source_line, i) for i, x in enumerate(source_line)
-            if domain_locus[i]
+            (source_line, domain_locus[i]) for i, x in enumerate(source_line)
+            if domain_locus[i] is not None
         ])
         example_gold.extend([
             gold_line for i, x in enumerate(source_line)
-            if domain_locus[i]
+            if domain_locus[i] is not None
         ])
     example_sources, _ = zip(*example_corpus)
 
@@ -122,21 +167,7 @@ def single_target_modification(
     # Get the usual activation of our selected neuron under
     # the target property
 
-    # Default tag order is (True, False) and we want to switch to True,
-    # so take that mean.
-    mean, std = params[0][0], params[1][0]
-    neg_mean, neg_std = params[0][1], params[1][1]
-
-    # Move the neuron somewhat out of its ordinary activation range,
-    # away from the negative (i.e. doesn't have desired property) class,
-    # by an amount specified by (magnitude)
-    sample = (mean + (1 if mean > neg_mean else -1) * std * magnitude).numpy().tolist()
-
-    # Round to 3 significant figures so that small floating point fluctuations
-    # don't break the cache
-    sample = round(sample, -int(floor(log10(abs(sample)))) + 2)
-
-    log('Using sample value %f' % (sample,))
+    log('Using sample values %s' % (', '.join('%f' % x for x in sample_points),))
 
     # Modify these examples to match the target property
     log('MODIFYING')
@@ -144,9 +175,8 @@ def single_target_modification(
 
     modified = modify(
         corpus = example_corpus,
-        neuron = neuron[1],
-        layer = neuron[0],
-        value = sample,
+        neurons = neurons,
+        values = sample_points,
         model = model
     )
 
@@ -158,7 +188,7 @@ def single_target_modification(
             modified),
         (alignment_training_source,
             alignment_training_target)],
-        len(source)
+        len(example_sources)
     )
 
     log('TAGGING MODIFIED RESULT')
@@ -177,7 +207,7 @@ def single_target_modification(
     log('========')
 
     result_statistics = {}
-    for (example, target), tags in zip(example_corpus, modified_tags):
+    for (example, (target, _)), tags in zip(example_corpus, modified_tags):
         classification = frozenset(tuple(x) for x in tags[target][1])
         if classification not in result_statistics:
             result_statistics[classification] = 0
@@ -206,7 +236,6 @@ def single_target_modification(
     bleu_score = corpus_bleu([[x] for x in example_gold], modified)
     log('Corpus bleu: %f' % bleu_score)
 
-# Change-to-present BRNN tense experiment.
 if __name__ == '__main__':
 
     import spacy
@@ -239,17 +268,42 @@ if __name__ == '__main__':
             'Tense' in m and m['Tense'] in ('Pres',)
             for p, m in tag_es(tokens)]
 
+    def tag_singular(tokens):
+        return [p == 'NOUN' and
+            'Number' in m and m['Number'] == 'Sing'
+            for p, m in tag_es(tokens)]
+
+    def tag_plural(tokens):
+        return [p == 'NOUN' and
+            'Number' in m and m['Number'] == 'Plur'
+            for p, m in tag_es(tokens)]
+
     # Only try to change to present those verbs
     # that are currently aligned to past and not
     # to present.
-    def tag_verbs(source_tokens, aligned_results):
+    def tag_past_verbs(source_tokens, aligned_results):
         doc = Doc(vocab=en.vocab, words=source_tokens)
         en.tagger(doc)
 
-        return [t.pos_ == 'VERB' and
+        return [(i,(i,)) if t.pos_ == 'VERB' and
             any(m[0] for m in r) and not
-            any(m[1] for m in r) for t, (_, r)
-            in zip(doc, aligned_results)]
+            any(m[1] for m in r) else None for i, (t, (_, r))
+            in enumerate(zip(doc, aligned_results))]
+
+    # Only try to change to plural those nouns
+    # currently aligned to singular and not plural
+    def tag_relevant_nouns(source_tokens, aligned_results):
+        doc = Doc(vocab=en.vocab, words=source_tokens)
+        en.tagger(doc)
+        en.parser(doc)
+
+        return [
+            (j, tuple(i for i, d in enumerate(doc)
+                if d == t or d.head == t))
+            if t.pos_ == 'NOUN' and
+            any(m[0] for m in r) and not
+            any(m[1] for m in r) else None for j, (t, (_, r))
+            in enumerate(zip(doc, aligned_results))]
 
     def load_tokenized(fname):
         result = []
@@ -258,23 +312,47 @@ if __name__ == '__main__':
                 result.append(line.strip().split(' '))
         return result
 
-    single_target_modification(
-        model = 'models/en-es-1.pt',
-        source = load_tokenized('un-data/test/en'),
-        target = load_tokenized('output/en-es-1.txt'),
-        gold = load_tokenized('un-data/test/es'),
+    # Change-to-present BRNN tense experiment.
+    if sys.argv[1] == 'tense':
+        single_target_modification(
+            model = 'models/en-es-1.pt',
+            source = load_tokenized('un-data/test/en'),
+            target = load_tokenized('output/en-es-1.txt'),
+            gold = load_tokenized('un-data/test/es'),
 
-        alignment_training_source = load_tokenized('data/UNv1.0.6way.en.tok.2m'),
-        alignment_training_target = load_tokenized('data/UNv1.0.6way.es.tok.2m'),
+            alignment_training_source = load_tokenized('data/UNv1.0.6way.en.tok.2m'),
+            alignment_training_target = load_tokenized('data/UNv1.0.6way.es.tok.2m'),
 
-        searching_corpus_source = load_tokenized('un-data/test/en'),
-        searching_corpus_target = load_tokenized('output/en-es-1.txt'),
-        searching_dump = 'layer-dump/en-es-1-brnn.dump.pt',
+            searching_corpus_source = load_tokenized('un-data/test/en'),
+            searching_corpus_target = load_tokenized('output/en-es-1.txt'),
+            searching_dump = 'layer-dump/en-es-1-brnn.dump.pt',
 
-        property_taggers = [tag_past, tag_present],
-        target_property = 1,
-        magnitude = 10,
+            property_taggers = [tag_past, tag_present],
+            target_property = 1,
+            magnitude = 10,
 
-        domain = tag_verbs
-    )
+            domain = tag_past_verbs
+        )
 
+    # Change-to-plural RNN number experiment
+    elif sys.argv[1] == 'number':
+        single_target_modification(
+            model = 'models/en-es-1.pt',
+            source = load_tokenized('un-data/test/en'),
+            target = load_tokenized('output/en-es-1.txt'),
+            gold = load_tokenized('un-data/test/es'),
+
+            alignment_training_source = load_tokenized('data/UNv1.0.6way.en.tok.2m'),
+            alignment_training_target = load_tokenized('data/UNv1.0.6way.es.tok.2m'),
+
+            searching_corpus_source = load_tokenized('un-data/test/en'),
+            searching_corpus_target = load_tokenized('output/en-es-1.txt'),
+            searching_dump = 'layer-dump/en-es-1-brnn.dump.pt',
+
+            property_taggers = [tag_plural, tag_singular],
+            target_property = 1,
+            magnitude_cap = 20,
+            num_neurons = 5,
+
+            domain = tag_relevant_nouns
+        )

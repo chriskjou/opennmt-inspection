@@ -3,10 +3,12 @@ from subprocess import Popen, PIPE
 from modifications.util import file_cached_function
 import sys
 import os
+import random
+from tqdm import tqdm
 
 def parse_pharaoh_file(f):
     result = []
-    for line in f:
+    for line in tqdm(f):
         pairs = line.split(' ')
         pairs = [x.split('-') for x in pairs]
         pairs = [x for x in pairs if len(x) == 2]
@@ -25,7 +27,7 @@ def _align(iterator_pairs, truncation, replace=False):
 
     full_string = '\n'.join(alignment_string)
 
-    fin = 'tmp.align.txt' # TODO possibly allow this location to be specified
+    fin = 'tmp-align-%s-%s.txt' % (random.randint(0, 65535), random.randint(0, 65535)) # TODO possibly allow this location to be specified
 
     # Run alignment again iff this hasn't been cached
     # Write the file for usage
@@ -35,7 +37,7 @@ def _align(iterator_pairs, truncation, replace=False):
     # Run alignments
     fast_align = Popen(['fast_align/build/fast_align', '-i',
         fin, '-d', '-o', '-v'], stdout=PIPE,
-        stderr=sys.stdout)
+        stderr=sys.stderr)
     head = Popen(['head', '-n', '%d' % truncation],
         stdin=fast_align.stdout,
         stdout=PIPE,

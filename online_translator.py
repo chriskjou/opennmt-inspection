@@ -34,13 +34,13 @@ class FakeOpt(object):
             ignore_when_blocking=[],
             replace_unk=True,
             model=None,
+            dump_layers=-1,
             verbose=False,
             report_bleu=False,
             batch_size=30,
             n_best=1,
             dump_beam='',
-            dump_layers='',
-            gpu=0,
+            gpu=-1,
             alpha=0,
             beta=0,
             length_penalty='none',
@@ -52,7 +52,6 @@ class FakeOpt(object):
         self.coverage_penalty = coverage_penalty
         self.beam_size = beam_size
         self.n_best = n_best
-        self.max_best = max_best
         self.max_length = max_length
         self.min_length = min_length
         self.stepwise_penalty = stepwise_penalty
@@ -69,6 +68,8 @@ class FakeOpt(object):
         self.model = model
 
 # Translator cache
+# TODO use of global variables is generally unhealthy and we should
+# move this into a class.
 translator = None
 translator_model_name = None
 
@@ -77,10 +78,14 @@ def translate(
         modifications=None,
         model=None):
 
+    global translator
+    global translator_model_name
+
     if model != translator_model_name:
         opt = FakeOpt(model=model)
 
         translator = build_translator(opt, report_score=False, logger=get_logger(), use_output=False)
+        translator_model_name = model
 
     def intervene(layer_data, sentence_index, index):
         for token, layer, neuron, value in modifications[sentence_index]:
@@ -94,14 +99,13 @@ def translate(
     # NB. Some of this is kind of hacky with passing streams and things
     # and also returning them; it may be good to go back later and try to dedupe
     # all the plumbing. Everything should presently work though.
-    for i, source in e:
+    for i, source in enumerate(sentences):
         stream = io.StringIO()
         layer_dump, scores, predictions = translator.translate(src_data_iter=[source],
                              src_dir='',
                              batch_size=1,
                              attn_debug=False,
                              intervention=lambda l, j: intervene(l, i, j),
-                             dump_layers=-1,
                              out_file=stream)
         translation = stream.getvalue()
 
