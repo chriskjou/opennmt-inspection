@@ -75,12 +75,17 @@ def _modify(
     translator = build_translator(opt, report_score=False, logger=get_logger(), use_output=False)
 
     sources, toggles = zip(*corpus)
+    print('Originally toggles is the following:')
+    print(toggles[:10])
     _, toggles = zip(*toggles)
+
+    print(sources[:10], toggles[:10])
 
     def intervene(layer_data, sentence_index, index):
         for (layer, neuron), value in zip(neurons, values):
             if index == layer:
                 for i in toggles[sentence_index]:
+                    tqdm.write('Successfully modifying %d %d %d %f' % (i, layer, neuron, value))
                     layer_data[i][0][neuron] = value
         return layer_data
 
@@ -89,7 +94,6 @@ def _modify(
         stream = io.StringIO()
 
         # Logging:
-        print(toggles[i])
         tqdm.write('Source: %s' % ' '.join(source))
         tqdm.write('Target: %s' % ' '.join(source[j] for j in toggles[i]))
 

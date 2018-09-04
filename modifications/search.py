@@ -1,7 +1,7 @@
 from modifications.gmm import gmm
 import torch
 
-def search(corpus, tags, dump, property_projection, classes = (True, False)):
+def search(corpus, tags, dump, property_projection, classes = (True, False), use_gpu = False):
     # (corpus, tags) should be related by tags = tag(corpus, ...)
     # from tag.py. property_projection should be a function from
     # lists of target tags to a finite set of classes (by default True, False).
@@ -46,5 +46,6 @@ def search(corpus, tags, dump, property_projection, classes = (True, False)):
         manual_tag = lambda line: tag_dict[tuple(line)],
         tags = classes,
         simulate_balanced = True,
-        scoring_function = balanced_accuracy
+        scoring_function = balanced_accuracy,
+        use_gpu = use_gpu
     )

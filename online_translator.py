@@ -90,6 +90,7 @@ def translate(
     def intervene(layer_data, sentence_index, index):
         for token, layer, neuron, value in modifications[sentence_index]:
             if layer == index:
+                print('Succesfully flipping %d %d %d %f' % (token, layer, neuron, value))
                 layer_data[token][0][neuron] = value
         return layer_data
 

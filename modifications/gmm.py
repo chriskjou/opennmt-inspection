@@ -30,6 +30,8 @@ import json
 import os
 
 def load_dump(fname, cpu_only = False):
+    print('Attempting to load dump', fname)
+
     # Load as 4000x(sentence_length)x(layers)x[500] array
     # (where [] indicates that this is a Tensor)
     if cpu_only:

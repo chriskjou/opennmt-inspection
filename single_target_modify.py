@@ -15,8 +15,6 @@ import json
 
 import hashlib
 
-print(sys.argv)
-
 def log(x):
     sys.stdout.flush()
     tqdm.write(x)
@@ -36,6 +34,8 @@ def single_target_modification(
         searching_corpus_source = [],
         searching_corpus_target = [],
         searching_dump = '',
+
+        selection_strategy = 'target',
 
         property_taggers = [],
         target_property = -1,
@@ -89,12 +89,28 @@ def single_target_modification(
     log('SEARCHING')
     log('=========')
 
-    ranking, params = search(
-        searching_corpus_source,
-        tags,
-        searching_dump,
-        property_projection = lambda s, t: any(y[target_property] for y in t)
-    )
+    if selection_strategy == 'target':
+        ranking, params = search(
+            searching_corpus_source,
+            tags,
+            searching_dump,
+            property_projection = lambda s, t: any(y[target_property] for y in t),
+            use_gpu = False
+        )
+    else: # presumably "all"
+        ranking, params = search(
+            searching_corpus_source,
+            tags,
+            searching_dump,
+            classes = (0, 1, 2),
+            simulate_balanced = True,
+            property_projection = \
+                lambda s, t: (
+                    0 if any(y[target_property] for y in t) else
+                    1 if any(any(y) for y in t) else
+                    2
+                )
+        )
 
     neurons, indices, _ = zip(*ranking[:num_neurons])
 
@@ -106,27 +122,13 @@ def single_target_modification(
     negative_stdevs = [stdevs[1, index] for index in indices]
 
     # Compute optimal sample poitns
-    optimal_points = [
-        (mu_1 * sigma_2 ** 2 - mu_2 * sigma_1 ** 2) /
-        (sigma_2 ** 2 - sigma_1 ** 2)
+    sample_points = [
+        (mu_1 - mu_2) * magnitude_cap + mu_1
         for mu_1, mu_2, sigma_1, sigma_2 in zip(
             positive_means,
             negative_means,
             positive_stdevs,
             negative_stdevs
-        )
-    ]
-
-    # Clamp optimal points to within magnitude cap,
-    # and round for caching purposes
-    sample_points = [
-        min(max(x,
-            mu_1 - sigma_1 * magnitude_cap),
-            mu_1 + sigma_1 * magnitude_cap)
-        for x, mu_1, sigma_1 in zip(
-            optimal_points,
-            positive_means,
-            positive_stdevs
         )
     ]
 
@@ -152,13 +154,12 @@ def single_target_modification(
 
     for j, (source_line, gold_line) in enumerate(zip(source, gold)):
         domain_locus = domain(source_line, active_tags[j])
+
         example_corpus.extend([
-            (source_line, domain_locus[i]) for i, x in enumerate(source_line)
-            if domain_locus[i] is not None
+            (source_line, d) for d in domain_locus
         ])
         example_gold.extend([
-            gold_line for i, x in enumerate(source_line)
-            if domain_locus[i] is not None
+            gold_line for d in domain_locus
         ])
     example_sources, _ = zip(*example_corpus)
 
@@ -236,6 +237,22 @@ def single_target_modification(
     bleu_score = corpus_bleu([[x] for x in example_gold], modified)
     log('Corpus bleu: %f' % bleu_score)
 
+    def serialize_tuple(x):
+        return ({
+            (True, True): '11',
+            (False, False): '00',
+            (True, False): '10',
+            (False, True): '01'
+        })[x]
+    def serialize_set(x):
+        return '|'.join(serialize_tuple(t) for t in x)
+
+    return ({serialize_set(a): b for a, b in result_statistics.items()}, bleu_score,
+            {
+                'neurons': neurons,
+                'sample_values': sample_points
+            })
+
 if __name__ == '__main__':
 
     import spacy
@@ -244,6 +261,8 @@ if __name__ == '__main__':
     en = spacy.load('en')
     es = spacy.load('es')
 
+    # Simple Spanish taggers:
+    # =======================
     def morph_es(x):
         principal, morph = x.tag_.split('__')
         if morph == '_':
@@ -256,55 +275,103 @@ if __name__ == '__main__':
         es.tagger(doc)
         return [morph_es(x) for x in doc]
 
-    def tag_past(tokens):
-        return [p == 'VERB' and
-            'VerbForm' in m and m['VerbForm'] == 'Fin' and
-            'Tense' in m and m['Tense'] in ('Past', 'Imp')
-            for p, m in tag_es(tokens)]
+    def make_tagger_function(wanted_pos, match_set):
+        def tagger_function(tokens):
+            return [pos == wanted_pos and
+                all(key in morph and
+                        morph[key] in match_set[key]
+                        for key in match_set)
+                for pos, morph in tag_es(tokens)]
+        return tagger_function
 
-    def tag_present(tokens):
-        return [p == 'VERB' and
-            'VerbForm' in m and m['VerbForm'] == 'Fin' and
-            'Tense' in m and m['Tense'] in ('Pres',)
-            for p, m in tag_es(tokens)]
+    tag_past = make_tagger_function('VERB', {'VerbForm': ('Fin',), 'Tense': ('Past', 'Imp')})
+    tag_present = make_tagger_function('VERB', {'VerbForm': ('Fin',), 'Tense': ('Pres',)})
+    tag_singular = make_tagger_function('NOUN', {'Number': ('Sing',)})
+    tag_plural = make_tagger_function('NOUN', {'Number': ('Plur',)})
+    tag_masculine = make_tagger_function('NOUN', {'Gender': ('Masc',)})
+    tag_feminine = make_tagger_function('NOUN', {'Gender': ('Fem',)})
 
-    def tag_singular(tokens):
-        return [p == 'NOUN' and
-            'Number' in m and m['Number'] == 'Sing'
-            for p, m in tag_es(tokens)]
+    # English domain taggers:
+    # =======================
+    GENDER_ALTERNATING_WORDS = [
+        # From "Gender Bias in Neural Natural Language Processing" (Lu, et al.)
+        'gods','goddesses','nephew','niece','baron','baroness','father',
+        'mother','dukes','duchesses','dad','mom','beau','belle','beaus','belles',
+        'daddies','mummies','policeman','policewoman','grandfather','grandmother',
+        'landlord','landlady','landlords','landladies','monks', 'nuns''stepson',
+        'stepdaughter','milkmen','milkmaids','chairmen','chairwomen','stewards',
+        'stewardesses','masseurs','masseuses','son-in-law',
+        'daughter-in-law','priests','priestesses','steward','stewardess','emperor',
+        'empress','son','daughter''kings','queens','proprietor','proprietres',
+        'grooms','brides','gentleman','lady','king','queen','governor','matron',
+        'waiters','waitresses','daddy','mummy''emperors','empresses','sir','madam',
+        'wizards','witches','sorcerer','sorceress','lad','lass','milkman','milkmaid'
+        'grandson','granddaughter','congressmen','congresswomen','dads','moms'
 
-    def tag_plural(tokens):
-        return [p == 'NOUN' and
-            'Number' in m and m['Number'] == 'Plur'
-            for p, m in tag_es(tokens)]
+        # Added by hand
+        'congressman', 'congresswoman', 'chairman', 'chairwoman',
+        'chair', 'cheif', 'president'
+    ]
 
-    # Only try to change to present those verbs
-    # that are currently aligned to past and not
-    # to present.
-    def tag_past_verbs(source_tokens, aligned_results):
+    def tag_verbs(source_tokens):
         doc = Doc(vocab=en.vocab, words=source_tokens)
         en.tagger(doc)
 
-        return [(i,(i,)) if t.pos_ == 'VERB' and
-            any(m[0] for m in r) and not
-            any(m[1] for m in r) else None for i, (t, (_, r))
-            in enumerate(zip(doc, aligned_results))]
+        return [i for i, t in enumerate(doc) if t.pos_ == 'VERB']
 
-    # Only try to change to plural those nouns
-    # currently aligned to singular and not plural
-    def tag_relevant_nouns(source_tokens, aligned_results):
+
+    def descendant_of_numeral(t):
+        return t.pos_ == 'NUM' or t != t.head and descendant_of_numeral(t.head)
+    def ancestor_of_numeral(t):
+        return t.pos_ == 'NUM' or any(ancestor_of_numeral(c) for c in t.children)
+    def related_to_numeral(t):
+        return descendant_of_numeral(t) or ancestor_of_numeral(t)
+    def tag_nonnumeric_nouns(source_tokens):
         doc = Doc(vocab=en.vocab, words=source_tokens)
         en.tagger(doc)
         en.parser(doc)
 
-        return [
-            (j, tuple(i for i, d in enumerate(doc)
-                if d == t or d.head == t))
-            if t.pos_ == 'NOUN' and
-            any(m[0] for m in r) and not
-            any(m[1] for m in r) else None for j, (t, (_, r))
-            in enumerate(zip(doc, aligned_results))]
+        return [i for i, t in enumerate(doc) if t.pos_ == 'NOUN' and
+                not related_to_numeral(t)]
 
+    def tag_gender_alternating_nouns(source_tokens):
+        doc = Doc(vocab=en.vocab, words=source_tokens)
+        en.tagger(doc)
+
+        return [i for i, t in enumerate(doc) if t.pos_ == 'NOUN' and
+                t.text.lower() in GENDER_ALTERNATING_WORDS]
+
+    # General domain interpreter
+    # ==========================
+    def domain_interpret(domain_base,
+            source, align,
+            target_property, use_spread):
+
+        # Filter out to only those words which are not already
+        # the target and *are* aligned to some other tag
+        filtered = [i
+                for i in domain_base(source) if
+                any(x[target_property] for x in align[i][1]) and not
+                any(x[1 - target_property] for x in align[i][1])]
+
+        # If use_spread is enabled, use the parse tree
+        if use_spread:
+            doc = Doc(vocab=en.vocab, words=source)
+            en.parser(doc)
+
+            # Modify all dependents also
+            return [
+                (j, tuple(i for i, d in enumerate(doc)
+                    if d == doc[j] or d.head == doc[j]))
+                for j in filtered
+            ]
+
+        else:
+            # Just modify this word
+            return [(i, (i,)) for i in filtered]
+
+    # Tokenized dataset loader
+    # =======================
     def load_tokenized(fname):
         result = []
         with open(fname) as f:
@@ -312,47 +379,110 @@ if __name__ == '__main__':
                 result.append(line.strip().split(' '))
         return result
 
-    # Change-to-present BRNN tense experiment.
-    if sys.argv[1] == 'tense':
-        single_target_modification(
-            model = 'models/en-es-1.pt',
-            source = load_tokenized('un-data/test/en'),
-            target = load_tokenized('output/en-es-1.txt'),
-            gold = load_tokenized('un-data/test/es'),
-
-            alignment_training_source = load_tokenized('data/UNv1.0.6way.en.tok.2m'),
-            alignment_training_target = load_tokenized('data/UNv1.0.6way.es.tok.2m'),
-
-            searching_corpus_source = load_tokenized('un-data/test/en'),
-            searching_corpus_target = load_tokenized('output/en-es-1.txt'),
-            searching_dump = 'layer-dump/en-es-1-brnn.dump.pt',
-
-            property_taggers = [tag_past, tag_present],
+    def run_experiment(experiment_type = 'tense',
             target_property = 1,
-            magnitude = 10,
+            magnitude = 1,
+            selection_strategy = 'target',
+            num_neurons = 1,
+            use_spread = False):
 
-            domain = tag_past_verbs
+        # Everybody uses this model
+        model = 'models-brnn/en-es-1.pt'
+
+        searching_corpus_source = 'un-data/test/en'
+        searching_corpus_target = 'output/en-es-1-brnn.txt'
+        searching_dump = 'layer-dump/en-es-1-brnn.dump.pt'
+
+        alignment_training_source = 'data/UNv1.0.6way.en.tok.2m'
+        alignment_training_target = 'data/UNv1.0.6way.es.tok.2m'
+
+        if experiment_type == 'tense':
+            property_taggers = [tag_past, tag_present]
+            source = 'un-data/test/en'
+            target = 'output/en-es-1-brnn.txt'
+            gold = 'un-data/test/es'
+            domain_base = tag_verbs
+
+        elif experiment_type == 'number':
+            property_taggers = [tag_plural, tag_singular]
+            source = 'un-data/test/en'
+            target = 'output/en-es-1-brnn.txt'
+            gold = 'un-data/test/es'
+            domain_base = tag_nonnumeric_nouns
+
+        elif experiment_type == 'gender':
+            property_taggers = [tag_masculine, tag_feminine]
+            source = 'data/gender-%d-en.tok' % target_property
+            target = 'output/en-es-1-gender-%d.txt' % target_property
+            gold = 'data/gender-%d-es.tok' % target_property
+            domain_base = tag_gender_alternating_nouns
+
+        result = single_target_modification(
+            model = model,
+            source = load_tokenized(source),
+            target = load_tokenized(target),
+            gold = load_tokenized(gold),
+
+            alignment_training_source = load_tokenized(alignment_training_source),
+            alignment_training_target = load_tokenized(alignment_training_target),
+
+            searching_corpus_source = load_tokenized(searching_corpus_source),
+            searching_corpus_target = load_tokenized(searching_corpus_target),
+            searching_dump = searching_dump,
+
+            property_taggers = property_taggers,
+            target_property = target_property,
+            magnitude_cap = magnitude,
+
+            selection_strategy = selection_strategy,
+            num_neurons = num_neurons,
+
+            domain = lambda x, a: domain_interpret(domain_base, x, a, target_property, use_spread)
         )
 
-    # Change-to-plural RNN number experiment
-    elif sys.argv[1] == 'number':
-        single_target_modification(
-            model = 'models/en-es-1.pt',
-            source = load_tokenized('un-data/test/en'),
-            target = load_tokenized('output/en-es-1.txt'),
-            gold = load_tokenized('un-data/test/es'),
+        with open('clean-results/%s-%d-%f-%s-%d-%r.json' % (experiment_type, target_property, magnitude, selection_strategy, num_neurons, use_spread), 'w') as f:
+            json.dump(result, f)
 
-            alignment_training_source = load_tokenized('data/UNv1.0.6way.en.tok.2m'),
-            alignment_training_target = load_tokenized('data/UNv1.0.6way.es.tok.2m'),
+    '''
+    import argparse
 
-            searching_corpus_source = load_tokenized('un-data/test/en'),
-            searching_corpus_target = load_tokenized('output/en-es-1.txt'),
-            searching_dump = 'layer-dump/en-es-1-brnn.dump.pt',
+    parser = argparse.ArgumentParser(description='Run an experiment')
+    parser.add_argument('--experiment_type', type=str,
+            help='Experiment type to run (gender/number/tense)')
+    parser.add_argument('--target_property', type=int,
+            help='Target property index (0/1)')
+    parser.add_argument('--magnitude', type=float,
+            help='Magnitude of modification')
+    parser.add_argument('--selection_strategy', type=str,
+            help='Selection strategy (target/all)')
+    parser.add_argument('--num_neurons', type=int,
+            help='Number of top neurons to take')
+    parser.add_argument('--use_spread', action='store_true',
+            help='Set to modify multiple words')
 
-            property_taggers = [tag_plural, tag_singular],
-            target_property = 1,
-            magnitude_cap = 20,
-            num_neurons = 5,
+    args = parser.parse_args()
 
-            domain = tag_relevant_nouns
-        )
+    run_experiment(args
+    '''
+
+    # Indexed version:
+    import sys
+
+    index = int(sys.argv[1])
+
+    t = 0
+    for experiment_type in ['gender', 'number', 'tense']:
+        for target_property in [0, 1]:
+            for magnitude in [1, 2 ** 0.5, 2, 2 ** 1.5, 4, 2 ** 2.5, 8, 2 ** 3.5, 16, 2 ** 4.5,
+                    32, 64, 128]:
+                for selection_strategy in ['target', 'all']:
+                    for num_neurons in [1, 2, 4, 8]:
+                        if t == index:
+                            print('EXPERIMENT RUNNING:', (experiment_type, target_property,
+                                magnitude, selection_strategy, num_neurons))
+                            run_experiment(experiment_type,
+                                    target_property,
+                                    magnitude,
+                                    selection_strategy,
+                                    num_neurons)
+                        t += 1
