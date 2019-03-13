@@ -9,6 +9,7 @@ multi-bleu.perl
 data/
 embeddings/
 *pred.txt
+*.mat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
