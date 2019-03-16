@@ -1,3 +1,24 @@
+# OpenNMT-py with inspection & sentence representation
+
+This is a modification of a OpenNMT-py fork that creates sentence representations in a MAT file. The following scripts have been added. Your sentence representations must be formatted such that each sentence is on a new line; an example format is included in `examplesGLM.txt`. The flags mentioned below for `separate-layers` and `dump-layers` must be true when running `train.py` and `translate.py`, respectively.
+
+```
+-get_dict.py
+  Find words present in your sentence data but not the source trainig vocab after preprocess.py. Includes corresponding sentence and all missing words with its occurrences.
+  Usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt
+```
+
+Sentence representations are created for elementwise (1) average, (2) maximum, (3) minimum, and (4) last word of all words in the sentence. Each word embedding is of length 500.
+
+```
+-create_sentence_representation.py
+  Find words present in your sentence data but not the source trainig vocab after translate.py. Includes corresponding sentence and all missing words with its occurrences.
+  Usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt
+```
+
+File names are saved as <b>"model type" + "which layer" + "method"<b> in the folder <b>embeddings/<b>. Each MAT file has the same number of structs in your sentence data, labelled as <i>"sentenceX"<i> corresponding to (1) the boolean of if the all the words in the sentence are in our representation + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
+
+
 # OpenNMT-py with inspection
 
 This is a fork of OpenNMT-py that allows for inspection of the activations of intermediate neurons, as well as manual modification of those neurons at inference time. Everything is known to work with the single-direction RNN encoder; others have not been tested. This fork adds the following option to `train.py`:
