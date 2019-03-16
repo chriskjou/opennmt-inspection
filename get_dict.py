@@ -3,7 +3,7 @@ import sys
 from collections import Counter
 import operator
 
-def get_missing(vocab, top_50k = False):
+def get_missing(vocab, file_name, top_50k = False):
 	src_vocab = vocab[0][1]
 	print("SRC VOCAB: " + str(len(src_vocab)))
 	tgt_vocab = vocab[1][1]
@@ -11,8 +11,7 @@ def get_missing(vocab, top_50k = False):
 
 	### GET TEST VOCAB SET
 	wordcount = Counter()
-	test_file = "cleaned_sentencesGLM.txt"
-	with open(test_file) as file:
+	with open(file_name) as file:
 	    for line in file:
 	        wordcount.update(line.lower().split())
 
@@ -30,9 +29,9 @@ def get_missing(vocab, top_50k = False):
 	print("NUMBER OF MISSING: " + str(len(missing)))
 	return missing
 
-def get_missing_counts(missing):
+def get_missing_counts(missing, file_name):
 	### GET GLM VOCAB
-	file = open("cleaned_sentencesGLM.txt","r")
+	file = open(file_name,"r")
 
 	c = Counter()
 	sentences = {}
@@ -84,26 +83,27 @@ def update_dict():
 	return
 
 def main():
-	if len(sys.argv) != 2:
-		print("usage: python get_dict.py -EXAMPLE.vocab.pt")
+	if len(sys.argv) != 3:
+		print("usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt")
 		exit()
 
 	### GET MODEL VOCAB DICTIONARY
-	model = sys.argv[1]
+	sent_file_name = sys.argv[1]
+	model = sys.argv[2]
 	print(model)
 
 	print("ALL")
 	vocab = torch.load(model)
-	missing = get_missing(vocab)
-	missing_dict, sentences = get_missing_counts(missing)
+	missing = get_missing(vocab, sent_file_name)
+	missing_dict, sentences = get_missing_counts(missing, sent_file_name)
 	sentences_with_missing, missing_bools = find_missing_sentences(missing_dict, sentences)
 	print("NUMBER OF MISSING SENTENCES:", len(sentences_with_missing))
 	print(sentences_with_missing)
 	print()
 
 	print("IF ONLY 50k")
-	top_50k_missing = get_missing(vocab, top_50k = True)
-	top_50k_missing_dict, top_50k_sentences = get_missing_counts(top_50k_missing)
+	top_50k_missing = get_missing(vocab, sent_file_name, top_50k = True)
+	top_50k_missing_dict, top_50k_sentences = get_missing_counts(top_50k_missing, sent_file_name)
 	top_50k_sentences_with_missing, top_50k_missing_bools = find_missing_sentences(top_50k_missing_dict, top_50k_sentences)
 	print("NUMBER OF TOP 50K MISSING SENTENCES:", len(top_50k_sentences_with_missing))
 	print(top_50k_sentences_with_missing)

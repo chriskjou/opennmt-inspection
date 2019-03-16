@@ -62,64 +62,51 @@ def save_to_pickle(title, arr):
 	pickle.dump( arr, open("embeddings/" + title + ".p", "wb" ) )
 	return
 
-def get_missing_bools(model):
+def get_missing_bools(model, file_name):
 	get_dict_vocab = torch.load(model)
 	print("IF ONLY 50k")
-	top_50k_missing = get_missing(get_dict_vocab, top_50k = True)
-	top_50k_missing_dict, top_50k_sentences = get_missing_counts(top_50k_missing)
+	top_50k_missing = get_missing(get_dict_vocab, file_name, top_50k = True)
+	top_50k_missing_dict, top_50k_sentences = get_missing_counts(top_50k_missing, file_name)
 	top_50k_sentences_with_missing, top_50k_missing_bools = find_missing_sentences(top_50k_missing_dict, top_50k_sentences, verbose = False)
 	print("NUMBER OF TOP 50K MISSING SENTENCES:", len(top_50k_sentences_with_missing))
 	return top_50k_missing_bools
 
 def main():
 	# get input
-	if len(sys.argv) != 3:
-		print("usage: python create_sentence_representation.py -EXAMPLE.vocab.pt -EXAMPLE.pred.pt")
+	if len(sys.argv) != 4:
+		print("usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt")
 		exit()
 
 	### GET MODEL VOCAB DICTIONARY
 	saved_before = False
-	word_vocab = sys.argv[1]
-	model = sys.argv[2]
+	sent_file_name = sys.argv[1]
+	word_vocab = sys.argv[2]
+	model = sys.argv[3]
 	without_pt = model.split(".")[0]
 
 	if not os.path.exists('embeddings/'):
 		os.makedirs('embeddings/')
 
-	if not saved_before:
-		print(without_pt)
-		print(model)
+	print(without_pt)
+	print(model)
 
-		print('loading model...')
-		vocab = torch.load(model)
+	print('loading model...')
+	vocab = torch.load(model)
 
-		avg_sentence = process_sentence(vocab, "average")
-		max_sentence = process_sentence(vocab, "maximum")
-		min_sentence = process_sentence(vocab, "minimum")
-		last_sentence = process_sentence(vocab, "last")
-	# else:
-	# 	avg_sentence = pickle.load( open( "embeddings/" + without_pt + "-avg.p", "rb" ) )
-	# 	max_sentence = pickle.load( open( "embeddings/" + without_pt + "-max.p", "rb" ) )
-	# 	min_sentence = pickle.load( open( "embeddings/" + without_pt + "-min.p", "rb" ) )
-	# 	last_sentence = pickle.load( open( "embeddings/" + without_pt + "-last.p", "rb" ) )
+	avg_sentence = process_sentence(vocab, "average")
+	max_sentence = process_sentence(vocab, "maximum")
+	min_sentence = process_sentence(vocab, "minimum")
+	last_sentence = process_sentence(vocab, "last")
 
 	
-	bool_labels = get_missing_bools(word_vocab)
+	bool_labels = get_missing_bools(word_vocab, sent_file_name)
 
-	### SAVE TO MAT FILE
 	save_to_mat("embeddings/" + without_pt, avg_sentence, bool_labels, "avg")
 	save_to_mat("embeddings/" + without_pt, max_sentence, bool_labels, "max")
 	save_to_mat("embeddings/" + without_pt, min_sentence, bool_labels, "min")
 	save_to_mat("embeddings/" + without_pt, last_sentence, bool_labels, "last")
-	print("SAVED TO MATS")
 
-	# if not saved_before:
-	# 	## SAVE TO PICKLE FILE
-	# 	save_to_pickle(without_pt + "-avg", avg_sentence)
-	# 	save_to_pickle(without_pt + "-max", max_sentence)
-	# 	save_to_pickle(without_pt + "-min", min_sentence)
-	# 	save_to_pickle(without_pt + "-last", last_sentence)
-	# 	print("SAVED TO PICKLES")
+	print("done.")
 
 	return
 
