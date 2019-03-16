@@ -16,7 +16,7 @@ Sentence representations are created for elementwise (1) average, (2) maximum, (
   Usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt
 ```
 
-File names are saved as <b>"model type" + "which layer" + "method"<b> in the folder <b>embeddings/<b>. Each MAT file has the same number of structs in your sentence data, labelled as <i>"sentenceX"<i> corresponding to (1) the boolean of if the all the words in the sentence are in our representation + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
+File names are saved as <b>"model type" + "which layer" + "method"<b> in the folder <b>embeddings/<b>. Each MAT file has the same number of structs in your sentence data, labelled as <i>"sentenceX"</i> corresponding to (1) the boolean of if the all the words in the sentence are in our representation + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
 
 
 # OpenNMT-py with inspection
