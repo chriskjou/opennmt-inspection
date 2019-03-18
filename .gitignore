@@ -6,10 +6,11 @@ multi-bleu.perl
 .idea
 *.sublime-*
 .DS_Store
-data/
 embeddings/
 *pred.txt
 *.mat
+data/
+!data/small-english-to-spanish.train.1.pt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
