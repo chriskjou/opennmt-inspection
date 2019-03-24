@@ -13,10 +13,10 @@ Sentence representations are created for elementwise (1) average, (2) maximum, (
 ```
 -create_sentence_representation.py
   Creates MAT files of consisting of an array of shape (sentences) x (boolean, sentence embedding) for a single layer. Boolean is 1 if all words in sentence are in training vocabulary, and 0 if otherwise.
-  Usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt
+  Usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers
 ```
 
-File names are saved as <b>"model name" + "which layer" + "method"</b> in the <b>embeddings/</b> directory. Each MAT file has the same number of structs in the sentence data, labelled as <i>"sentenceX"</i> corresponding to (1) the boolean of if the all the words in the sentence are present in training + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
+File names are saved as <b>"model name" + "which layer" + "method"</b> in the <b>embeddings/model/method</b> directory. Each MAT file has the same number of structs in the sentence data, labelled as <i>"sentenceX"</i> corresponding to (1) the boolean of if the all the words in the sentence are present in training + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
 
 
 # OpenNMT-py with inspection
