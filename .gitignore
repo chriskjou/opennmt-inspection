@@ -9,10 +9,8 @@ multi-bleu.perl
 embeddings/
 *pred.txt
 *.mat
-data/**/*
-!data/small-english-to-spanish.train.1.pt
-!data/small-english-to-spanish.valid.1.pt
-!data/small-english-to-spanish.vocab.pt
+data/*
+*.p
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
