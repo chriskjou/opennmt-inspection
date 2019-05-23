@@ -5,9 +5,9 @@ import numpy as np
 #from scipy.linalg import solve
 import sys
 import math
-#from scipy.linalg import lstsq
-import multiprocessing
-from functools import partial
+from scipy.linalg import lstsq
+# import multiprocessing
+# from functools import partial
 #import statsmodels.api as sm
 
 # get initial information from MATLAB
@@ -160,7 +160,72 @@ def activations_for_all_sentences(activations, neighbors_mask, volmask):
 		per_sentence.append(spotlights)
 	return per_sentence
 
-def linear_model(embedding, spotlight_activation):
+def chunkify(lst, num, total):
+	if len(lst) % total == 0:
+		chunk_size = len(lst) // total
+	else:
+		chunk_size = len(lst) // total + 1
+	start = num * chunk_size
+	if num != total - 1:
+		end = num * chunk_size + chunk_size
+	else:
+		end = len(lst)
+	return lst[start:end]
+
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, radius=5, do_pca=False):
+	print("getting activations for all sentences...")
+	# per_sentence = []
+	res_per_spotlight = []
+	a,b,c = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+
+	# iterate over spotlight
+	print("for each spotlight...")
+
+	index=0
+	for pt in tqdm(chunkify(nonzero_pts, num, total_batches)):
+		# MAKE SPHERE MASK BELOW
+		sphere_mask = np.zeros((a,b,c))
+		x1,y1,z1 = pt
+		for i in range(-radius, radius+1):
+			for j in range(-radius, radius+1):
+				for k in range(-radius, radius+1):
+					xp = x1 + i
+					yp = y1 + j
+					zp = z1 + k
+					pt2 = [xp,yp,zp]
+					if 0 <= xp and 0 <= yp and 0 <= zp and xp < a and yp < b and zp < c:
+						dist = math.sqrt(i ** 2 + j ** 2 + k ** 2) #distance.euclidean(pt, pt2) # can remove
+						if pt2 in nonzero_pts and dist <= radius:
+							sphere_mask[x1+i][y1+j][z1+k] = 1
+
+		# print("CHECKING MASK SHAPE: ", sphere_mask.shape)
+		spotlights = []
+		# iterate over each sentence
+		# print("for each sentence activations...")
+		for sentence_act in modified_activations:
+			# print("ACTIVATIONS")
+			# print(sentence_act)
+			spot = sentence_act[sphere_mask.astype(bool)]
+			remove_nan = np.nan_to_num(spot)
+			spotlights.append(remove_nan)
+		# print("NUMBER OF SPOTLIGHT ACTIVATIONS: ", len(spotlights))
+		# per_sentence.append(spotlights)
+
+		## -> DECODING BELOW 
+		res = linear_model(embed_matrix, spotlights)
+		print("RES for SPOTLIGHT #", index, ": ", res)
+		res_per_spotlight.append(res)
+		index+=1
+		## DECODING ABOVE
+	return res_per_spotlight
+
+def linear_model(embed_matrix, spotlight_activations):
+	p, res, rnk, s = lstsq(embed_matrix, spotlight_activations)
+	residuals = np.sqrt(np.sum((spotlight_activations - np.dot(embed_matrix, p))**2))
+	return residuals
+
+def old_linear_model(embedding, spotlight_activation):
 	dict_keys = list(embedding.keys())[3:]
 	embed_matrix = np.array([embedding[i][0][1:] for i in dict_keys])
 	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
@@ -174,15 +239,38 @@ def linear_model(embedding, spotlight_activation):
 	# calculated_r_squared = 1.0 - regression_results.ssr / np.sum((y)**2)
 	return residuals
 
+def get_modified_activations(activations):
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	modified_activations = []
+	for sentence_activation in tqdm(activations):
+		one_sentence_act = np.zeros((i,j,k))
+		for pt in range(len(nonzero_pts)):
+			x,y,z = nonzero_pts[pt]
+			one_sentence_act[int(x)][int(y)][int(z)] = sentence_activation[pt]
+		modified_activations.append(one_sentence_act)
+	pickle.dump( modified_activations, open( "modified_activations.p", "wb" ) )
+	return modified_activations
+
+def get_embed_matrix(embedding):
+	dict_keys = list(embedding.keys())[3:]
+	embed_matrix = np.array([embedding[i][0][1:] for i in dict_keys])
+	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
+	return embed_matrix
+
 def main():
 	### GET MAIN INPUT BELOW
-	if len(sys.argv) != 4:
-		print("usage: python decoding.py -embedding_layer -examplesGLM.mat -title")
+	if len(sys.argv) != 6:
+		print("usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title -batch_num -total_batches")
 		exit()
 
-	embedding = scipy.io.loadmat(sys.argv[1])
+	embed_loc = sys.argv[1]
+	embedding = scipy.io.loadmat(embed_loc)
+	embed_matrix = get_embed_matrix(embedding)
 	info = sys.argv[2]
 	title = sys.argv[3]
+	num = int(sys.argv[4])
+	total_batches = int(sys.argv[5])
 	### GET MAIN INPUT ABOVE
 
 	# CHECK COORDINATES - NEED TO
@@ -192,19 +280,29 @@ def main():
 	if not saved:
 		activations, volmask = get_activations(info)
 		print("saved activations.")
+		modified_activations = get_modified_activations(activations)
+		print("saved modified activations.")
 	else:
 		print("loading activations and mask...")
+		# activations = pickle.load( open( "activations.p", "rb" ) )
+		# volmask = pickle.load( open( "volmask.p", "rb" ) )
+		# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
 		activations = pickle.load( open( "../projects/opennmt-inspection/activations.p", "rb" ) )
 		volmask = pickle.load( open( "../projects/opennmt-inspection/volmask.p", "rb" ) )
+		modified_activations = pickle.load( open( "../projects/opennmt-inspection/modified_activations.p", "rb" ) )
 
 	### -> GETTING INDIVIDUAL MASKS BELOW
+	print("TRYING NEW DECODING")
+	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
+	pickle.dump( all_residuals, open( "../../projects/residuals/all_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
+	print("done.")
 
 	# SINGLE VERSION BELOW
 	# neighbors_mask = get_all_spheres(volmask, title, saved=False)
 	# SINGLE VERSION ABOVE
 
 	# MULTIPROCESS VERSION BELOW
-	neighbors_mask = multi_threading(volmask, title, radius=5, saved=False)
+	# neighbors_mask = multi_threading(volmask, title, radius=5, saved=False)
 	# MULTIPROCESS VERSION ABOVE
 
 	### GETTING INDIVIDUAL MASKS ABOVE

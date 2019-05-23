@@ -18,13 +18,20 @@ def get_activations(info):
 
 	activations = mat["examples_sentences"]
 	volmask = mat["volmask"]
-	atlasvals = mat["multimask_aal"]
+	atlas_vals = mat["multimask_aal"]
+	roi_vals = mat["multimask_group"]
 	roi_labels = mat["labels_langloc"]
 	atlas_labels = mat["labels_aal"]
 
 	print("writing to file...")
 	pickle.dump( activations, open( "activations.p", "wb" ) )
 	pickle.dump( volmask, open( "volmask.p", "wb" ) )
+
+	pickle.dump(atlas_vals, open( "atlas_vals.p", "wb") )
+	pickle.dump(atlas_labels, open( "atlas_labels.p", "wb") )
+
+	pickle.dump(roi_vals, open( "roi_vals.p", "wb") )
+	pickle.dump(roi_labels, open( "roi_labels.p", "wb") )
 
 	print("finished.")
 	return activations, volmask
@@ -170,25 +177,6 @@ def reshape_sentence_activations(activations, volmask):
 	return sentences_activations
 ### CHECK IF NEEDED FOR RESHAPING FIX?
 
-# get all activations for all spotlights in one sentence
-def get_all_activations_for_single_sentence(sentence_act, pts_mask, volmask, nonzero_pts):
-	# print("getting activation for single sentence...")
-	i,j,k = volmask.shape
-
-	# MAKE ACTIVATION MASK BELOW
-	act_mask = np.zeros((i,j,k))
-	print("HERE")
-	for pt in range(len(nonzero_pts)):
-		x,y,z = nonzero_pts[pt]
-		act_mask[int(x)][int(y)][int(z)] = sentence_act[pt]
-	# MAKE ACTIVATION MASK ABOVE
-
-	# GET ACTIVATIONS FOR SPECIFIC SPOTLIGHT BELOW
-	spotlight_act = sentence_act[pts_mask.astype(bool)]
-	# GET ACTIVATIONS FOR SPECIFIC SPOTLIGHT ABOVE
-	return spotlight_act
-
-
 # get all activations of spotlights x sentence
 def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, radius=5, do_pca=False):
 	print("getting activations for all sentences...")
@@ -223,7 +211,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		for sentence_act in modified_activations:
 			# print("ACTIVATIONS")
 			# print(sentence_act)
-			spot = sentence_act[sphere_mask.astype(bool)] #get_all_activations_for_single_sentence(sentence_act, sphere_mask, volmask, nonzero_pts)
+			spot = sentence_act[sphere_mask.astype(bool)]
 			remove_nan = np.nan_to_num(spot)
 			spotlights.append(remove_nan)
 		# print("NUMBER OF SPOTLIGHT ACTIVATIONS: ", len(spotlights))
