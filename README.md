@@ -1,5 +1,6 @@
 # OpenNMT-py with inspection & sentence representation
 
+## OpenNMT-py modifications
 This is a modification of a OpenNMT-py fork that creates sentence representations in a MAT file. The following scripts have been added. Your sentence representations must be formatted such that each sentence is on a new line; an example format is included in `examplesGLM.txt`. The flags mentioned below for `separate-layers` and `dump-layers` must be true when running `train.py` and `translate.py`, respectively.
 
 ```
@@ -18,6 +19,57 @@ Sentence representations are created for elementwise (1) average, (2) maximum, (
 
 File names are saved as <b>"model name" + "which layer" + "method"</b> in the <b>embeddings/model/method</b> directory. Each MAT file has the same number of structs in the sentence data, labelled as <i>"sentenceX"</i> corresponding to (1) the boolean of if the all the words in the sentence are present in training + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
 
+## Corpus multiparallization
+Multiparallelization of parallel corpora for machine translation.
+
+```
+-multiparallelize_text.py
+  Returns multiparallelization text files given parallel translation pairs (source and target languages files). Saves files in one upstream directory "../multiparallelize/" as "parallel-src.txt" and all "parallel-target" text files.
+  Usage: python multiparallelize_text.py -srclangAB.txt -tgtlangAB.txt -srclangAC.txt -tgtlangAC.txt (as many src languages texts of src-tgt pairs)
+```
+
+## Decoding (updating)
+No batching:
+```
+-odecoding.py
+  Linear decoding of fMRI brain activations (240xN) to OpenNMT embeddings (240x500) where N is the number of voxels in a specified spherical spotlight (default: 5 voxels).
+  Usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title
+```
+
+Batching used for Odyssey:
+```
+-odyssey_decoding.py
+  Linear decoding of fMRI brain activations (240xN) to OpenNMT embeddings (240x500) where N is the number of voxels in a specified spherical spotlight (default: 5 voxels).
+  Usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title -batch_num -total_batches
+```
+
+### Odyssey cluster batching (updating)
+Parallel threads initially attempted. TBD in `decoding.py` and `odyssey_decoding.py`. Switched to job batching. See `odyssey_decoding.py`.
+
+Script used to generate for all possible models: 
+```
+-make_scripts.py
+  Specify which models to make bash scripts when given the number of batches desired.
+  Usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subj_num -num_batches
+```
+
+## Residuals (updating)
+### Concatenating residual batches
+```
+-get_residuals.py
+  Concatenating residuals from all batches
+  Usage: python get_residuals.py -residual_name -total_batches
+```
+
+### Plotting
+Visually relationship between residuals from linear decoding and region of brain.
+
+```
+-plot_residuals_locations.py
+  Plots brain atlas ROI and language ROI against residual against per subject and saves images.
+  Usage: python plot_residuals_locations.py -residual
+  Example: python plot_residuals_locations.py ../residuals/concatenated_all_residuals.p
+```
 
 # OpenNMT-py with inspection
 
