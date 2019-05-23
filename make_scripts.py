@@ -32,7 +32,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 subj{} \
 {} \
 {}
-'''.format(job_id, i, args.subj_num, args.language, args.num_layers, args.model_type, args.agg_type, args.language, args.num_layers, args.model_type, args.which_layer, args.agg_type, args.subj_num, args.nbatches))
+'''.format(job_id, args.language, args.num_layers, args.model_type, args.agg_type, args.language, args.num_layers, args.model_type, args.which_layer, args.agg_type, args.subj_num, args.subj_num, i, args.nbatches))
 
 def main():
 	# if len(sys.argv) != 3:

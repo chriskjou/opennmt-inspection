@@ -265,6 +265,7 @@ def main():
 		exit()
 
 	embed_loc = sys.argv[1]
+	file_name = embed_loc.split("/")[-1].split(".")[0]
 	embedding = scipy.io.loadmat(embed_loc)
 	embed_matrix = get_embed_matrix(embedding)
 	info = sys.argv[2]
@@ -294,7 +295,7 @@ def main():
 	### -> GETTING INDIVIDUAL MASKS BELOW
 	print("TRYING NEW DECODING")
 	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
-	pickle.dump( all_residuals, open( "../../projects/residuals/all_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
+	pickle.dump( all_residuals, open( "../../projects/residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
 	print("done.")
 
 	# SINGLE VERSION BELOW
