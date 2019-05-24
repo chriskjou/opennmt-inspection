@@ -5,7 +5,7 @@ This is a modification of a OpenNMT-py fork that creates sentence representation
 
 ```
 -get_dict.py
-  Find words present in your sentence data but not the source trainig vocab after preprocess.py. Includes corresponding sentence and all missing words with its occurrences.
+  Find words present in your sentence data but not the source training vocab after preprocess.py. Includes corresponding sentence and all missing words with its occurrences.
   Usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt
 ```
 
@@ -29,19 +29,14 @@ Multiparallelization of parallel corpora for machine translation.
 ```
 
 ## Decoding (updating)
-No batching:
-```
--odecoding.py
-  Linear decoding of fMRI brain activations (240xN) to OpenNMT embeddings (240x500) where N is the number of voxels in a specified spherical spotlight (default: 5 voxels).
-  Usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title
-```
-
 Batching used for Odyssey:
 ```
 -odyssey_decoding.py
   Linear decoding of fMRI brain activations (240xN) to OpenNMT embeddings (240x500) where N is the number of voxels in a specified spherical spotlight (default: 5 voxels).
-  Usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title -batch_num -total_batches
+  Usage: python odyssey_decoding.py -embedding_layer -embedding -title -batch_num -total_batches
 ```
+
+Original scratch code + others in `decoding.py`.
 
 ### Odyssey cluster batching (updating)
 Parallel threads initially attempted. TBD in `decoding.py` and `odyssey_decoding.py`. Switched to job batching. See `odyssey_decoding.py`.

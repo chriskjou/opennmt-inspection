@@ -3,10 +3,10 @@ import pickle
 import sys
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 def clean_roi(roi_vals, roi_labels):
 	roi_vals = roi_vals.reshape((len(roi_vals), ))
-
 	final_roi_labels = []
 	for val_index in roi_vals:
 		if val_index == 0:
@@ -17,25 +17,30 @@ def clean_roi(roi_vals, roi_labels):
 
 def clean_atlas(atlas_vals, atlas_labels):
 	at_vals = atlas_vals.reshape((len(atlas_vals), ))
-
 	at_labels = []
 	for val_index in at_vals:
 		at_labels.append(atlas_labels[val_index-1][0][0])
-
 	return at_labels
 
 def plot_atlas(df):
+	all_residuals = list(df.residuals)
 	g = sns.catplot(x="atlas_labels", y="residuals", data=df)
 	g.set_xticklabels(rotation=90)
-	plt.ylim(min(all_residuals), max(all_residuals))
+	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("location", "residuals")
+	g.set_title("Residuals in all Brain Regions")
+	plt.savefig("atlas.png")
 	plt.show()
 	return
 
 def plot_roi(df):
-	g = sns.catplot(x="roi_labels", y="residuals", data=df)
+	all_residuals = list(df.residuals)
+	g = sns.catplot(x="residuals", y="roi_labels", data=df, height=7.5, aspect=1.5)
 	g.set_xticklabels(rotation=90)
-	plt.ylim(min(all_residuals), max(all_residuals))
-	plt.show()
+	g.set(xlim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("residuals", "location")
+	plt.title("Residuals in all Language Regions")
+	plt.savefig("roi.png")
 	return
 
 def main():
@@ -64,10 +69,11 @@ def main():
 			'roi_labels': final_roi_labels}
 
 	df = pd.DataFrame(df_dict)
-	print("done.")
 
 	plot_roi(df)
-	plot_atlas(df)
+	# plot_atlas(df)
+
+	print("done.")
 	
 	return
 
