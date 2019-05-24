@@ -57,7 +57,7 @@ Script used to generate for all possible models:
 ```
 
 ### Plotting
-Visually relationship between residuals from linear decoding and region of brain.
+Visualizing relationship between residuals from linear decoding and region of brain.
 
 ```
 -plot_residuals_locations.py
@@ -65,6 +65,8 @@ Visually relationship between residuals from linear decoding and region of brain
   Usage: python plot_residuals_locations.py -residual
   Example: python plot_residuals_locations.py ../residuals/concatenated_all_residuals.p
 ```
+
+Also included in `residual_visualization.ipynb`.
 
 # OpenNMT-py with inspection
 
