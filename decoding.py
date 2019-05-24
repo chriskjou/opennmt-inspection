@@ -9,6 +9,7 @@ from scipy.linalg import lstsq
 import multiprocessing
 from functools import partial
 import time
+from sklearn.decomposition import PCA
 #import statsmodels.api as sm
 
 # get initial information from MATLAB
@@ -109,6 +110,7 @@ def get_all_spheres(volmask, title, radius=5, saved=False):
 								within_radius.append(pt2)
 								count+=1
 			pts_mask.append(sphere_mask)
+
 		pickle.dump( pts_mask, open( "spotlight-" + str(title)+ ".p", "wb" ) )
 	else:
 		print("loading spotlights...")
@@ -216,6 +218,11 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			spotlights.append(remove_nan)
 		# print("NUMBER OF SPOTLIGHT ACTIVATIONS: ", len(spotlights))
 		# per_sentence.append(spotlights)
+		if do_pca:
+			pca = PCA(0.9999)
+			pca.fit(pts_mask)
+			pca_pts_mask = pca.transform(pts_mask)
+			pickle.dump( pca_pts_mask, open( "pca-spotlight-" + str(title)+ ".p", "wb" ) )
 
 		## -> DECODING BELOW 
 		res = linear_model(embed_matrix, spotlights)
