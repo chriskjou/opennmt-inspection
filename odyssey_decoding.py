@@ -5,6 +5,7 @@ import numpy as np
 import sys
 import math
 from scipy.linalg import lstsq
+from sklearn.model_selection import KFold
 
 # get initial information from MATLAB
 def get_activations(info):
@@ -37,7 +38,7 @@ def chunkify(lst, num, total):
 		end = len(lst)
 	return lst[start:end]
 
-def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, radius=5, do_pca=False):
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, radius=5, do_cross_validation=False, kfold_split=10, do_pca=False):
 	print("getting activations for all sentences...")
 	# per_sentence = []
 	res_per_spotlight = []
@@ -75,7 +76,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			spotlights.append(remove_nan)
 
 		## DECODING BELOW 
-		res = linear_model(embed_matrix, spotlights)
+		res = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
 		index+=1
@@ -83,7 +84,17 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 	return res_per_spotlight
 
-def linear_model(embed_matrix, spotlight_activations):
+def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split):
+	if do_cross_validation:
+		kf = KFold(n_splits=kfold_split)
+		errors = []
+		for train_index, test_index in kf.split(X):
+			X_train, X_test = embed_matrix[train_index], embed_matrix[test_index]
+			y_train, y_test = spotlight_activations[train_index], spotlight_activations[test_index]
+			p, res, rnk, s = lstsq(X_train, y_train)
+			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
+			errors.append(residuals)
+		return np.mean(errors)
 	p, res, rnk, s = lstsq(embed_matrix, spotlight_activations)
 	residuals = np.sqrt(np.sum((spotlight_activations - np.dot(embed_matrix, p))**2))
 	return residuals

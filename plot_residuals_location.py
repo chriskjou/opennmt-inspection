@@ -22,25 +22,25 @@ def clean_atlas(atlas_vals, atlas_labels):
 		at_labels.append(atlas_labels[val_index-1][0][0])
 	return at_labels
 
-def plot_atlas(df):
+def plot_atlas(df, file_name):
 	all_residuals = list(df.residuals)
-	g = sns.catplot(x="atlas_labels", y="residuals", data=df)
+	g = sns.catplot(x="residuals", y="atlas_labels", data=df, height=17.5, aspect=1.5)
 	g.set_xticklabels(rotation=90)
-	g.set(ylim=(min(all_residuals), max(all_residuals)))
-	g.set_axis_labels("location", "residuals")
-	g.set_title("Residuals in all Brain Regions")
-	plt.savefig("atlas.png")
-	plt.show()
+	g.set(xlim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("residuals", "location")
+	plt.title("Residuals in all Brain Regions")
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	# plt.show()
 	return
 
-def plot_roi(df):
+def plot_roi(df, file_name):
 	all_residuals = list(df.residuals)
 	g = sns.catplot(x="residuals", y="roi_labels", data=df, height=7.5, aspect=1.5)
 	g.set_xticklabels(rotation=90)
 	g.set(xlim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("residuals", "location")
 	plt.title("Residuals in all Language Regions")
-	plt.savefig("roi.png")
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
 def main():
@@ -51,6 +51,7 @@ def main():
 
 	# get residuals
 	residual_file = sys.argv[1]
+	file_name = residual_file.split("/")[-1].split(".")[0]
 	all_residuals = pickle.load( open( residual_file, "rb" ) )
 
 	# get atlas and roi
@@ -70,8 +71,8 @@ def main():
 
 	df = pd.DataFrame(df_dict)
 
-	plot_roi(df)
-	# plot_atlas(df)
+	plot_roi(df, file_name + "-roi")
+	plot_atlas(df, file_name + "-atlas")
 
 	print("done.")
 	
