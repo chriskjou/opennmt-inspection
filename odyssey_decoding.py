@@ -1,5 +1,5 @@
 import scipy.io
-from tqdm import tqdm 
+from tqdm import tqdm
 import pickle
 import numpy as np
 import sys
@@ -75,7 +75,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			remove_nan = np.nan_to_num(spot)
 			spotlights.append(remove_nan)
 
-		## DECODING BELOW 
+		## DECODING BELOW
 		res = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
@@ -143,12 +143,12 @@ def main():
 		# activations = pickle.load( open( "activations.p", "rb" ) )
 		# volmask = pickle.load( open( "volmask.p", "rb" ) )
 		# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
-		activations = pickle.load( open( "../projects/opennmt-inspection/activations.p", "rb" ) )
-		volmask = pickle.load( open( "../projects/opennmt-inspection/volmask.p", "rb" ) )
-		modified_activations = pickle.load( open( "../projects/opennmt-inspection/modified_activations.p", "rb" ) )
+		activations = pickle.load( open( "../brain_data/opennmt-inspection/activations.p", "rb" ) )
+		volmask = pickle.load( open( "../brain_data/opennmt-inspection/volmask.p", "rb" ) )
+		modified_activations = pickle.load( open( "../brain_data/opennmt-inspection/modified_activations.p", "rb" ) )
 
 	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
-	pickle.dump( all_residuals, open( "../../projects/residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
+	pickle.dump( all_residuals, open("../residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
 	print("done.")
 
 	### RUN SIGNIFICANT TESTS BELOW
