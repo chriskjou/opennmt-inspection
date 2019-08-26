@@ -92,12 +92,38 @@ This produces, as per below, ```multiparallelize.train.pt, multiparallelize.val.
 
 Then we take the
 
-
 ## Phase 2: Regressing to Brain Data
-We need to download the brain fMRI scans (in this case, of ```examplesGLM.txt```) 
-If you want, you can skip the earlier steps and download the NLP model embeddings from this link
+We need to download the brain fMRI scans (in this case, of ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive a la curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
+If you want, you can skip the earlier steps and download the NLP model embeddings from [this link](https://drive.google.com/drive/folders/1LNdXXD-W8ebm8WD1oIMKSw6Nt9rqsuWQ).
+If you have the embeddings already, we still need to convert the subjects' fMRI data into a more readable *.p* format; run
+```
+python format_for_subject.py -subject_number
+```
+Where ```subject_number``` is the number of the subject you intend to create RMSEs of (1-12).
+
+If you don't have access to a lot of computational resources, you will need use of a supercomputing cluster to do the regression step.
+Run
+```
+python make_scripts.py
+```
+To make scripts in an upstream directory; then one can use a simple bash script to run everything in this folder, e.g. (for Slurn)
+```
+#!/bin/bash
+
+
+for num in `seq 0 99`; do
+  for layer_num in `seq 1 2`; do
+    for agg_type in min max avg last; do
+      sbatch "subj1_decoding_${num}_of_100_parallel-english-to-spanish-model-2layer-brnn-pred-layer${layer_num}-${agg_type}.sh" -H
+    done
+  done
+done
+```
+Run a
+
 ## Phase 3: Plotting
 
+Now simply follow the instructions from above to plot the residuals, etc.
 
 
 
