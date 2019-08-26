@@ -1,5 +1,5 @@
 import scipy.io
-from tqdm import tqdm 
+from tqdm import tqdm
 import pickle
 import numpy as np
 #from scipy.linalg import solve
@@ -224,7 +224,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			pca_pts_mask = pca.transform(pts_mask)
 			pickle.dump( pca_pts_mask, open( "pca-spotlight-" + str(title)+ ".p", "wb" ) )
 
-		## -> DECODING BELOW 
+		## -> DECODING BELOW
 		res = linear_model(embed_matrix, spotlights)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
@@ -328,11 +328,11 @@ def main():
 		print("saved modified activations.")
 	else:
 		print("loading activations and mask...")
-		activations = pickle.load( open( "activations.p", "rb" ) )
-		volmask = pickle.load( open( "volmask.p", "rb" ) )
-		modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
+		activations = pickle.load(open("../brain_data/subj1/activations.p", "rb" ) )
+		volmask = pickle.load(open("../brain_data/subj1/volmask.p", "rb" ) )
+		modified_activations = pickle.load(open("../brain_data/subj1/modified_activations.p", "rb" ) )
 
-	# RELOOPING TEST MAY 21 
+	# RELOOPING TEST MAY 21
 	print("TRYING NEW DECODING")
 	spotlight_acts_per_sentence = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix)
 	print(spotlight_acts_per_sentence.shape)
@@ -361,7 +361,7 @@ def main():
 
 	# ## -> PROCESSING FROM BRAIN ABOVE
 
-	# ## -> DECODING BELOW 
+	# ## -> DECODING BELOW
 	# res_per_spotlight = []
 	# for spotlight in spotlight_acts_per_sentence:
 	# 	res = linear_model(embedding, spotlight)
