@@ -18,8 +18,8 @@ def save_script(args):
 #SBATCH --mem 10000 							# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home08/smenon # file output location
-#SBATCH -o ../../logs/myoutput_%j.out 			# File that STDOUT writes to
-#SBATCH -e ../../logs/myerrors_%j.err 			# File that STDERR writes to
+#SBATCH -o ../logs/outpt.txt 			# File that STDOUT writes to
+#SBATCH -e ../logs/err.txt			# File that STDERR writes to
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=skmenon@college.harvard.edu
 
