@@ -41,7 +41,7 @@ Original scratch code + others in `decoding.py`.
 ### Odyssey cluster batching (updating)
 Parallel threads initially attempted. TBD in `decoding.py` and `odyssey_decoding.py`. Switched to job batching. See `odyssey_decoding.py`.
 
-Script used to generate for all possible models: 
+Script used to generate for all possible models:
 ```
 -make_scripts.py
   Specify which models to make bash scripts when given the number of batches desired.
@@ -67,6 +67,39 @@ Visualizing relationship between residuals from linear decoding and region of br
 ```
 
 Also included in `residual_visualization.ipynb`.
+
+# Step-by-Step Walkthrough to generate Graphs
+
+There are three main phases to this project. First, translation data is used to create an NLP Model. Then the model's embeddings are captured on a prediction text ('examplesGLM.txt'). Then the embeddings are regressed & processed with brain activations. Finally the RMSEs from this regression are visualized.
+
+## Phase 1: Training NLP Models & Inference on Text
+
+The translation data can be found at [this link](http://www.statmt.org/wmt16/translation-task.html) to the Europarl v7 corpus. After downloading via a preferred method, the corpus must first be multiparallelized (so that sentence *i* in the Czech, English, Spanish, etc. corpus all refer to the same idea). For example, one might run:
+```
+python multiparallelize_text.py ../corpus-data/czech/europarl-v7-en-cs.txt ../corpus-data/czech/europarl-v7-cs-en.txt ../corpus-data/spanish/europarl-v7-en-es.txt ../corpus-data/spanish/europarl-v7-es-en.txt
+```
+After saving the corpus data into a directory called corpus-data, and sorting into czech, spanish, etc. subfolders. Validation data also needs to be produced, which can be simply created by:
+```
+./make_validation.sh
+```
+Modify the variable *validation_num_lines* in ```make_validation.sh``` to be at ~5000 for good training results (see **step 2**) if you train on a large enough corpus for this to be possible.
+
+Next, we first create the NLP model based on the translation data, and then we save its embeddings on our prediction text. For example, we could choose to create a Spanish translation NLP model:
+```
+python preprocess.py -train_src ../multiparallelize/training/parallel_src-training.txt  -train_tgt -valid_src -valid_tgt -save ../multiparallelize
+```
+This produces, as per below, ```multiparallelize.train.pt, multiparallelize.val.pt,``` and ```multiparallelize.vocab.pt```. We then take these *.pt* files and train (using the **--seperate_layers** flag)
+
+Then we take the
+
+
+## Phase 2: Regressing to Brain Data
+We need to download the brain fMRI scans (in this case, of ```examplesGLM.txt```) 
+If you want, you can skip the earlier steps and download the NLP model embeddings from this link
+## Phase 3: Plotting
+
+
+
 
 # OpenNMT-py with inspection
 
@@ -117,8 +150,8 @@ an open-source (MIT) neural machine translation system. It is designed to be res
 
 Codebase is relatively stable, but PyTorch is still evolving. We currently only support PyTorch 0.4 and recommend forking if you need to have stable code.
 
-OpenNMT-py is run as a collaborative open-source project. It is maintained by [Sasha Rush](http://github.com/srush) (Cambridge, MA), [Ben Peters](http://github.com/bpopeters) (Saarbrücken), and [Jianyu Zhan](http://github.com/jianyuzhan) (Shanghai). The original code was written by [Adam Lerer](http://github.com/adamlerer) (NYC). 
-We love contributions. Please consult the Issues page for any [Contributions Welcome](https://github.com/OpenNMT/OpenNMT-py/issues?q=is%3Aissue+is%3Aopen+label%3A%22contributions+welcome%22) tagged post. 
+OpenNMT-py is run as a collaborative open-source project. It is maintained by [Sasha Rush](http://github.com/srush) (Cambridge, MA), [Ben Peters](http://github.com/bpopeters) (Saarbrücken), and [Jianyu Zhan](http://github.com/jianyuzhan) (Shanghai). The original code was written by [Adam Lerer](http://github.com/adamlerer) (NYC).
+We love contributions. Please consult the Issues page for any [Contributions Welcome](https://github.com/OpenNMT/OpenNMT-py/issues?q=is%3Aissue+is%3Aopen+label%3A%22contributions+welcome%22) tagged post.
 
 <center style="padding: 40px"><img width="70%" src="http://opennmt.github.io/simple-attn.png" /></center>
 
@@ -130,7 +163,7 @@ Table of Contents
   * [Features](#features)
   * [Quickstart](#quickstart)
   * [Citation](#citation)
- 
+
 ## Requirements
 
 All dependencies can be installed via:

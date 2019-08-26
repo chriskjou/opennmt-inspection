@@ -143,9 +143,9 @@ def main():
 		# activations = pickle.load( open( "activations.p", "rb" ) )
 		# volmask = pickle.load( open( "volmask.p", "rb" ) )
 		# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
-		activations = pickle.load( open( "../brain_data/opennmt-inspection/activations.p", "rb" ) )
-		volmask = pickle.load( open( "../brain_data/opennmt-inspection/volmask.p", "rb" ) )
-		modified_activations = pickle.load( open( "../brain_data/opennmt-inspection/modified_activations.p", "rb" ) )
+		activations = pickle.load( open( "../brain_data/subj1/activations.p", "rb" ) )
+		volmask = pickle.load( open( "../brain_data/subj1/volmask.p", "rb" ) )
+		modified_activations = pickle.load( open( "../brain_data/subj1/modified_activations.p", "rb" ) )
 
 	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
 	pickle.dump( all_residuals, open("../residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
