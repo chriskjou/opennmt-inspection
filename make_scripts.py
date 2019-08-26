@@ -24,7 +24,7 @@ def save_script(args):
 #SBATCH --mail-user=skmenon@college.harvard.edu
 
 module load Anaconda3/5.0.1-fasrc02
-source activate virtualenv
+source activate test
 
 python ../opennmt-inspection/odyssey_decoding.py \
 /n/scratchlfs/shieber_lab/users/smenon/embeddings/parallel/{}/{}layer-{}/{}/parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.mat \
