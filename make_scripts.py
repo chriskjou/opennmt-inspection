@@ -17,17 +17,17 @@ def save_script(args):
 #SBATCH -p seas_dgx1 							# partition (queue)
 #SBATCH --mem 10000 							# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
-#SBATCH --output=/n/home10/cjou/projects		# file output location
-#SBATCH -o ../../logs/myoutput_%j.out 			# File that STDOUT writes to
-#SBATCH -e ../../logs/myerrors_%j.err 			# File that STDERR writes to
+#SBATCH --output=/n/home08/smenon # file output location
+#SBATCH -o ../logs/outpt.txt 			# File that STDOUT writes to
+#SBATCH -e ../logs/err.txt			# File that STDERR writes to
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=ckjou@college.harvard.edu
+#SBATCH --mail-user=skmenon@college.harvard.edu
 
 module load Anaconda3/5.0.1-fasrc02
-source activate virtualenv
+source activate test
 
-python ../../projects/opennmt-inspection/odyssey_decoding.py \
-/n/scratchlfs/shieber_lab/users/cjou/embeddings/parallel/{}/{}layer-{}/{}/parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.mat \
+python ../opennmt-inspection/odyssey_decoding.py \
+/n/scratchlfs/shieber_lab/users/smenon/embeddings/parallel/{}/{}layer-{}/{}/parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.mat \
 /n/scratchlfs/shieber_lab/users/fmri/subj{}/examplesGLM.mat \
 subj{} \
 {} \
@@ -58,7 +58,7 @@ def main():
 	num_layers = [2] #[2, 4]
 	model_type = ['brnn'] #['brnn', 'rnn']
 	agg_type = ['avg', 'max', 'min', 'last']
-	subj_num = list(range(1, 12))
+	subj_num = [1]
 	nbatches = 100
 
 	# check
