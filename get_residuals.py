@@ -1,6 +1,8 @@
-import numpy as np 
+import numpy as np
 import pickle
 import sys
+import argparse
+import os
 
 def concatenate_all_residuals(residual_name, language, num_layers, model_type, layer, agg_type, total_batches):
 	final_residuals = []
@@ -12,28 +14,33 @@ def concatenate_all_residuals(residual_name, language, num_layers, model_type, l
 	return final_residuals
 
 def main():
-	if len(sys.argv) != 3:
-		print("usage: python get_residuals.py -residual_name -total_batches")
-		exit()
+    argparser = argparse.ArgumentParser(description="Concatenate residuals from the relevant batches")
+    argparser.add_argument("--residual_name", type=str, help="Stub of the residual name in /residuals " +
+                                                    "directory(spread over --total_batches from cluster)", required=True)
+    argparser.add_argument("--total_batches", type=int, help="total number of batches "
+                                                        + "residual_name is spread across", required=True)
+    args = argparser.parse_args()
+    languages = 'spanish' #['spanish', 'german', 'italian', 'french', 'swedish']
+    num_layers = 2 #[2, 4]
+    model_type = 'brnn' #['brnn', 'rnn']
+    agg_type = ['avg', 'max', 'min', 'last']
+    subj_num = 1
+    nbatches = 100
 
-	languages = 'spanish' #['spanish', 'german', 'italian', 'french', 'swedish']
-	num_layers = 2 #[2, 4]
-	model_type = 'brnn' #['brnn', 'rnn']
-	agg_type = ['avg', 'max', 'min', 'last']
-	subj_num = 1
-	nbatches = 100
+    residual_name = args.residual_name
+    total_batches = args.total_batches
 
-	residual_name = sys.argv[1]
-	total_batches = int(sys.argv[2])
-
-	for atype in agg_type:
-		for layer in list(range(1,num_layers+1)):
-			final_residuals = concatenate_all_residuals(residual_name, languages, num_layers, model_type, layer, atype, total_batches)
-			specific_file = "parallel-english-to-" + str(languages) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(atype)
-			file_name = "../final_residuals/concatenated-all-residuals-" + str(specific_file) + ".p"
-			pickle.dump( final_residuals, open( file_name, "wb" ) )
-	print("done.")
-	return
+    final_residuals_path = '../final_residuals'
+    if not os.path.isdir('../final_residuals'):
+        os.mkdir('../final_residuals')
+    for atype in agg_type:
+    	for layer in list(range(1,num_layers+1)):
+    		final_residuals = concatenate_all_residuals(residual_name, languages, num_layers, model_type, layer, atype, total_batches)
+    		specific_file = "parallel-english-to-" + str(languages) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(atype)
+    		file_name = "../final_residuals/concatenated-all-residuals-" + str(specific_file) + ".p"
+    		pickle.dump( final_residuals, open( file_name, "wb" ) )
+    print("done.")
+    return
 
 if __name__ == "__main__":
     main()
