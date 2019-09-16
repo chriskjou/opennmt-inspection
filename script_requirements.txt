@@ -170,7 +170,7 @@ simplegeneric==0.8.1
 six==1.10.0
 SQLAlchemy==1.1.13
 statsmodels==0.8.0
-tensorflow==1.1.0
+tensorflow==1.12.2
 terminado==0.6
 testpath==0.3
 torch==1.0.0
