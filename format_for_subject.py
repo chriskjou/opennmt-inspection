@@ -12,7 +12,7 @@ import multiprocessing
 from functools import partial
 import time
 from sklearn.decomposition import PCA
-
+import argparse
 
 # get initial information from MATLAB
 def get_activations(info, save_path=""):
@@ -55,17 +55,21 @@ def get_modified_activations(activations, volmask, save_path=""):
 
 
 def main():
-    if len(sys.argv) != 2:
-        print("This is used to convert the .MAT embeddings from the subjects to a training-readable format")
-        print("usage: python format_for_subject.py -subject#")
-        exit()
-    x = sys.argv[1]
-    save_location = f'../brain_data/subj{x}/'
-    glm_sentences_path = save_location + 'examplesGLM.mat'
-    activations, volmask = get_activations(glm_sentences_path, save_path=save_location)
-    print("saved activations.")
-    modified_activations = get_modified_activations(activations, volmask, save_path=save_location)
-    print("saved modified activations.")
+    file_description = ("This is used to convert the .MAT embeddings " +
+                        "from the subjects to a training-readable format. \n" +
+                        "Please use this file before calling any decoding functions.")
+    argparser = argparse.ArgumentParser(description=file_description)
+    subj_num_description = "The subject(s) # in exampleGLM whose .mat files need to be processed"
+    argparser.add_argument("--subject_number", type=int, default=[1], nargs='+', help=subj_num_description)
+    args = argparser.parse_args()
+    for subj_num in args.subject_number:
+        save_location = f'../examplesGLM/subj{subj_num}/'
+        glm_sentences_path = save_location + 'examplesGLM.mat'
+        activations, volmask = get_activations(glm_sentences_path, save_path=save_location)
+        print("saved activations.")
+        modified_activations = get_modified_activations(activations, volmask, save_path=save_location)
+        print("saved modified activations.")
+    print("done.")
 
 
 if __name__ == "__main__": main()

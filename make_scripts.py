@@ -97,6 +97,10 @@ def main():
 							args.nbatches = 100
 							save_script(args)
 
+	# residuals path (relative from opennmt):
+	resid_path = '../residuals'
+	if not os.path.isdir(resid_path):
+		os.mdkir(resid_path)
 	# embedding_layer = sys.argv[1]
 	# subj_num = sys.argv[2]
 	# num_batches = int(sys.argv[3])

@@ -93,15 +93,19 @@ This produces, as per below, ```multiparallelize.train.pt, multiparallelize.val.
 Then we take the
 
 ## Phase 2: Regressing to Brain Data
-We need to download the brain fMRI scans (in this case, of ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive a la curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
+We need to download the brain fMRI scans (in this case, of ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive via curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
 If you want, you can skip the earlier steps and download the NLP model embeddings from [this link](https://drive.google.com/drive/folders/1LNdXXD-W8ebm8WD1oIMKSw6Nt9rqsuWQ).
-If you have the embeddings already, we still need to convert the subjects' fMRI data into a more readable *.p* format; run
+If you have the embeddings already, we still need to convert the subjects' fMRI data (in *.mat* format) into a more readable *.p* format; run
 ```
-python format_for_subject.py -subject_number
+python format_for_subject.py --subject_number [X1 X2 X3]
 ```
-Where ```subject_number``` is the number of the subject you intend to create RMSEs of (1-12).
+Where ```X``` is the number of the subject whose *.mat* file you intend to process; note you can process one or more subjects at a time by listing multiple subject numbers (default is just the first subject (subject 1)). Type
+```
+python format_for_subject.py --help
+```
+for more.
 
-If you don't have access to a lot of computational resources, you will need use of a supercomputing cluster to do the regression step.
+We recommend use of a supercomputing cluster to do the regression step.
 Run
 ```
 python make_scripts.py
@@ -119,7 +123,13 @@ for num in `seq 0 99`; do
   done
 done
 ```
-Run a
+
+Now run
+
+```
+python get_residuals.py --residual_name XXXXX --total_batches X
+```
+Where ```residual_name``` is the stub of the residuals that you are looking to combine (from the ```/residuals```) folder and ```total_batches``` is the total number of residual batches that were processed by the cluster for the residual stub (default 100). 
 
 ## Phase 3: Plotting
 

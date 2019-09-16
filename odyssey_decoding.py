@@ -121,11 +121,11 @@ def get_embed_matrix(embedding):
 
 def main():
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step from NN to brain")
-	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)")
+	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
 	# argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
-	argparser.add_argument("--subject_number", type=int, help="subject number (fMRI data) for decoding")
-	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)")
-	argparser.add_argument("--total_batches", type=int, help="total number of batches")
+	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
+	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
+	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
 	args = argparser.parse_args()
 
 	# if len(sys.argv) != 6:
@@ -152,9 +152,9 @@ def main():
 	# 	# activations = pickle.load( open( "activations.p", "rb" ) )
 	# 	# volmask = pickle.load( open( "volmask.p", "rb" ) )
 	# 	# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
-	activations = pickle.load( open( f"../brain_data/subj{subj_num}/activations.p", "rb" ) )
-	volmask = pickle.load( open( f"../brain_data/subj{subj_num}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"../brain_data/subj{subj_num}/modified_activations.p", "rb" ) )
+	activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/activations.p", "rb" ) )
+	volmask = pickle.load( open( f"../examplesGLM/subj{subj_num}/volmask.p", "rb" ) )
+	modified_activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/modified_activations.p", "rb" ) )
 
 	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
 	pickle.dump( all_residuals, open("../residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
