@@ -1,11 +1,12 @@
 import scipy.io
-from tqdm import tqdm 
+from tqdm import tqdm
 import pickle
 import numpy as np
 import sys
 import math
 from scipy.linalg import lstsq
 from sklearn.model_selection import KFold
+import argparse
 
 # get initial information from MATLAB
 def get_activations(info):
@@ -75,7 +76,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			remove_nan = np.nan_to_num(spot)
 			spotlights.append(remove_nan)
 
-		## DECODING BELOW 
+		## DECODING BELOW
 		res = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
@@ -119,36 +120,44 @@ def get_embed_matrix(embedding):
 	return embed_matrix
 
 def main():
-	if len(sys.argv) != 6:
-		print("usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title -batch_num -total_batches")
-		exit()
+	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step from NN to brain")
+	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
+	# argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
+	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
+	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
+	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
+	args = argparser.parse_args()
 
-	embed_loc = sys.argv[1]
+	# if len(sys.argv) != 6:
+	# 	print("usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title -batch_num -total_batches")
+	# 	exit()
+	embed_loc = args.embedding_layer
 	file_name = embed_loc.split("/")[-1].split(".")[0]
 	embedding = scipy.io.loadmat(embed_loc)
 	embed_matrix = get_embed_matrix(embedding)
-	info = sys.argv[2]
-	title = sys.argv[3]
-	num = int(sys.argv[4])
-	total_batches = int(sys.argv[5])
+	# info = sys.argv[2]
+	# title = sys.argv[3]
+	subj_num = args.subject_number
+	num = args.batch_num
+	total_batches = args.total_batches
 
-	saved = True
-	if not saved:
-		activations, volmask = get_activations(info)
-		print("saved activations.")
-		modified_activations = get_modified_activations(activations)
-		print("saved modified activations.")
-	else:
-		print("loading activations and mask...")
-		# activations = pickle.load( open( "activations.p", "rb" ) )
-		# volmask = pickle.load( open( "volmask.p", "rb" ) )
-		# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
-		activations = pickle.load( open( "../projects/opennmt-inspection/activations.p", "rb" ) )
-		volmask = pickle.load( open( "../projects/opennmt-inspection/volmask.p", "rb" ) )
-		modified_activations = pickle.load( open( "../projects/opennmt-inspection/modified_activations.p", "rb" ) )
+	# saved = True
+	# if not saved:
+	# 	activations, volmask = get_activations(info)
+	# 	print("saved activations.")
+	# 	modified_activations = get_modified_activations(activations)
+	# 	print("saved modified activations.")
+	# else:
+	# 	print("loading activations and mask...")
+	# 	# activations = pickle.load( open( "activations.p", "rb" ) )
+	# 	# volmask = pickle.load( open( "volmask.p", "rb" ) )
+	# 	# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
+	activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/activations.p", "rb" ) )
+	volmask = pickle.load( open( f"../examplesGLM/subj{subj_num}/volmask.p", "rb" ) )
+	modified_activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/modified_activations.p", "rb" ) )
 
 	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
-	pickle.dump( all_residuals, open( "../../projects/residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
+	pickle.dump( all_residuals, open("../residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
 	print("done.")
 
 	### RUN SIGNIFICANT TESTS BELOW

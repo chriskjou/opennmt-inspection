@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 import pickle
 import sys
 import pandas as pd
@@ -55,18 +55,18 @@ def main():
 	all_residuals = pickle.load( open( residual_file, "rb" ) )
 
 	# get atlas and roi
-	atlas_vals = pickle.load( open( "atlas_vals.p", "rb" ) )
-	atlas_labels = pickle.load( open( "atlas_labels.p", "rb" ) )
-	roi_vals = pickle.load( open( "roi_vals.p", "rb" ) )
-	roi_labels = pickle.load( open( "roi_labels.p", "rb" ) )
+	atlas_vals = pickle.load(open("../brain_data/subj1/atlas_vals.p", "rb" ) )
+	atlas_labels = pickle.load(open("../brain_data/subj1/atlas_labels.p", "rb" ) )
+	roi_vals = pickle.load( open("../brain_data/subj1/roi_vals.p", "rb" ) )
+	roi_labels = pickle.load(open("../brain_data/subj1/roi_labels.p", "rb" ) )
 
 	final_roi_labels = clean_roi(roi_vals, roi_labels)
 	at_labels = clean_atlas(atlas_vals, atlas_labels)
 
 	# make dataframe
-	df_dict = {'voxel_index': list(range(len(all_residuals))), 
-			'residuals': all_residuals, 
-			'atlas_labels': at_labels, 
+	df_dict = {'voxel_index': list(range(len(all_residuals))),
+			'residuals': all_residuals,
+			'atlas_labels': at_labels,
 			'roi_labels': final_roi_labels}
 
 	df = pd.DataFrame(df_dict)
@@ -75,7 +75,7 @@ def main():
 	plot_atlas(df, file_name + "-atlas")
 
 	print("done.")
-	
+
 	return
 
 if __name__ == "__main__":

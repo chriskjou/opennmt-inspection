@@ -1,6 +1,5 @@
 altgraph==0.15
 appnope==0.1.0
-basemap==1.2.0
 bleach==1.5.0
 bottle==0.12.13
 bottle-websocket==0.2.9
@@ -68,7 +67,6 @@ psycopg2==2.7.4
 ptyprocess==0.5.2
 pyasn1==0.4.3
 pyasn1-modules==0.2.3
-PyAutoGUI==0.9.36
 pygame==1.9.6
 Pygments==2.2.0
 PyInstaller==3.3.1
@@ -172,7 +170,7 @@ simplegeneric==0.8.1
 six==1.10.0
 SQLAlchemy==1.1.13
 statsmodels==0.8.0
-tensorflow==1.1.0
+tensorflow==1.12.2
 terminado==0.6
 testpath==0.3
 torch==1.0.0
@@ -184,7 +182,7 @@ uritemplate==3.0.0
 virtualenv==16.0.0
 virtualenv-clone==0.3.0
 wcwidth==0.1.7
-Werkzeug==0.12.2
+Werkzeug==0.15.3
 whichcraft==0.4.1
 whitenoise==3.3.1
 xlrd==1.1.0
