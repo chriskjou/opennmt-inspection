@@ -8,12 +8,30 @@ def save_script(args):
 		os.makedirs('../decoding_scripts/')
 
 	for i in range(args.nbatches):
-		fname = '../decoding_scripts/subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh'.format(args.subj_num, i, args.nbatches, args.language, args.num_layers, args.model_type, args.which_layer, args.agg_type)
-		job_id = 'subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}'.format(args.subj_num, i, args.nbatches, args.language, args.num_layers, args.model_type, args.which_layer, args.agg_type)
+		fname = '../decoding_scripts/subj{}_decoding_{}_of_{}_parallel-english-to-{3}-model-{}layer-{}-pred-layer{}-{}.sh'.format(
+			args.subj_num, 
+			i, 
+			args.nbatches, 
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.which_layer, 
+			args.agg_type
+		)
+		job_id = 'subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}'.format(
+			args.subj_num, 
+			i, 
+			args.nbatches, 
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.which_layer, 
+			args.agg_type
+		)
 		with open(fname, 'w') as rsh:
 			rsh.write('''\
 #!/bin/bash
-#SBATCH -J {}  									# Job name
+#SBATCH -J {0}  								# Job name
 #SBATCH -p seas_dgx1 							# partition (queue)
 #SBATCH --mem 10000 							# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
@@ -27,12 +45,23 @@ module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
 python ../../projects/opennmt-inspection/odyssey_decoding.py \
-/n/scratchlfs/shieber_lab/users/cjou/embeddings/parallel/{}/{}layer-{}/{}/parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.mat \
-/n/scratchlfs/shieber_lab/users/fmri/subj{}/examplesGLM.mat \
-subj{} \
-{} \
-{}
-'''.format(job_id, args.language, args.num_layers, args.model_type, args.agg_type, args.language, args.num_layers, args.model_type, args.which_layer, args.agg_type, args.subj_num, args.subj_num, i, args.nbatches))
+/n/scratchlfs/shieber_lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
+/n/scratchlfs/shieber_lab/users/fmri/subj{6}/examplesGLM.mat \
+subj{6} \
+{7} \
+{8}
+'''.format(
+		job_id, 
+		args.language, 
+		args.num_layers, 
+		args.model_type, 
+		args.agg_type, 
+		args.which_layer, 
+		args.subj_num, 
+		i, 
+		args.nbatches 
+	)
+)
 
 def main():
 	# if len(sys.argv) != 3:
