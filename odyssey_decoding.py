@@ -8,25 +8,6 @@ from scipy.linalg import lstsq
 from sklearn.model_selection import KFold
 import argparse
 
-# get initial information from MATLAB
-def get_activations(info):
-	print("getting activations...")
-	mat = scipy.io.loadmat(info)
-
-	activations = mat["examples_sentences"]
-	volmask = mat["volmask"]
-	atlasvals = mat["multimask_aal"]
-	roi_labels = mat["labels_langloc"]
-	atlas_labels = mat["labels_aal"]
-
-
-	print("writing to file...")
-	pickle.dump( activations, open( "../projects/opennmt-inspection/activations.p", "wb" ) )
-	pickle.dump( volmask, open( "../projects/opennmt-inspection/volmask.p", "wb" ) )
-
-	print("finished.")
-	return activations, volmask
-
 def chunkify(lst, num, total):
 	if len(lst) % total == 0:
 		chunk_size = len(lst) // total
@@ -39,7 +20,7 @@ def chunkify(lst, num, total):
 		end = len(lst)
 	return lst[start:end]
 
-def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, radius=5, do_cross_validation=False, kfold_split=10, do_pca=False):
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, radius=5, do_cross_validation=False, kfold_split=10, do_pca=False):
 	print("getting activations for all sentences...")
 	# per_sentence = []
 	res_per_spotlight = []
@@ -77,7 +58,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			spotlights.append(remove_nan)
 
 		## DECODING BELOW
-		res = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split)
+		res = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
 		index+=1
@@ -85,33 +66,27 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 	return res_per_spotlight
 
-def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split):
+def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
+	if brain_to_model:
+		from_regress = spotlight_activations
+		to_regress = embed_matrix
+	else:
+		from_regress = embed_matrix
+		to_regress = spotlight_activations
+
 	if do_cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
 		for train_index, test_index in kf.split(X):
-			X_train, X_test = embed_matrix[train_index], embed_matrix[test_index]
-			y_train, y_test = spotlight_activations[train_index], spotlight_activations[test_index]
+			X_train, X_test = from_regress[train_index], from_regress[test_index]
+			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
 			errors.append(residuals)
 		return np.mean(errors)
-	p, res, rnk, s = lstsq(embed_matrix, spotlight_activations)
-	residuals = np.sqrt(np.sum((spotlight_activations - np.dot(embed_matrix, p))**2))
+	p, res, rnk, s = lstsq(from_regress, to_regress)
+	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2))
 	return residuals
-
-def get_modified_activations(activations):
-	i,j,k = volmask.shape
-	nonzero_pts = np.transpose(np.nonzero(volmask))
-	modified_activations = []
-	for sentence_activation in tqdm(activations):
-		one_sentence_act = np.zeros((i,j,k))
-		for pt in range(len(nonzero_pts)):
-			x,y,z = nonzero_pts[pt]
-			one_sentence_act[int(x)][int(y)][int(z)] = sentence_activation[pt]
-		modified_activations.append(one_sentence_act)
-	pickle.dump( modified_activations, open( "modified_activations.p", "wb" ) )
-	return modified_activations
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -123,14 +98,12 @@ def main():
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step from NN to brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
 	# argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
+	argparser.add_argument("--brain_to_model", type=bool, default=False, help="True if regressing brain to model, False if regressing model to brain")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
 	args = argparser.parse_args()
 
-	# if len(sys.argv) != 6:
-	# 	print("usage: python odyssey_decoding.py -embedding_layer -examplesGLM.mat -title -batch_num -total_batches")
-	# 	exit()
 	embed_loc = args.embedding_layer
 	file_name = embed_loc.split("/")[-1].split(".")[0]
 	embedding = scipy.io.loadmat(embed_loc)
@@ -140,23 +113,13 @@ def main():
 	subj_num = args.subject_number
 	num = args.batch_num
 	total_batches = args.total_batches
+	brain_to_model = args.brain_to_model
 
-	# saved = True
-	# if not saved:
-	# 	activations, volmask = get_activations(info)
-	# 	print("saved activations.")
-	# 	modified_activations = get_modified_activations(activations)
-	# 	print("saved modified activations.")
-	# else:
-	# 	print("loading activations and mask...")
-	# 	# activations = pickle.load( open( "activations.p", "rb" ) )
-	# 	# volmask = pickle.load( open( "volmask.p", "rb" ) )
-	# 	# modified_activations = pickle.load( open( "modified_activations.p", "rb" ) )
 	activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/activations.p", "rb" ) )
 	volmask = pickle.load( open( f"../examplesGLM/subj{subj_num}/volmask.p", "rb" ) )
 	modified_activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/modified_activations.p", "rb" ) )
 
-	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches)
+	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model)
 	pickle.dump( all_residuals, open("../residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
 	print("done.")
 
