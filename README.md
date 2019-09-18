@@ -88,12 +88,24 @@ Next, we first create the NLP model based on the translation data, and then we s
 ```
 python preprocess.py -train_src ../multiparallelize/training/parallel_src-training.txt  -train_tgt -valid_src -valid_tgt -save ../multiparallelize
 ```
-This produces, as per below, ```multiparallelize.train.pt, multiparallelize.val.pt,``` and ```multiparallelize.vocab.pt```. We then take these *.pt* files and train (using the **--separate_layers** flag)
+This produces, as per below, ```multiparallelize.train.pt, multiparallelize.val.pt,``` and ```multiparallelize.vocab.pt```. We then take these *.pt* files and train (using the **--separate_layers** flag).
 
-Then we take the
+For example, we can train a English to Spanish model on the cluster with GPUs as follows:
+
+```
+python train.py -data data/english-to-spanish -save_model small-english-to-spanish-model -gpu 0 -separate_layers
+```
+
+At each epoch, a training model is saved with reference to accuracy in file name. Then, we want to run `translate.py` on the sentences read by the participants on the final model trained in 13th epoch and use the sentences read in the fMRI experiment (`cleaned_sentencesGLM.txt`) as follows 
+
+```
+python translate.py -model ../final_models/english-to-spanish-model_acc_61.26_ppl_6.28_e13.pt -src cleaned_sentencesGLM.txt -output ../predictions/english-to-spanish-model-pred.txt -replace_unk -verbose -dump_layers ../predictions/english-to-spanish-model-pred.pt
+```
+
+Embeddings in each layer are dumped into a corresponding `XX-pred.pt` which we have specified with the -dump_layers flag.
 
 ## Phase 2: Regressing to Brain Data
-We need to download the brain fMRI scans (in this case, of ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive via curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
+We need to download the brain fMRI scans (in this case, those captured when reading ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive via curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
 If you want, you can skip the earlier steps and download the NLP model embeddings from [this link](https://drive.google.com/drive/folders/1LNdXXD-W8ebm8WD1oIMKSw6Nt9rqsuWQ).
 If you have the embeddings already, we still need to convert the subjects' fMRI data (in *.mat* format) into a more readable *.p* format; run
 ```
@@ -105,12 +117,18 @@ python format_for_subject.py --help
 ```
 for more.
 
+We also need to prepare the embeddings created from the prediction model so we can run the brain regressions. We run `create_sentence_representations.py` to create the model embeddings aggregations that we can compare to the brain aggregations. See documentation above.
+
+```
+python create_sentence_representation.py -cleaned_sentencesGLM.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers
+```
+
 We recommend use of a supercomputing cluster to do the regression step.
 Run
 ```
 python make_scripts.py
 ```
-To make scripts in an upstream directory; then one can use a simple bash script to run everything in this folder, e.g. (for Slurn)
+To make scripts in an upstream directory; then one can use a simple bash script to run everything in this folder, e.g. (for Slurm)
 ```
 #!/bin/bash
 
@@ -135,6 +153,9 @@ Where ```residual_name``` is the stub of the residuals that you are looking to c
 
 Now simply follow the instructions from above to plot the residuals, etc.
 
+## Phase 4: Significance Testing
+
+TBA.
 
 
 # OpenNMT-py with inspection

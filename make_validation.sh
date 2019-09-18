@@ -1,5 +1,5 @@
 #!/bin/bash
-validation_num_lines=500
+validation_num_lines=5000
 mkdir "../multiparallelize/validation"
 mkdir "../multiparallelize/training"
 for path in ../multiparallelize/*.txt; do
