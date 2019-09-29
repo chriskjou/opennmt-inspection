@@ -78,7 +78,7 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 	if do_cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
-		for train_index, test_index in kf.split(X):
+		for train_index, test_index in kf.split(from_regress):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
