@@ -7,6 +7,7 @@ import math
 from scipy.linalg import lstsq
 from sklearn.model_selection import KFold
 import argparse
+import os
 
 def chunkify(lst, num, total):
 	if len(lst) % total == 0:
@@ -20,7 +21,7 @@ def chunkify(lst, num, total):
 		end = len(lst)
 	return lst[start:end]
 
-def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, radius=5, do_cross_validation=False, kfold_split=10, do_pca=False):
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, radius=5, do_cross_validation=False, kfold_split=5):
 	print("getting activations for all sentences...")
 	# per_sentence = []
 	res_per_spotlight = []
@@ -97,8 +98,9 @@ def get_embed_matrix(embedding):
 def main():
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step from NN to brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
-	# argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
-	argparser.add_argument("--brain_to_model", type=bool, default=False, help="True if regressing brain to model, False if regressing model to brain")
+	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
+	argparser.add_argument("--brain_to_model", type=str, default="False", help="True if regressing brain to model, False if regressing model to brain")
+	argparser.add_argument("--cross_validation", type=str, default="False", help="True if add cross validation, False if not")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
@@ -114,13 +116,32 @@ def main():
 	num = args.batch_num
 	total_batches = args.total_batches
 	brain_to_model = args.brain_to_model
+	cross_validation = args.cross_validation
 
-	activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/activations.p", "rb" ) )
-	volmask = pickle.load( open( f"../examplesGLM/subj{subj_num}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"../examplesGLM/subj{subj_num}/modified_activations.p", "rb" ) )
+	# file name adjustments
+	if brain_to_model == "True":
+		direction = "brain2model_"
+	else:
+		direction = "model2brain_"
 
-	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model)
-	pickle.dump( all_residuals, open("../residuals/"+ str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p", "wb" ) )
+	if cross_validation == "False":
+		validate = "cv_"
+	else:
+		validate = "nocv_"
+
+	# get modified activationscd
+	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/activations.p", "rb" ) )
+	volmask = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/volmask.p", "rb" ) )
+	modified_activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/modified_activations.p", "rb" ) )
+
+	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+	
+	# make file path
+	if not os.path.exists('../../projects/residuals/'):
+		os.makedirs('../../projects/residuals/')
+
+	file_name = "../../projects/residuals/" + str(direction) + str(validate) + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
+	pickle.dump( all_residuals, open(file_name, "wb" ) )
 	print("done.")
 
 	### RUN SIGNIFICANT TESTS BELOW

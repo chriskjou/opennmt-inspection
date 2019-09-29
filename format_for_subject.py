@@ -4,14 +4,7 @@ import scipy.io
 from tqdm import tqdm
 import pickle
 import numpy as np
-#from scipy.linalg import solve
 import sys
-import math
-from scipy.linalg import lstsq
-import multiprocessing
-from functools import partial
-import time
-from sklearn.decomposition import PCA
 import argparse
 
 # get initial information from MATLAB

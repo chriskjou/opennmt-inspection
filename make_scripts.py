@@ -7,9 +7,57 @@ def save_script(args):
 	if not os.path.exists('../decoding_scripts/'):
 		os.makedirs('../decoding_scripts/')
 
+	# file name assignments
+	if args.brain_to_model:
+		direction = "brain2model_"
+	else:
+		direction = "model2brain_"
+
+	if args.cross_validation:
+		validate = "cv_"
+	else:
+		validate = "nocv_"
+
+	# create subfolder
+	model_type = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	folder_name = model_type.format(
+		args.subject_number, 
+		args.language, 
+		args.num_layers, 
+		args.model_type, 
+		args.which_layer, 
+		args.agg_type
+	)
+	print(folder_name)
+
+	if not os.path.exists('../decoding_scripts/' + str(folder_name) + '/'):
+		os.makedirs('../decoding_scripts/' + str(folder_name) + '/')
+
+	# make master script
+	with open("../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh", "w") as rsh:
+		rsh.write('''\
+#!/bin/bash
+for i in `seq 0 99`; do
+  sbatch "{}{}subj{}_decoding_$i_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
+done
+'''.format(
+		direction,
+		validate,
+		args.subject_number, 
+		args.nbatches, 
+		args.language, 
+		args.num_layers, 
+		args.model_type, 
+		args.which_layer, 
+		args.agg_type
+	)
+)
+
+	# break into batches
 	for i in range(args.nbatches):
-		fname = '../decoding_scripts/subj{}_decoding_{}_of_{}_parallel-english-to-{3}-model-{}layer-{}-pred-layer{}-{}.sh'.format(
-			args.subj_num, 
+		file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		job_id = file.format(
+			args.subject_number, 
 			i, 
 			args.nbatches, 
 			args.language, 
@@ -18,16 +66,9 @@ def save_script(args):
 			args.which_layer, 
 			args.agg_type
 		)
-		job_id = 'subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}'.format(
-			args.subj_num, 
-			i, 
-			args.nbatches, 
-			args.language, 
-			args.num_layers, 
-			args.model_type, 
-			args.which_layer, 
-			args.agg_type
-		)
+
+		fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+
 		with open(fname, 'w') as rsh:
 			rsh.write('''\
 #!/bin/bash
@@ -35,21 +76,23 @@ def save_script(args):
 #SBATCH -p seas_dgx1 							# partition (queue)
 #SBATCH --mem 10000 							# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
-#SBATCH --output=/n/home08/smenon # file output location
-#SBATCH -o ../logs/outpt.txt 			# File that STDOUT writes to
-#SBATCH -e ../logs/err.txt			# File that STDERR writes to
+#SBATCH --output=/n/home10/cjou/projects 		# file output location
+#SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
+#SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=skmenon@college.harvard.edu
+#SBATCH --mail-user=ckjou@college.harvard.edu
 
 module load Anaconda3/5.0.1-fasrc02
-source activate test
+source activate virtualenv
 
 python ../../projects/opennmt-inspection/odyssey_decoding.py \
-/n/scratchlfs/shieber_lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
-/n/scratchlfs/shieber_lab/users/fmri/subj{6}/examplesGLM.mat \
-subj{6} \
-{7} \
-{8}
+--embedding_layer /n/scratchlfs/shieber_lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
+--subject_mat_file /n/scratchlfs/shieber_lab/users/fmri/subj{6}/examplesGLM.mat \
+--brain_to_model {7} \
+--cross_validation {8} \
+--subject_number {6} \
+--batch_num {9} \
+--total_batches {10}
 '''.format(
 		job_id, 
 		args.language, 
@@ -57,7 +100,9 @@ subj{6} \
 		args.model_type, 
 		args.agg_type, 
 		args.which_layer, 
-		args.subj_num, 
+		args.subject_number, 
+		args.brain_to_model,
+		args.cross_validation,
 		i, 
 		args.nbatches 
 	)
@@ -65,11 +110,11 @@ subj{6} \
 
 def main():
 	# if len(sys.argv) != 3:
-	# 	print("usage: python make_scripts.py -language -num_layers -brnn/rnn -which_layer -agg_type -subj_num -num_batches")
+	# 	print("usage: python make_scripts.py -language -num_layers -brnn/rnn -which_layer -agg_type -subject_number -num_batches")
 	# 	# example: python make_scripts.pe
 	# 	exit()
 
-	# usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subj_num -num_batches"
+	# usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subject_number -num_batches"
 	parser = argparse.ArgumentParser()
 
 	#-db DATABSE -u USERNAME -p PASSWORD -size 20
@@ -78,17 +123,32 @@ def main():
 	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
-	parser.add_argument("-subj_num", "--subj_num", help="fMRI subject number ([1:11])", type=int, default=1)
+	parser.add_argument("-subject_number", "--subject_number", help="fMRI subject number ([1:11])", type=int, default=1)
 	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
+	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
+	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
+	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 
 	args = parser.parse_args()
 
-	languages = ['spanish'] #['spanish', 'german', 'italian', 'french', 'swedish']
-	num_layers = [2] #[2, 4]
-	model_type = ['brnn'] #['brnn', 'rnn']
+	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
+	num_layers = [2, 4]
+	model_type = ['brnn', 'rnn']
 	agg_type = ['avg', 'max', 'min', 'last']
-	subj_num = [1]
+	subject_number = list(range(1,12))
 	nbatches = 100
+	
+	# check conditions
+	if args.brain_to_model and args.model_to_brain:
+		print("select only one flag for brain_to_model or model_to_brain")
+		exit()
+	if not args.brain_to_model and not args.model_to_brain:
+		print("select at least flag for brain_to_model or model_to_brain")
+		exit()
+
+	print(args.language)
+	print(args.brain_to_model)
+	print(args.cross_validation)
 
 	# check
 	if args.language not in languages:
@@ -103,38 +163,40 @@ def main():
 	if args.agg_type not in agg_type:
 		print("invalid agg_type")
 		exit()
-	if args.subj_num not in subj_num:
-		print("invalid subj_num")
+	if args.subject_number not in subject_number:
+		print("invalid subject_number")
 		exit()
 	if args.which_layer not in list(range(args.num_layers)):
 		print("invalid which_layer: which_layer must be between 1 and args.num_layers, inclusive")
 		exit()
 
 	print("generating scripts...")
-	for lang in tqdm(languages):
-		for nlayer in num_layers:
-			for mtype in model_type:
-				for atype in agg_type:
-					for snum in subj_num:
-						for layers in list(range(1, nlayer+1)):
-							args.language = lang
-							args.num_layers = nlayer
-							args.model_type = mtype
-							args.which_layer = layers
-							args.agg_type = atype
-							args.subj_num = snum
-							args.nbatches = 100
-							save_script(args)
+	# for lang in tqdm(languages):
+	# 	for nlayer in num_layers:
+	# 		for mtype in model_type:
+	# 			for atype in agg_type:
+	# 				for snum in subject_number:
+	# 					for layers in list(range(1, nlayer+1)):
+	# 						args.language = lang
+	# 						args.num_layers = nlayer
+	# 						args.model_type = mtype
+	# 						args.which_layer = layers
+	# 						args.agg_type = atype
+	# 						args.subject_number = snum
+	# 						args.nbatches = 100
+	# 						args.cross_validation = True
+	# 						args.brain_to_model = True
+	save_script(args)
 
 	# residuals path (relative from opennmt):
 	resid_path = '../residuals'
 	if not os.path.isdir(resid_path):
 		os.mdkir(resid_path)
 	# embedding_layer = sys.argv[1]
-	# subj_num = sys.argv[2]
+	# subject_number = sys.argv[2]
 	# num_batches = int(sys.argv[3])
 	# save_script(args)
-	# save_script(embedding_layer, subj_num, num_batches)
+	# save_script(embedding_layer, subject_number, num_batches)
 	print("done.")
 
 if __name__ == "__main__":
