@@ -21,7 +21,7 @@ def chunkify(lst, num, total):
 		end = len(lst)
 	return lst[start:end]
 
-def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, radius=5, do_cross_validation=False, kfold_split=5):
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, do_cross_validation, radius=5, kfold_split=5):
 	print("getting activations for all sentences...")
 	# per_sentence = []
 	res_per_spotlight = []
@@ -115,19 +115,21 @@ def main():
 	subj_num = args.subject_number
 	num = args.batch_num
 	total_batches = args.total_batches
-	brain_to_model = args.brain_to_model
-	cross_validation = args.cross_validation
 
 	# file name adjustments
-	if brain_to_model == "True":
+	if args.brain_to_model == "True":
 		direction = "brain2model_"
+		brain_to_model = True
 	else:
 		direction = "model2brain_"
+		brain_to_model = False
 
-	if cross_validation == "False":
+	if args.cross_validation == "True":
 		validate = "cv_"
+		cross_validation = True
 	else:
 		validate = "nocv_"
+		cross_validation = False
 
 	# get modified activationscd
 	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/activations.p", "rb" ) )
