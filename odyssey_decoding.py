@@ -69,11 +69,11 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
 	if brain_to_model:
-		from_regress = spotlight_activations
+		from_regress = np.array(spotlight_activations)
 		to_regress = embed_matrix
 	else:
 		from_regress = embed_matrix
-		to_regress = spotlight_activations
+		to_regress = np.array(spotlight_activations)
 
 	if do_cross_validation:
 		kf = KFold(n_splits=kfold_split)
