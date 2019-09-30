@@ -115,16 +115,14 @@ def main():
 	# 	exit()
 
 	# usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subject_number -num_batches"
-	parser = argparse.ArgumentParser()
-
-	#-db DATABSE -u USERNAME -p PASSWORD -size 20
+	parser = argparse.ArgumentParser("make scripts for Odyssey cluster")
+	parser.add_argument("-total_batches", "--total_batches", help="Total number of batches to run", type=int, default=100)
 	parser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
 	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	parser.add_argument("-subject_number", "--subject_number", help="fMRI subject number ([1:11])", type=int, default=1)
-	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
 	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
@@ -145,10 +143,6 @@ def main():
 	if not args.brain_to_model and not args.model_to_brain:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
-
-	print(args.language)
-	print(args.brain_to_model)
-	print(args.cross_validation)
 
 	# check
 	if args.language not in languages:

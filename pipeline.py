@@ -3,11 +3,18 @@ import subprocess
 import os
 from tqdm import tqdm
 
+# global variables
+languages = ['spanish', 'german', 'italian', 'french', 'swedish']
+num_layers = [2, 4]
+model_type = ['brnn', 'rnn']
+agg_type = ['avg', 'max', 'min', 'last']
+subj_num = range(1,12)
+nbatches = 100
+
 def main():
 
 	############# GET ARGUMENTS #############
-	parser = argparse.ArgumentParser()
-
+	parser = argparse.ArgumentParser(description="entire OpenNMT pipeline: data prep, model, decoding, visualization")
 	parser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
 	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
@@ -15,20 +22,12 @@ def main():
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	parser.add_argument("-subj_num", "--subj_num", help="fMRI subject number ([1:11])", type=int, default=1)
 	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
-	parser.add_argument("-create_model", "--create_model", help="Create OpenNMT prediction model", type=bool, default='False')
-	parser.add_argument("-format_data", "--format_data", help="Format fMRI data", type=bool, default='False')
+	parser.add_argument("-create_model", "--create_model", help="Create OpenNMT prediction model", action='store_true', default=False)
+	parser.add_argument("-format_data", "--format_data", help="Format fMRI data", action='store_true', default=False)
 	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-
 	args = parser.parse_args()
-
-	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
-	num_layers = [2, 4]
-	model_type = ['brnn', 'rnn']
-	agg_type = ['avg', 'max', 'min', 'last']
-	subj_num = range(1,12)
-	nbatches = 100
 
 	############# VALIDATE ARGUMENTS #############
 	if args.language not in languages:
@@ -56,6 +55,21 @@ def main():
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
+	############# GLOBAL OPTIONS #############
+	options = "--language " + str(args.language) + 
+				" --num_layers " + str(args.num_layers) + 
+				" --model_type " + str(args.type) + 
+				" --which_layer " + str(args.which_layer) + 
+				" --agg_type " + str(args.agg_type) + 
+				" --subject_number " + str(args.subj_num)
+	get_residuals_and_make_scripts = " --num_batches" + str(args.num_batches)
+	if args.cross_validation:
+		options += " --cross_validation"
+	if args.brain_to_model:
+		options += " --brain_to_model"
+	if args.model_to_brain:
+		options += " --model_to_brain"
+
 	############# CREATE MODEL #############
 	
 	if args.create_model:
@@ -63,6 +77,7 @@ def main():
 		### todo: add here
 
 		### preprocess ### train ### translate
+		### todo: add locations
 		training_src = ""
 		training_tgt = ""
 		validation_src = ""
@@ -78,55 +93,74 @@ def main():
 		translate = "python translate.py -model ../final_models/english-to-spanish-model_acc_61.26_ppl_6.28_e13.pt -src cleaned_sentencesGLM.txt -output ../predictions/english-to-spanish-model-pred.txt -replace_unk -verbose -dump_layers ../predictions/english-to-spanish-model-pred.pt"
 		os.system(translate)
 
-	############# FORMAT DATA #############
+	############# FORMAT BRAIN DATA #############
 	if args.format_data:
 		format_cmd = "python format_for_subject.py --subject_number " + str(subj_num)
 		os.system(format_cmd)
 
-	############# DECODING #############
+	############# MAKE SCRIPTS #############
 	cmd = "python make_scripts.py"
-	options = "--language " + str(args.language) + 
-				" --num_layers " + str(args.num_layers) + 
-				" --model_type " + str(args.type) + 
-				" --which_layer " + str(args.which_layer) + 
-				" --agg_type " + str(args.agg_type) + 
-				" --subj_num " + str(args.subj_num) + 
-				" --num_batches" + str(args.num_batches)
-	if args.cross_validation:
-		options += " --cross_validation"
-	if args.brain_to_model:
-		options += "--brain_to_model"
-	if args.model_to_brain:
-		options += "--model_to_brain"
-	entire_cmd = cmd + " " + options
+	entire_cmd = cmd + " " + options + " " + get_residuals_and_make_scripts
 	os.system(entire_cmd)
 
 	############# MASTER BASH SCRIPTS #############
-	# make executeable
-	cmd = "chmod +x " + str(script_name)
-	os.system(cmd)
-	exe = "./" + str(script_name) 
-	os.system(exe)
-	### wait for job dependency
+	# find script path
+	if args.brain_to_model:
+		direction = "brain2model_"
+	else:
+		direction = "model2brain_"
 
-	############# COMBINE RMSE #############
-	# usage: python get_residuals.py --residual_name XXXXX --total_batches X
+	if args.cross_validation:
+		validate = "cv_"
+	else:
+		validate = "nocv_"
+
+	model_type = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	folder_name = model_type.format(
+		args.subject_number, 
+		args.language, 
+		args.num_layers, 
+		args.model_type, 
+		args.which_layer, 
+		args.agg_type
+	)
+	executable_path = "../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh"
+
+	# make script executable
+	cmd = "chmod +x " + str(executable_path)
+	os.system(cmd)
+	exe = "./" + str(executable_path) 
+	os.system(exe)
+
+	### wait for job dependency
+	### todo: get individual jobs ids
+	
+	# for i in range(args.nbatches):
+	# file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	# job_id = file.format(
+	# 	args.subject_number, 
+	# 	i, 
+	# 	args.nbatches, 
+	# 	args.language, 
+	# 	args.num_layers, 
+	# 	args.model_type, 
+	# 	args.which_layer, 
+	# 	args.agg_type
+	# )
+	# fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+
+	############# CONCATENATE RMSE #############
 	rmse = "python get_residuals.py" 
-	options = "--language " + str(args.language) + 
-			" --num_layers " + str(args.num_layers) + 
-			" --type " + str(args.type) + 
-			" --which_layer " + str(args.which_layer) + 
-			" --agg_type " + str(args.agg_type) + 
-			" --subj_num " + str(args.subj_num) + 
-			" --num_batches" + str(args.num_batches)
-	options = "--residual_name " + str(ADD HERE) + 
-				" --total_batches 100"
-	entire_cmd = rmse + " " + options
-	os.system(entire_command)
+	entire_cmd = rmse + " " + options + " " + " " + get_residuals_and_make_scripts
+	os.system(entire_cmd)
 
 	############# PLOT VISUALIZATIONS #############
+	plot = "python plot_residuals_location.py" 
+	entire_cmd = plot + " " + options
+	os.system(entire_cmd)
 
 	############# PERMUTATION TESTING #############
+
 	return
 
 if __name__ == "__main__":

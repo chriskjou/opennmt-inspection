@@ -14,11 +14,8 @@ def concatenate_all_residuals(language, num_layers, model_type, layer, agg_type,
 	return final_residuals
 
 def main():
-	argparser = argparse.ArgumentParser(description="Concatenate residuals from the relevant batches")
-	# argparser.add_argument("--residual_name", type=str, help="Stub of the residual name in /residuals " +
-	#												"directory(spread over --total_batches from cluster)", required=True)
-	argparser.add_argument("--total_batches", type=int, help="total number of batches "
-														+ "residual_name is spread across", required=True)
+	argparser = argparse.ArgumentParser(description="concatenate residuals from the relevant batches")
+	argparser.add_argument("--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
 	argparser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')

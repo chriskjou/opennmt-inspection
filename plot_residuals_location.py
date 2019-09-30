@@ -50,9 +50,9 @@ def get_location(df, atype, layer_num, names, activations):
     print("AVG: ", np.nansum(all_activations) // len(all_activations))
 
 def compare_aggregations(df):
-	g = sns.catplot(x="roi_labels", y="residuals", data=df, hue="agg_type", kind="bar", height=7.5, aspect=1.5)
+	# g = sns.catplot(x="roi_labels", y="residuals", data=df, hue="agg_type", kind="bar", height=7.5, aspect=1.5)
 	# g.set_xticklabels(rotation=90)
-	plt.show()
+	#plt.show()
 	return
 
 def plot_aggregations(df, args, file_name):
@@ -60,36 +60,48 @@ def plot_aggregations(df, args, file_name):
 	g = sns.catplot(x="roi_labels", y="residuals", data=df, hue="layer", kind="bar", height=7.5, aspect=1.5)
 	g.set_axis_labels("", "RMSE")
 	g.set(ylim=(min(all_residuals), max(all_residuals)/1.75))
-	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + ", " + str(bm) + " " + str(cv))
 	plt.show()
 	return
 
 def plot_atlas(df, args, file_name):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
 	all_residuals = list(df.residuals)
-	g = sns.catplot(x="residuals", y="atlas_labels", data=df, height=17.5, aspect=1.5)
+	g = sns.catplot(x="atlas_labels", y="residuals", data=df, height=17.5, aspect=1.5)
 	g.set_xticklabels(rotation=90)
-	g.set(xlim=(min(all_residuals), max(all_residuals)))
-	g.set_axis_labels("RMSE", "location")
-	plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("RMSE", "")
+	plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + ", " + str(bm) + " " + str(cv))
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	# plt.show()
 	return
 
 def plot_roi(df, args, file_name):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
 	all_residuals = list(df.residuals)
-	g = sns.catplot(x="residuals", y="roi_labels", data=df, height=7.5, aspect=1.5)
+	g = sns.catplot(x="roi_labels", y="residuals", data=df, height=7.5, aspect=1.5)
 	g.set_xticklabels(rotation=90)
-	g.set(xlim=(min(all_residuals), max(all_residuals)))
-	g.set_axis_labels("RMSE", "location")
+	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("RMSE", "")
 	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
 def main():
-	# if len(sys.argv) != 2:
-	# 	print("usage: python plot_residuals_locations.py -residual")
-	# 	# example: python plot_residuals_locations.py ../residuals/concatenated_all_residuals.p
-	# 	exit()
 
 	argparser = argparse.ArgumentParser(description="plot RMSE by location")
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
@@ -97,10 +109,10 @@ def main():
 	argparser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
+	argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-	argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	args = argparser.parse_args()
 
 	# get residuals

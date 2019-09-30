@@ -96,7 +96,7 @@ def get_embed_matrix(embedding):
 	return embed_matrix
 
 def main():
-	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step from NN to brain")
+	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
 	argparser.add_argument("--brain_to_model", type=str, default="False", help="True if regressing brain to model, False if regressing model to brain")
