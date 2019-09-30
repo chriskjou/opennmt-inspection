@@ -17,6 +17,9 @@ def main():
 	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
 	parser.add_argument("-create_model", "--create_model", help="Create OpenNMT prediction model", type=bool, default='False')
 	parser.add_argument("-format_data", "--format_data", help="Format fMRI data", type=bool, default='False')
+	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
+	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
+	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 
 	args = parser.parse_args()
 
@@ -45,6 +48,12 @@ def main():
 		exit()
 	if args.which_layer not in list(range(args.num_layers)):
 		print("invalid which_layer: which_layer must be between 1 and args.num_layers, inclusive")
+		exit()
+	if args.brain_to_model and args.model_to_brain:
+		print("select only one flag for brain_to_model or model_to_brain")
+		exit()
+	if not args.brain_to_model and not args.model_to_brain:
+		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
 	############# CREATE MODEL #############
@@ -75,28 +84,49 @@ def main():
 		os.system(format_cmd)
 
 	############# DECODING #############
-	# usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subj_num -num_batches"
 	cmd = "python make_scripts.py"
 	options = "--language " + str(args.language) + 
 				" --num_layers " + str(args.num_layers) + 
-				" --type " + str(args.type) + 
+				" --model_type " + str(args.type) + 
 				" --which_layer " + str(args.which_layer) + 
 				" --agg_type " + str(args.agg_type) + 
 				" --subj_num " + str(args.subj_num) + 
 				" --num_batches" + str(args.num_batches)
+	if args.cross_validation:
+		options += " --cross_validation"
+	if args.brain_to_model:
+		options += "--brain_to_model"
+	if args.model_to_brain:
+		options += "--model_to_brain"
 	entire_cmd = cmd + " " + options
 	os.system(entire_cmd)
 
+	############# MASTER BASH SCRIPTS #############
+	# make executeable
+	cmd = "chmod +x " + str(script_name)
+	os.system(cmd)
+	exe = "./" + str(script_name) 
+	os.system(exe)
 	### wait for job dependency
 
-	# combine RMSE
+	############# COMBINE RMSE #############
 	# usage: python get_residuals.py --residual_name XXXXX --total_batches X
 	rmse = "python get_residuals.py" 
+	options = "--language " + str(args.language) + 
+			" --num_layers " + str(args.num_layers) + 
+			" --type " + str(args.type) + 
+			" --which_layer " + str(args.which_layer) + 
+			" --agg_type " + str(args.agg_type) + 
+			" --subj_num " + str(args.subj_num) + 
+			" --num_batches" + str(args.num_batches)
 	options = "--residual_name " + str(ADD HERE) + 
 				" --total_batches 100"
 	entire_cmd = rmse + " " + options
 	os.system(entire_command)
 
+	############# PLOT VISUALIZATIONS #############
+
+	############# PERMUTATION TESTING #############
 	return
 
 if __name__ == "__main__":
