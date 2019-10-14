@@ -134,7 +134,7 @@ def main():
 
 	### wait for job dependency
 	### todo: get individual jobs ids
-	
+
 	# for i in range(args.nbatches):
 	# file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	# job_id = file.format(

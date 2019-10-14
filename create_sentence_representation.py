@@ -21,11 +21,11 @@ def process_sentence(vocab, typ, num_layers):
 
 		for lay in range(len(one_sent)):
 			if typ == "avg":
-				sentence_rep[lay].append(np.mean(one_sent[lay], axis = 0))
+				sentence_rep[lay].append(np.mean(one_sent[lay], axis=0))
 			elif typ == "max":
 				sentence_rep[lay].append(np.array(one_sent[lay]).max(axis=0))
 			elif typ == "min":
-				sentence_rep[lay].append(np.array(one_sent[lay]).min(axis = 0))
+				sentence_rep[lay].append(np.array(one_sent[lay]).min(axis=0))
 			elif typ == "last":
 				sentence_rep[lay].append(np.array(one_sent[lay][-1]))
 				

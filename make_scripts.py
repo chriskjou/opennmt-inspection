@@ -44,7 +44,7 @@ done
 		direction,
 		validate,
 		args.subject_number, 
-		args.nbatches, 
+		args.total_batches, 
 		args.language, 
 		args.num_layers, 
 		args.model_type, 
@@ -54,12 +54,12 @@ done
 )
 
 	# break into batches
-	for i in range(args.nbatches):
+	for i in range(args.total_batches):
 		file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		job_id = file.format(
 			args.subject_number, 
 			i, 
-			args.nbatches, 
+			args.total_batches, 
 			args.language, 
 			args.num_layers, 
 			args.model_type, 
@@ -104,7 +104,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		args.brain_to_model,
 		args.cross_validation,
 		i, 
-		args.nbatches 
+		args.total_batches 
 	)
 )
 
@@ -134,7 +134,7 @@ def main():
 	model_type = ['brnn', 'rnn']
 	agg_type = ['avg', 'max', 'min', 'last']
 	subject_number = list(range(1,12))
-	nbatches = 100
+	# nbatches = 100
 	
 	# check conditions
 	if args.brain_to_model and args.model_to_brain:
