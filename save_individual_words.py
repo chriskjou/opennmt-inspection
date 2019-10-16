@@ -43,9 +43,9 @@ def get_missing_bools(model, file_name):
 
 def main():
 	# get input
-	if len(sys.argv) != 5:
-		print("usage: python save_individual_words.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers")
-		exit()
+	# if len(sys.argv) != 5:
+	# 	print("usage: python save_individual_words.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers")
+	# 	exit()
 
 	argparser = argparse.ArgumentParser(description="save individual embeddings of words after training")
 	argparser.add_argument('--vocab', type=str, help="Location of vocab.pt model after preprocessing", required=True)
