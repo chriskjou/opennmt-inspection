@@ -157,13 +157,28 @@ def main():
 	roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
 	roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
+	print("INITIAL:")
+	print(len(atlas_vals))
+	print(len(atlas_labels))
+	print(len(roi_vals))
+	print(len(roi_labels))
+
 	final_roi_labels = clean_roi(roi_vals, roi_labels)
 	at_labels = clean_atlas(atlas_vals, atlas_labels)
+
+	print("CLEANING")
+	print(len(final_roi_labels))
+	print(len(at_labels))
 
 	if not os.path.exists('../visualizations/'):
 		os.makedirs('../visualizations/')
 
 	# make dataframe
+	print(len(list(range(len(all_residuals)))))
+	print(len(all_residuals))
+	print(len(at_labels))
+	print(len(final_roi_labels))
+
 	df_dict = {'voxel_index': list(range(len(all_residuals))),
 			'residuals': all_residuals,
 			'atlas_labels': at_labels,

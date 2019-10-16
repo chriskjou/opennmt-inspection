@@ -4,10 +4,10 @@ import sys
 import argparse
 import os
 
-def concatenate_all_residuals(language, num_layers, model_type, layer, agg_type, total_batches):
+def concatenate_all_residuals(subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate):
 	final_residuals = []
 	for i in range(total_batches):
-		specific_file = "parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
+		specific_file = str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
 		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		part = pickle.load( open( file_name, "rb" ) )
 		final_residuals.extend(part)
@@ -64,8 +64,9 @@ def main():
 		os.mkdir('../rmses/')
 
 	for atype in agg_type:
-		for layer in list(range(1,num_layers+1)):
-			final_residuals = concatenate_all_residuals(args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches)
+		for layer in list(range(1, num_layers+1)):
+			print(layer)
+			final_residuals = concatenate_all_residuals(args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate)
 			specific_file = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			file_format = specific_file.format(
 				args.subject_number, 

@@ -4,8 +4,8 @@ import argparse
 from tqdm import tqdm
 
 def save_script(args):
-	if not os.path.exists('../decoding_scripts/'):
-		os.makedirs('../decoding_scripts/')
+	if not os.path.exists('../../decoding_scripts/'):
+		os.makedirs('../../decoding_scripts/')
 
 	# file name assignments
 	if args.brain_to_model:
@@ -30,11 +30,11 @@ def save_script(args):
 	)
 	print(folder_name)
 
-	if not os.path.exists('../decoding_scripts/' + str(folder_name) + '/'):
-		os.makedirs('../decoding_scripts/' + str(folder_name) + '/')
+	if not os.path.exists('../../decoding_scripts/' + str(folder_name) + '/'):
+		os.makedirs('../../decoding_scripts/' + str(folder_name) + '/')
 
 	# make master script
-	with open("../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh", "w") as rsh:
+	with open("../../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh", "w") as rsh:
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
@@ -67,7 +67,7 @@ done
 			args.agg_type
 		)
 
-		fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+		fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
 		with open(fname, 'w') as rsh:
 			rsh.write('''\
@@ -160,7 +160,7 @@ def main():
 	if args.subject_number not in subject_number:
 		print("invalid subject_number")
 		exit()
-	if args.which_layer not in list(range(args.num_layers)):
+	if args.which_layer not in list(range(1, args.num_layers+1)):
 		print("invalid which_layer: which_layer must be between 1 and args.num_layers, inclusive")
 		exit()
 

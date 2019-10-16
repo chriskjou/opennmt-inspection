@@ -55,6 +55,7 @@ def main():
     subj_num_description = "The subject(s) # in exampleGLM whose .mat files need to be processed"
     argparser.add_argument("--subject_number", type=int, default=[1], nargs='+', help=subj_num_description)
     args = argparser.parse_args()
+    print(args.subject_number)
     for subj_num in args.subject_number:
         save_location = f'../examplesGLM/subj{subj_num}/'
         glm_sentences_path = save_location + 'examplesGLM.mat'

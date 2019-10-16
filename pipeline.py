@@ -129,7 +129,7 @@ def main():
 	# make script executable
 	cmd = "chmod +x " + str(executable_path)
 	os.system(cmd)
-	exe = "./" + str(executable_path) 
+	exe = "sbatch " + str(executable_path) 
 	os.system(exe)
 
 	### wait for job dependency
