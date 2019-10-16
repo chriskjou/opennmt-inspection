@@ -18,8 +18,13 @@ def save_script(args):
 	else:
 		validate = "nocv_"
 
+	if args.random:
+		rlabel = "random"
+	else:
+		rlabel = ""
+
 	# create subfolder
-	model_type = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	model_type = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	folder_name = model_type.format(
 		args.subject_number, 
 		args.language, 
@@ -38,9 +43,10 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
+  sbatch "{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
 done
 '''.format(
+		rlabel,
 		direction,
 		validate,
 		args.subject_number, 
@@ -55,8 +61,9 @@ done
 
 	# break into batches
 	for i in range(args.total_batches):
-		file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file = str(rlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		job_id = file.format(
+			rlabel,
 			args.subject_number, 
 			i, 
 			args.total_batches, 
@@ -92,7 +99,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --cross_validation {8} \
 --subject_number {6} \
 --batch_num {9} \
---total_batches {10}
+--total_batches {10} \
+{11}
 '''.format(
 		job_id, 
 		args.language, 
@@ -104,7 +112,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		args.brain_to_model,
 		args.cross_validation,
 		i, 
-		args.total_batches 
+		args.total_batches,
+		"--" + str(rlabel),
 	)
 )
 
@@ -126,7 +135,7 @@ def main():
 	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-
+	parser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']

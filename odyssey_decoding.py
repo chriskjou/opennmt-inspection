@@ -104,7 +104,7 @@ def main():
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
-	# argparser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
 
 	embed_loc = args.embedding_layer
@@ -137,7 +137,8 @@ def main():
 	volmask = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/volmask.p", "rb" ) )
 	modified_activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/modified_activations.p", "rb" ) )
 
-	# modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
+	if args.random:
+		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
 	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
 	
