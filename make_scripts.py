@@ -63,7 +63,6 @@ done
 	for i in range(args.total_batches):
 		file = str(rlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		job_id = file.format(
-			rlabel,
 			args.subject_number, 
 			i, 
 			args.total_batches, 
