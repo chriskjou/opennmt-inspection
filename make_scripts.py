@@ -134,7 +134,7 @@ def main():
 	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-	parser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
+	parser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']

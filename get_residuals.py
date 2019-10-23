@@ -4,10 +4,10 @@ import sys
 import argparse
 import os
 
-def concatenate_all_residuals(subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate):
+def concatenate_all_residuals(rlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate):
 	final_residuals = []
 	for i in range(total_batches):
-		specific_file = str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
+		specific_file = rlabel + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
 		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		part = pickle.load( open( file_name, "rb" ) )
 		final_residuals.extend(part)
@@ -25,8 +25,9 @@ def main():
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-
+	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
+
 	languages = 'spanish' #['spanish', 'german', 'italian', 'french', 'swedish']
 	num_layers = 2 #[2, 4]
 	model_type = 'brnn' #['brnn', 'rnn']
@@ -51,6 +52,10 @@ def main():
 		validate = "cv_"
 	else:
 		validate = "nocv_"
+	if args.random:
+		rlabel = "random"
+	else:
+		rlabel = ""
 
 	print(args.cross_validation)
 	print(args.brain_to_model)
@@ -66,8 +71,8 @@ def main():
 	for atype in agg_type:
 		for layer in list(range(1, num_layers+1)):
 			print(layer)
-			final_residuals = concatenate_all_residuals(args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate)
-			specific_file = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			final_residuals = concatenate_all_residuals(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate)
+			specific_file = rlabel + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			file_format = specific_file.format(
 				args.subject_number, 
 				args.language, 

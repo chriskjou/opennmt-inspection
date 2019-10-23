@@ -8,6 +8,7 @@ plt.switch_backend('agg')
 import argparse
 import os
 from tqdm import tqdm
+import math
 
 map_dict = {
 	'avg': "Average",
@@ -64,7 +65,7 @@ def plot_aggregations(df, args, file_name):
 	plt.show()
 	return
 
-def plot_atlas(df, args, file_name):
+def plot_atlas(df, args, file_name, zoom=False):
 	if args.cross_validation:
 		cv = "Cross Validation"
 	else:
@@ -76,14 +77,18 @@ def plot_atlas(df, args, file_name):
 	all_residuals = list(df.residuals)
 	g = sns.catplot(x="atlas_labels", y="residuals", data=df, height=17.5, aspect=1.5)
 	g.set_xticklabels(rotation=90)
-	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	if zoom:
+		g.set(ylim=(min(all_residuals), 0.5)) #5 * math.pow(10, -11)))
+		file_name += "-zoom"
+	else:
+		g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
 	plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + ", " + str(bm) + " " + str(cv))
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	# plt.show()
 	return
 
-def plot_roi(df, args, file_name):
+def plot_roi(df, args, file_name, zoom=False):
 	if args.cross_validation:
 		cv = "Cross Validation"
 	else:
@@ -94,6 +99,46 @@ def plot_roi(df, args, file_name):
 		bm = "Model-to-Brain"
 	all_residuals = list(df.residuals)
 	g = sns.catplot(x="roi_labels", y="residuals", data=df, height=7.5, aspect=1.5)
+	g.set_xticklabels(rotation=90)
+	if zoom:
+		g.set(ylim=(min(all_residuals), 0.5)) #5 * math.pow(10, -11)))
+		file_name += "-zoom"
+	else:
+		g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("RMSE", "")
+	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	return
+
+def plot_boxplot_for_atlas(df, args, file_name):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
+	all_residuals = list(df.residuals)
+	g = sns.catplot(x="atlas_labels", y="residuals", data=df, height=17.5, aspect=1.5, kind="box")
+	g.set_xticklabels(rotation=90)
+	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set_axis_labels("RMSE", "")
+	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	return
+
+def plot_boxplot_for_roi(df, args, file_name):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
+	all_residuals = list(df.residuals)
+	g = sns.catplot(x="roi_labels", y="residuals", data=df, height=7.5, aspect=1.5, kind="box")
 	g.set_xticklabels(rotation=90)
 	g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
@@ -113,6 +158,7 @@ def main():
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
+	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
 
 	# get residuals
@@ -133,9 +179,14 @@ def main():
 		validate = "cv_"
 	else:
 		validate = "nocv_"
+	if args.random:
+		rlabel = "random"
+	else:
+		rlabel = ""
+
 
 	# residual_file = sys.argv[1]
-	file_loc = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	file_loc = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	
 	file_name = file_loc.format(
 		args.subject_number, 
@@ -186,8 +237,12 @@ def main():
 
 	df = pd.DataFrame(df_dict)
 
-	plot_roi(df, args, file_name + "-roi")
-	plot_atlas(df, args, file_name + "-atlas")
+	# create plots
+	print("creating plots...")
+	plot_roi(df, args, file_name + "-roi", zoom=True)
+	plot_atlas(df, args, file_name + "-atlas", zoom=True)
+	# plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
+	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
 	# plot_aggregations(df, args, file_name + "-agg")
 
 	print("done.")

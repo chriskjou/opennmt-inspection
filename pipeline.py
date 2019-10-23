@@ -27,6 +27,7 @@ def main():
 	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
+	parser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
 	args = parser.parse_args()
 
 	############# VALIDATE ARGUMENTS #############
@@ -69,6 +70,8 @@ def main():
 		options += " --brain_to_model"
 	if args.model_to_brain:
 		options += " --model_to_brain"
+	if args.random:
+		options += " --random"
 
 	############# CREATE MODEL #############
 	
@@ -114,8 +117,12 @@ def main():
 		validate = "cv_"
 	else:
 		validate = "nocv_"
+	if args.random:
+		rlabel = "random"
+	else:
+		rlabel = ""
 
-	model_type = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	model_type = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	folder_name = model_type.format(
 		args.subject_number, 
 		args.language, 
