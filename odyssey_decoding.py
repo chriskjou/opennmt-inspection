@@ -59,15 +59,16 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			spotlights.append(remove_nan)
 
 		## DECODING BELOW
-		res = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
+		res, pred = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
 		index+=1
 		## DECODING ABOVE
 
-	return res_per_spotlight
+	return res_per_spotlight, pred
 
 def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
+	predicted = []
 	if brain_to_model:
 		from_regress = np.array(spotlight_activations)
 		to_regress = embed_matrix
@@ -78,16 +79,20 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 	if do_cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
+		predicted_trials = []
 		for train_index, test_index in kf.split(from_regress):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
+			predicted_trials.append(np.dot(X_test, p))
 			errors.append(residuals)
+		predicted.append(np.mean(predicted_trials), axis=0)
 		return np.mean(errors)
 	p, res, rnk, s = lstsq(from_regress, to_regress)
+	predicted.append(np.dot(from_regress, p))
 	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2))
-	return residuals
+	return residuals, predicted
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -111,14 +116,25 @@ def main():
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
-	argparser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
+	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	argparser.add_argument("--word2vec",  action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	args = argparser.parse_args()
 
-	embed_loc = args.embedding_layer
-	file_name = embed_loc.split("/")[-1].split(".")[0]
-	embedding = scipy.io.loadmat(embed_loc)
-	embed_matrix = get_embed_matrix(embedding)
+	if not args.glove and not args.word2vec:
+		embed_loc = args.embedding_layer
+		file_name = embed_loc.split("/")[-1].split(".")[0]
+		embedding = scipy.io.loadmat(embed_loc)
+		embed_matrix = get_embed_matrix(embedding)
+	else:
+		embed_loc = args.embedding_layer
+		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] # aggregation type
+		if args.word2vec:
+			embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+		else: # args.glove
+			embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+
 	# info = sys.argv[2]
 	# title = sys.argv[3]
 	subj_num = args.subject_number
@@ -156,14 +172,20 @@ def main():
 		print("RANDOM ACTIVATIONS")
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
-	all_residuals = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+	all_residuals, predictions = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
 	
 	# make file path
 	if not os.path.exists('../../projects/residuals/'):
 		os.makedirs('../../projects/residuals/')
 
+	if not os.path.exists('../../projects/predictions/'):
+		os.makedirs('../../projects/predictions/')
+
 	altered_file_name = "../../projects/residuals/" + str(rlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
 	pickle.dump( all_residuals, open(altered_file_name, "wb" ) )
+
+	altered_file_name = "../../projects/predictions/" + str(rlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
+	pickle.dump( pred, open(altered_file_name+"-decoding-predictions.p", "wb" ) )
 	print("done.")
 
 	### RUN SIGNIFICANT TESTS BELOW

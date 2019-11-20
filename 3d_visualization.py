@@ -22,8 +22,14 @@ def transform_coordinates(rmses, volmask, save_path=""):
 	return modified_rmses
 
 def plot_on_glass(data, file_name):
-	print(np.shape(data))
-	new_image = nib.Nifti1Image(data, affine=np.eye(4))
+	# used from affine from demo (https://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain.html)
+	# aff = np.array([[-3., 0., 0., 78.], [0.,3., 0.,-112.], [0.,0.,3.,-50.], [0.,0.,0.,1.]])
+	# aff = np.array([[-2., 0., 0., 78.], [0.,2., 0.,-112.], [0.,0.,2.,-70.], [0.,0.,0.,1.]])
+	aff = np.array([[-2., 0., 0., 0.], [0., 2., 0., 0.], [0., 0., 2., 0], [78., -112., -60., 1.]])
+	# real_data = nib.affines.apply_affine(aff, data)
+	# print("AFFINE TRANSFORM: " + str(real_data.shape))
+	# print("NIFTI: " + str(new_image))
+	new_image = nib.Nifti1Image(data, affine=aff)
 	plotting.plot_glass_brain(new_image, output_file=file_name, colorbar=True, plot_abs=True, threshold='auto')
 	plotting.show()
 	return
@@ -109,6 +115,8 @@ def main():
 
 	print("transforming coordinates...")
 	transform_data = transform_coordinates(data, volmask, save_path="../3d-brain/"+file_name)
+	print("ORIGINAL DATA: " + str(len(data)))
+	print("TRANSFORMED DATA: " + str(transform_data.shape))
 
 	print("plotting data...")
 	f_name = "../3d-brain/" + file_name + "-glass-brain.png"

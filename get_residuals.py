@@ -4,17 +4,20 @@ import sys
 import argparse
 import os
 
-def concatenate_all_residuals(rlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate):
+def concatenate_all(rlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate, type_concat):
 	final_residuals = []
 	for i in range(total_batches):
 		specific_file = rlabel + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
-		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
+		if type_concat == 'residuals':
+			file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
+		if type_concat == 'predictions':
+			file_name = "../predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
 		part = pickle.load( open( file_name, "rb" ) )
 		final_residuals.extend(part)
 	return final_residuals
 
 def main():
-	argparser = argparse.ArgumentParser(description="concatenate residuals from the relevant batches")
+	argparser = argparse.ArgumentParser(description="concatenate residuals/predictions from the relevant batches")
 	argparser.add_argument("--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
@@ -68,10 +71,16 @@ def main():
 	if not os.path.isdir('../rmses/'):
 		os.mkdir('../rmses/')
 
+	if not os.path.isdir('../final_predictions/'):
+		os.mkdir('../final_predictions/')
+
 	for atype in agg_type:
 		for layer in list(range(1, num_layers+1)):
 			print(layer)
-			final_residuals = concatenate_all_residuals(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate)
+			final_residuals = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "residuals")
+			final_predictions = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "predictions")
+			
+			# RMSES
 			specific_file = rlabel + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			file_format = specific_file.format(
 				args.subject_number, 
@@ -83,6 +92,10 @@ def main():
 			)
 			file_name = "../rmses/concatenated-" + str(file_format) + ".p"
 			pickle.dump( final_residuals, open( file_name, "wb" ) )
+
+			# PREDICTIONS
+			file_name = "../final_predictions/concatenated-" + str(file_format) + ".p"
+			pickle.dump( final_predictions, open( file_name, "wb" ) )
 	print("done.")
 	return
 

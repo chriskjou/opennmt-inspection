@@ -146,6 +146,42 @@ def plot_boxplot_for_roi(df, args, file_name):
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
+def plot_violinplot_for_atlas(df, args, file_name):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
+	all_residuals = list(df.residuals)
+	g = sns.violinplot(x="atlas_labels", y="residuals", data=df, height=17.5, aspect=1.5)
+	# g.set_xticklabels(rotation=90)
+	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	# g.set_axis_labels("RMSE", "")
+	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	return
+
+def plot_violinplot_for_roi(df, args, file_name):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
+	all_residuals = list(df.residuals)
+	g = sns.violinplot(x="roi_labels", y="residuals", data=df, height=7.5, aspect=1.5)
+	# g.set_xticklabels(rotation=90)
+	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	# g.set_axis_labels("RMSE", "")
+	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	return
+
 def main():
 
 	argparser = argparse.ArgumentParser(description="plot RMSE by location")
@@ -239,10 +275,12 @@ def main():
 
 	# create plots
 	print("creating plots...")
-	plot_roi(df, args, file_name + "-roi", zoom=True)
-	plot_atlas(df, args, file_name + "-atlas", zoom=True)
+	# plot_roi(df, args, file_name + "-roi", zoom=True)
+	# plot_atlas(df, args, file_name + "-atlas", zoom=True)
 	# plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
 	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	plot_violinplot_for_roi(df, args, file_name + "-violinplot-roi")
+	plot_violinplot_for_atlas(df, args, file_name + "-violinplot-atlas")
 	# plot_aggregations(df, args, file_name + "-agg")
 
 	print("done.")

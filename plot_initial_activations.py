@@ -112,15 +112,18 @@ def create_per_brain_region(activations, args, at_labels, final_roi_labels):
 		'roi_labels': final_roi_labels}
 
 	df = pd.DataFrame(df_dict)
+	labels = list(set(at_labels))
+	labels.sort()
+	print(labels)
 
 	# create plots
-	print("creating plots over averaged sentence...")
-	file_name = "../visualizations/initial-activations-avg-sentence-subj" + str(args.subject_number)
+	# print("creating plots over averaged sentence...")
+	# file_name = "../visualizations/initial-activations-avg-sentence-subj" + str(args.subject_number)
 
-	plot_roi(df, args, file_name + "-roi")
-	plot_atlas(df, args, file_name + "-atlas")
-	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
-	plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	# plot_roi(df, args, file_name + "-roi")
+	# plot_atlas(df, args, file_name + "-atlas")
+	# plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
+	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
 	return avg
 
 def create_per_sentence(activations, args, at_labels, final_roi_labels):
@@ -137,7 +140,7 @@ def create_per_sentence(activations, args, at_labels, final_roi_labels):
 		# print("sentence " + str(i) + ": " + str(len(to_plot)) + " activations")
 
 		# create plots
-		print("creating plots over averaged sentence...")
+		# print("creating plots over averaged sentence...")
 		file_name = "../visualizations/initial-activations-subj" + str(args.subject_number) + "-sentence" + str(i)
 
 		plot_roi(to_plot, args, file_name + "-roi")
@@ -187,13 +190,19 @@ def main():
 
 
 	# residual_file = sys.argv[1]
-	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/activations.p", "rb" ) )
+	activations = pickle.load( open( "activations.p", "rb" ) )
+	# activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/activations.p", "rb" ) )
 
 	# get atlas and roi
-	atlas_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
-	atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
-	roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
-	roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+	atlas_vals = pickle.load( open( "atlas_vals.p", "rb" ) )
+	atlas_labels = pickle.load( open( "atlas_labels.p", "rb" ) )
+	roi_vals = pickle.load( open( "roi_vals.p", "rb" ) )
+	roi_labels = pickle.load( open( "roi_labels.p", "rb" ) )
+
+	# atlas_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+	# atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+	# roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
+	# roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
 	print("INITIAL:")
 	print(len(atlas_vals))
@@ -217,8 +226,8 @@ def main():
 	print(len(at_labels))
 	print(len(final_roi_labels))
 
-	# create_per_brain_region(activations, args, at_labels, final_roi_labels)
-	create_per_sentence(activations, args, at_labels, final_roi_labels)
+	create_per_brain_region(activations, args, at_labels, final_roi_labels)
+	# create_per_sentence(activations, args, at_labels, final_roi_labels)
 
 	print("done.")
 

@@ -54,7 +54,6 @@ def save_to_mat(title, arr, bool_labels, method):
 			tup.extend(embed)
 
 			layer_dict[sentence_label] = tup
-
 		scipy.io.savemat(title + "-" + mat_title, mdict=layer_dict)
 	return
 
