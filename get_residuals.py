@@ -4,21 +4,24 @@ import sys
 import argparse
 import os
 
-def concatenate_all(rlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate, type_concat):
+def concatenate_all(rlabel, glabel, w2vlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate, type_concat):
 	final_residuals = []
 	for i in range(total_batches):
-		specific_file = rlabel + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
-		if type_concat == 'residuals':
-			file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
-		if type_concat == 'predictions':
-			file_name = "../predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
+		# specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
+		specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
+		# if type_concat == 'residuals':
+			# file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
+		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
+		# if type_concat == 'predictions':
+		# 	file_name = "../predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
+		# print("FILE NAME: " + str(file_name))
 		part = pickle.load( open( file_name, "rb" ) )
 		final_residuals.extend(part)
 	return final_residuals
 
 def main():
 	argparser = argparse.ArgumentParser(description="concatenate residuals/predictions from the relevant batches")
-	argparser.add_argument("--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
+	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
 	argparser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
@@ -28,6 +31,8 @@ def main():
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
+	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
 
@@ -55,14 +60,27 @@ def main():
 		validate = "cv_"
 	else:
 		validate = "nocv_"
+
 	if args.random:
 		rlabel = "random"
 	else:
 		rlabel = ""
+		
+	if args.glove:
+		glabel = "glove"
+	else:
+		glabel = ""
 
-	print(args.cross_validation)
-	print(args.brain_to_model)
-	print(args.model_to_brain)
+	if args.word2vec:
+		w2vlabel = "word2vec"
+	else:
+		w2vlabel = ""
+
+	print("CROSS VALIDATION: " + str(args.cross_validation))
+	print("BRAIN_TO_MODEL: " + str(args.brain_to_model))
+	print("MODEL_TO_BRAIN: " + str(args.model_to_brain))
+	print("GLOVE: " + str(args.glove))
+	print("WORD2VEC: " + str(args.word2vec))
 
 	#residual_name = args.residual_name
 	#total_batches = args.total_batches
@@ -71,17 +89,17 @@ def main():
 	if not os.path.isdir('../rmses/'):
 		os.mkdir('../rmses/')
 
-	if not os.path.isdir('../final_predictions/'):
-		os.mkdir('../final_predictions/')
+	# if not os.path.isdir('../final_predictions/'):
+	# 	os.mkdir('../final_predictions/')
 
 	for atype in agg_type:
 		for layer in list(range(1, num_layers+1)):
 			print(layer)
-			final_residuals = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "residuals")
-			final_predictions = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "predictions")
+			final_residuals = concatenate_all(rlabel, glabel, w2vlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, 'residuals')
+			# final_predictions = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "predictions")
 			
 			# RMSES
-			specific_file = rlabel + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			file_format = specific_file.format(
 				args.subject_number, 
 				args.language, 
@@ -94,8 +112,8 @@ def main():
 			pickle.dump( final_residuals, open( file_name, "wb" ) )
 
 			# PREDICTIONS
-			file_name = "../final_predictions/concatenated-" + str(file_format) + ".p"
-			pickle.dump( final_predictions, open( file_name, "wb" ) )
+			# file_name = "../final_predictions/concatenated-" + str(file_format) + ".p"
+			# pickle.dump( final_predictions, open( file_name, "wb" ) )
 	print("done.")
 	return
 

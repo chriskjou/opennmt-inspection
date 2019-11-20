@@ -194,6 +194,8 @@ def main():
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
+	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
 
@@ -215,15 +217,27 @@ def main():
 		validate = "cv_"
 	else:
 		validate = "nocv_"
+
 	if args.random:
 		rlabel = "random"
 	else:
 		rlabel = ""
+	
+	if args.glove:
+		glabel = "glove"
+	else:
+		glabel = ""
+
+	if args.word2vec:
+		w2vlabel = "word2vec"
+	else:
+		w2vlabel = ""
+
 
 
 	# residual_file = sys.argv[1]
-	file_loc = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-	
+	file_loc = str(rlabel) + str(glabel) + str(w2vlabel)+ str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+
 	file_name = file_loc.format(
 		args.subject_number, 
 		args.language, 
@@ -275,10 +289,10 @@ def main():
 
 	# create plots
 	print("creating plots...")
-	# plot_roi(df, args, file_name + "-roi", zoom=True)
-	# plot_atlas(df, args, file_name + "-atlas", zoom=True)
-	# plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
-	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	plot_roi(df, args, file_name + "-roi", zoom=True)
+	plot_atlas(df, args, file_name + "-atlas", zoom=True)
+	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
+	plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
 	plot_violinplot_for_roi(df, args, file_name + "-violinplot-roi")
 	plot_violinplot_for_atlas(df, args, file_name + "-violinplot-atlas")
 	# plot_aggregations(df, args, file_name + "-agg")

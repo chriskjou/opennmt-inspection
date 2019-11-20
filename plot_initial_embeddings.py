@@ -34,9 +34,14 @@ def plot_graph(df, args, file_name):
 	plt.clf()
 	g = sns.swarmplot(x=embed)
 	# g.set_xticklabels(rotation=90)
-	g.set(ylim=(min(embed), max(embed)))
+	g.set(xlim=(min(embed) - 0.1, max(embed) + 0.1))
 	# g.set_axis_labels("embeddings", "")
-	plt.title("Embeddings for" + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.glove and not args.word2vec:
+		plt.title("Embeddings for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if args.glove:
+		plt.title("Glove Embeddings for " + map_dict[args.agg_type] + " Aggregation")
+	if args.word2vec:
+		plt.title("Word2Vec Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	# plt.show()
 	return
@@ -46,9 +51,14 @@ def plot_boxplot(df, args, file_name):
 	plt.clf()
 	g = sns.boxplot(x=embed)
 	# g.set_xticklabels(rotation=90)
-	g.set(ylim=(min(embed), max(embed)))
+	g.set(xlim=(min(embed) - 0.1, max(embed) + 0.1))
 	# g.set_axis_labels("embeddings", "")
-	plt.title("Embeddings for" + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.glove and not args.word2vec:
+		plt.title("Embeddings for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if args.glove:
+		plt.title("Glove Embeddings for " + map_dict[args.agg_type] + " Aggregation")
+	if args.word2vec:
+		plt.title("Word2Vec Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	# plt.show()
 	plt.savefig("../visualizations/" + str(file_name) + "-boxplot.png")
 	return
@@ -62,27 +72,41 @@ def main():
 	argparser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
+	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	# argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	args = argparser.parse_args()
 
 	print("getting arguments...")
-	file_loc = "../embeddings/parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat"
-	embed_loc = file_loc.format(
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.agg_type,
-		args.which_layer
-	)
+	if not args.glove and not args.word2vec:
+		file_loc = "../embeddings/parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat"
+		embed_loc = file_loc.format(
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.agg_type,
+			args.which_layer
+		)
+		print(embed_loc)
 
-	print(embed_loc)
-
+		print("getting embeddings...")
+		# embed_loc = args.embedding_layer
+		file_name = embed_loc.split("/")[-1].split(".")[0]
+		embedding = scipy.io.loadmat(embed_loc)
+		embed_matrix = get_embed_matrix(embedding)
+		print(embed_matrix.shape)
+	if args.glove:
+		file_loc = f"../embeddings/glove/{args.agg_type}.p"
+		file_name = f"glove-{args.agg_type}"
+	if args.word2vec:
+		file_loc = f"../embeddings/word2vec/{args.agg_type}.p"
+		file_name = f"word2vec-{args.agg_type}"
+	# file_name = file_loc.split("/")[-1].split(".")[0]
 	print("getting embeddings...")
-	# embed_loc = args.embedding_layer
-	file_name = embed_loc.split("/")[-1].split(".")[0]
-	embedding = scipy.io.loadmat(embed_loc)
-	embed_matrix = get_embed_matrix(embedding)
+	embed_matrix = pickle.load( open( file_loc, "rb" ) )
+	embed_matrix = np.array(embed_matrix)
 	print(embed_matrix.shape)
+
 
 	avg = np.nanmean(embed_matrix, axis=0)
 	print("EMBEDDINGS: " + str(np.shape(avg)))

@@ -25,6 +25,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	print("getting activations for all sentences...")
 	# per_sentence = []
 	res_per_spotlight = []
+	predictions = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 
@@ -62,18 +63,19 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		res, pred = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
+		# predictions.append(pred)
 		index+=1
 		## DECODING ABOVE
 
-	return res_per_spotlight, pred
+	return res_per_spotlight, predictions
 
 def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
 	predicted = []
 	if brain_to_model:
 		from_regress = np.array(spotlight_activations)
-		to_regress = embed_matrix
+		to_regress = np.array(embed_matrix)
 	else:
-		from_regress = embed_matrix
+		from_regress = np.array(embed_matrix)
 		to_regress = np.array(spotlight_activations)
 
 	if do_cross_validation:
@@ -85,13 +87,15 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
-			predicted_trials.append(np.dot(X_test, p))
+			# predicted_trials.append(np.dot(X_test, p))
 			errors.append(residuals)
-		predicted.append(np.mean(predicted_trials), axis=0)
-		return np.mean(errors)
+		# predicted.append(np.mean(predicted_trials, axis=0))
+		return np.mean(errors), predicted
 	p, res, rnk, s = lstsq(from_regress, to_regress)
-	predicted.append(np.dot(from_regress, p))
+	# predicted.append(np.dot(from_regress, p))
 	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2))
+	print("RESIDUALS: " + str(residuals))
+	print("PREDICTED: " + str(predicted))
 	return residuals, predicted
 
 def get_embed_matrix(embedding):
@@ -131,9 +135,11 @@ def main():
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] # aggregation type
 		if args.word2vec:
-			embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+			# embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
 		else: # args.glove
-			embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
 
 	# info = sys.argv[2]
 	# title = sys.argv[3]
@@ -155,10 +161,21 @@ def main():
 	else:
 		validate = "nocv_"
 		cross_validation = False
+
 	if args.random:
 		rlabel = "random"
 	else:
 		rlabel = ""
+
+	if args.glove:
+		glabel = "glove"
+	else:
+		glabel = ""
+
+	if args.word2vec:
+		w2vlabel = "word2vec"
+	else:
+		w2vlabel = ""
 
 	# get modified activations
 	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/activations.p", "rb" ) )
@@ -181,11 +198,11 @@ def main():
 	if not os.path.exists('../../projects/predictions/'):
 		os.makedirs('../../projects/predictions/')
 
-	altered_file_name = "../../projects/residuals/" + str(rlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
+	altered_file_name = "../../projects/residuals/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
 	pickle.dump( all_residuals, open(altered_file_name, "wb" ) )
 
-	altered_file_name = "../../projects/predictions/" + str(rlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
-	pickle.dump( pred, open(altered_file_name+"-decoding-predictions.p", "wb" ) )
+	# altered_file_name = "../../projects/predictions/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
+	# pickle.dump( predictions, open(altered_file_name+"-decoding-predictions.p", "wb" ) )
 	print("done.")
 
 	### RUN SIGNIFICANT TESTS BELOW
