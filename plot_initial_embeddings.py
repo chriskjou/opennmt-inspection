@@ -36,12 +36,14 @@ def plot_graph(df, args, file_name):
 	# g.set_xticklabels(rotation=90)
 	g.set(xlim=(min(embed) - 0.1, max(embed) + 0.1))
 	# g.set_axis_labels("embeddings", "")
-	if not args.glove and not args.word2vec:
+	if not args.glove and not args.word2vec and not args.bert:
 		plt.title("Embeddings for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
 	if args.glove:
 		plt.title("Glove Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	if args.word2vec:
 		plt.title("Word2Vec Embeddings for " + map_dict[args.agg_type] + " Aggregation")
+	if args.bert:
+		plt.title("BERT Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	# plt.show()
 	return
@@ -53,12 +55,14 @@ def plot_boxplot(df, args, file_name):
 	# g.set_xticklabels(rotation=90)
 	g.set(xlim=(min(embed) - 0.1, max(embed) + 0.1))
 	# g.set_axis_labels("embeddings", "")
-	if not args.glove and not args.word2vec:
+	if not args.glove and not args.word2vec and not args.bert:
 		plt.title("Embeddings for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
 	if args.glove:
 		plt.title("Glove Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	if args.word2vec:
 		plt.title("Word2Vec Embeddings for " + map_dict[args.agg_type] + " Aggregation")
+	if args.bert:
+		plt.title("BERT Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	# plt.show()
 	plt.savefig("../visualizations/" + str(file_name) + "-boxplot.png")
 	return
@@ -74,11 +78,12 @@ def main():
 	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
+	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	# argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	args = argparser.parse_args()
 
 	print("getting arguments...")
-	if not args.glove and not args.word2vec:
+	if not args.glove and not args.word2vec and not args.bert:
 		file_loc = "../embeddings/parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat"
 		embed_loc = file_loc.format(
 			args.language, 
@@ -101,6 +106,9 @@ def main():
 	if args.word2vec:
 		file_loc = f"../embeddings/word2vec/{args.agg_type}.p"
 		file_name = f"word2vec-{args.agg_type}"
+	if args.bert:
+		file_loc = f"../embeddings/bert/{args.agg_type}.p"
+		file_name = f"bert-{args.agg_type}"
 	# file_name = file_loc.split("/")[-1].split(".")[0]
 	print("getting embeddings...")
 	embed_matrix = pickle.load( open( file_loc, "rb" ) )

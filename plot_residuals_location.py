@@ -199,6 +199,7 @@ def main():
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("-bert",  "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	args = argparser.parse_args()
 
@@ -236,10 +237,13 @@ def main():
 	else:
 		w2vlabel = ""
 
-
+	if args.bert:
+		bertlabel = "bert"
+	else:
+		bertlabel = ""
 
 	# residual_file = sys.argv[1]
-	file_loc = str(rlabel) + str(glabel) + str(w2vlabel)+ str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	file_loc = str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 
 	file_name = file_loc.format(
 		args.subject_number, 

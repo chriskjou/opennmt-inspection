@@ -123,10 +123,11 @@ def main():
 	argparser.add_argument("--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
 	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("--word2vec",  action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
+	argparser.add_argument("--bert",  action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	args = argparser.parse_args()
 
-	if not args.glove and not args.word2vec:
+	if not args.glove and not args.word2vec and not args.bert:
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0]
 		embedding = scipy.io.loadmat(embed_loc)
@@ -137,9 +138,12 @@ def main():
 		if args.word2vec:
 			# embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
 			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
-		else: # args.glove
+		elif args.glove:
 			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
 			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
+		else: # args.bert
+			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )	
 
 	# info = sys.argv[2]
 	# title = sys.argv[3]
@@ -177,6 +181,11 @@ def main():
 	else:
 		w2vlabel = ""
 
+	if args.bert:
+		bertlabel = "bert"
+	else:
+		bertlabel = ""
+
 	# get modified activations
 	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/activations.p", "rb" ) )
 	volmask = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/volmask.p", "rb" ) )
@@ -198,10 +207,10 @@ def main():
 	if not os.path.exists('../../projects/predictions/'):
 		os.makedirs('../../projects/predictions/')
 
-	altered_file_name = "../../projects/residuals/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
+	altered_file_name = "../../projects/residuals/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
 	pickle.dump( all_residuals, open(altered_file_name, "wb" ) )
 
-	# altered_file_name = "../../projects/predictions/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
+	# altered_file_name = "../../projects/predictions/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
 	# pickle.dump( predictions, open(altered_file_name+"-decoding-predictions.p", "wb" ) )
 	print("done.")
 
