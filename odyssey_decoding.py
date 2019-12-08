@@ -121,13 +121,14 @@ def main():
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
 	argparser.add_argument("--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
+	argparser.add_argument("--rand_embed",  action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("--word2vec",  action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("--bert",  action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	args = argparser.parse_args()
 
-	if not args.glove and not args.word2vec and not args.bert:
+	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0]
 		embedding = scipy.io.loadmat(embed_loc)
@@ -141,9 +142,12 @@ def main():
 		elif args.glove:
 			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
 			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
-		else: # args.bert
+		elif args.bert:
 			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
-			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )	
+			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )
+		else: # args.rand_embed
+			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/random/" + str(file_name) + ".p", "rb" ) )	
 
 	# info = sys.argv[2]
 	# title = sys.argv[3]
@@ -170,6 +174,11 @@ def main():
 		rlabel = "random"
 	else:
 		rlabel = ""
+
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
 
 	if args.glove:
 		glabel = "glove"

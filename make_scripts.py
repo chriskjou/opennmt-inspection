@@ -23,6 +23,11 @@ def save_script(args):
 	else:
 		rlabel = ""
 
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
+
 	if args.glove:
 		glabel = "glove"
 	else:
@@ -39,7 +44,7 @@ def save_script(args):
 		bertlabel = ""
 
 	# create subfolder
-	model_type = str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	model_type = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	folder_name = model_type.format(
 		args.subject_number, 
 		args.language, 
@@ -58,10 +63,11 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
+  sbatch "{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
 done
 '''.format(
 		rlabel,
+		elabel,
 		glabel,
 		w2vlabel,
 		bertlabel,
@@ -79,7 +85,7 @@ done
 
 	# break into batches
 	for i in range(args.total_batches):
-		file = str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		job_id = file.format(
 			args.subject_number, 
 			i, 
@@ -98,6 +104,7 @@ done
 			gflag = "" if (glabel == "") else "--" + str(glabel)
 			w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)
 			bertflag = "" if (bertlabel == "") else "--" + str(bertlabel)
+			eflag = "" if (elabel == "") else "--" + str(elabel)
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
@@ -121,7 +128,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --subject_number {6} \
 --batch_num {9} \
 --total_batches {10} \
-{11} {12} {13} {14}
+{11} {12} {13} {14} {15}
 '''.format(
 		job_id, 
 		args.language, 
@@ -135,6 +142,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		i, 
 		args.total_batches,
 		rflag,
+		eflag,
 		gflag,
 		w2vflag,
 		bertflag,
@@ -160,6 +168,7 @@ def main():
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 	parser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
+	parser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	parser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
@@ -179,8 +188,8 @@ def main():
 	if not args.brain_to_model and not args.model_to_brain:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
-	if args.word2vec and args.glove and args.bert:
-		print("select at most one flag for glove, word2vec, and bert")
+	if args.word2vec and args.glove and args.bert and args.rand_embed:
+		print("select at most one flag for glove, word2vec, bert, and random")
 		exit()
 
 	# check

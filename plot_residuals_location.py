@@ -83,7 +83,16 @@ def plot_atlas(df, args, file_name, zoom=False):
 	else:
 		g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
-	plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + ", " + str(bm) + " " + str(cv))
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + + ", " + str(bm) + " " + str(cv))
+	elif args.word2vec:
+		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	# plt.show()
 	return
@@ -106,7 +115,16 @@ def plot_roi(df, args, file_name, zoom=False):
 	else:
 		g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
-	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	elif args.word2vec:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -124,7 +142,16 @@ def plot_boxplot_for_atlas(df, args, file_name):
 	g.set_xticklabels(rotation=90)
 	g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
-	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	elif args.word2vec:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -142,7 +169,16 @@ def plot_boxplot_for_roi(df, args, file_name):
 	g.set_xticklabels(rotation=90)
 	g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
-	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	elif args.word2vec:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -161,7 +197,17 @@ def plot_violinplot_for_atlas(df, args, file_name):
 	# g.set_xticklabels(rotation=90)
 	g.set(ylim=(min(all_residuals), max(all_residuals)))
 	# g.set_axis_labels("RMSE", "")
-	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	elif args.word2vec:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
+	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -180,7 +226,17 @@ def plot_violinplot_for_roi(df, args, file_name):
 	# g.set_xticklabels(rotation=90)
 	g.set(ylim=(min(all_residuals), max(all_residuals)))
 	# g.set_axis_labels("RMSE", "")
-	plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
+	elif args.word2vec:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
+	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -198,7 +254,8 @@ def main():
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
-	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
+	argparser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-bert",  "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	args = argparser.parse_args()
@@ -227,6 +284,11 @@ def main():
 	else:
 		rlabel = ""
 
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
+
 	if args.glove:
 		glabel = "glove"
 	else:
@@ -243,7 +305,7 @@ def main():
 		bertlabel = ""
 
 	# residual_file = sys.argv[1]
-	file_loc = str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	file_loc = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 
 	file_name = file_loc.format(
 		args.subject_number, 
