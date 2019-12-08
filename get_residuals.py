@@ -15,6 +15,7 @@ def concatenate_all(rlabel, glabel, w2vlabel, subject_number, language, num_laye
 		# if type_concat == 'predictions':
 		# 	file_name = "../predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
 		# print("FILE NAME: " + str(file_name))
+		print("FILE NAME: " + str(file_name))
 		part = pickle.load( open( file_name, "rb" ) )
 		final_residuals.extend(part)
 	return final_residuals

@@ -147,6 +147,7 @@ def plot_boxplot_for_roi(df, args, file_name):
 	return
 
 def plot_violinplot_for_atlas(df, args, file_name):
+	plt.clf()
 	if args.cross_validation:
 		cv = "Cross Validation"
 	else:
@@ -165,6 +166,7 @@ def plot_violinplot_for_atlas(df, args, file_name):
 	return
 
 def plot_violinplot_for_roi(df, args, file_name):
+	plt.clf()
 	if args.cross_validation:
 		cv = "Cross Validation"
 	else:
@@ -197,6 +199,7 @@ def main():
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	args = argparser.parse_args()
 
 	# get residuals
@@ -222,7 +225,7 @@ def main():
 		rlabel = "random"
 	else:
 		rlabel = ""
-	
+
 	if args.glove:
 		glabel = "glove"
 	else:
@@ -253,10 +256,16 @@ def main():
 	all_residuals = pickle.load( open( residual_file, "rb" ) )
 
 	# get atlas and roi
-	atlas_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
-	atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
-	roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
-	roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+	if not args.local:
+		atlas_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+		atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+		roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
+		roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+	else:
+		atlas_vals = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+		atlas_labels = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+		roi_vals = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/roi_vals.p", "rb" ) )
+		roi_labels = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
 	print("INITIAL:")
 	print(len(atlas_vals))
@@ -289,12 +298,14 @@ def main():
 
 	# create plots
 	print("creating plots...")
-	plot_roi(df, args, file_name + "-roi", zoom=True)
-	plot_atlas(df, args, file_name + "-atlas", zoom=True)
-	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
-	plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
-	plot_violinplot_for_roi(df, args, file_name + "-violinplot-roi")
-	plot_violinplot_for_atlas(df, args, file_name + "-violinplot-atlas")
+	plot_roi(df, args, file_name + "-roi", zoom=False)
+	plot_atlas(df, args, file_name + "-atlas", zoom=False)
+	# plot_roi(df, args, file_name + "-roi", zoom=True)
+	# plot_atlas(df, args, file_name + "-atlas", zoom=True)
+	# plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
+	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	# plot_violinplot_for_roi(df, args, file_name + "-violinplot-roi")
+	# plot_violinplot_for_atlas(df, args, file_name + "-violinplot-atlas")
 	# plot_aggregations(df, args, file_name + "-agg")
 
 	print("done.")
