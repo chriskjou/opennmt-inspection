@@ -147,7 +147,7 @@ def main():
 			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )
 		else: # args.rand_embed
 			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
-			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/random/" + str(file_name) + ".p", "rb" ) )	
+			embed_matrix = pickle.load( open( "/n/scratchlfs/shieber_lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
 
 	# info = sys.argv[2]
 	# title = sys.argv[3]
