@@ -4,11 +4,11 @@ import sys
 import argparse
 import os
 
-def concatenate_all(rlabel, glabel, w2vlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate, type_concat):
+def concatenate_all(rlabel, elabel, glabel, w2vlabel, bertlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate, type_concat):
 	final_residuals = []
 	for i in range(total_batches):
 		# specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
-		specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
+		specific_file = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
 		# if type_concat == 'residuals':
 			# file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
@@ -34,6 +34,8 @@ def main():
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
+	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	argparser.add_argument("-rand_embed", "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
 
@@ -66,6 +68,11 @@ def main():
 		rlabel = "random"
 	else:
 		rlabel = ""
+
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
 		
 	if args.glove:
 		glabel = "glove"
@@ -77,11 +84,19 @@ def main():
 	else:
 		w2vlabel = ""
 
+	if args.bert:
+		bertlabel = "bert"
+	else:
+		bertlabel = ""
+
 	print("CROSS VALIDATION: " + str(args.cross_validation))
 	print("BRAIN_TO_MODEL: " + str(args.brain_to_model))
 	print("MODEL_TO_BRAIN: " + str(args.model_to_brain))
 	print("GLOVE: " + str(args.glove))
 	print("WORD2VEC: " + str(args.word2vec))
+	print("BERT: " + str(args.bert))
+	print("RANDOM BRAIN: " + str(args.random))
+	print("RANDOM EMBEDDINGS: " + str(args.rand_embed))
 
 	#residual_name = args.residual_name
 	#total_batches = args.total_batches
@@ -96,11 +111,11 @@ def main():
 	for atype in agg_type:
 		for layer in list(range(1, num_layers+1)):
 			print(layer)
-			final_residuals = concatenate_all(rlabel, glabel, w2vlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, 'residuals')
+			final_residuals = concatenate_all(rlabel, elabel, glabel, w2vlabel, bertlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, 'residuals')
 			# final_predictions = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "predictions")
 			
 			# RMSES
-			specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			specific_file = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			file_format = specific_file.format(
 				args.subject_number, 
 				args.language, 
