@@ -36,7 +36,7 @@ def plot_graph(df, args, file_name):
 	# g.set_xticklabels(rotation=90)
 	g.set(xlim=(min(embed) - 0.1, max(embed) + 0.1))
 	# g.set_axis_labels("embeddings", "")
-	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
+	if not args.glove and not args.word2vec and not args.bert and not args.random:
 		plt.title("Embeddings for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
 	if args.glove:
 		plt.title("Glove Embeddings for " + map_dict[args.agg_type] + " Aggregation")
@@ -44,7 +44,7 @@ def plot_graph(df, args, file_name):
 		plt.title("Word2Vec Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	if args.bert:
 		plt.title("BERT Embeddings for " + map_dict[args.agg_type] + " Aggregation")
-	if args.rand_embed:
+	if args.random:
 		plt.title("Random Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	# plt.show()
@@ -57,7 +57,7 @@ def plot_boxplot(df, args, file_name):
 	# g.set_xticklabels(rotation=90)
 	g.set(xlim=(min(embed) - 0.1, max(embed) + 0.1))
 	# g.set_axis_labels("embeddings", "")
-	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
+	if not args.glove and not args.word2vec and not args.bert and not args.random:
 		plt.title("Embeddings for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
 	if args.glove:
 		plt.title("Glove Embeddings for " + map_dict[args.agg_type] + " Aggregation")
@@ -65,7 +65,7 @@ def plot_boxplot(df, args, file_name):
 		plt.title("Word2Vec Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	if args.bert:
 		plt.title("BERT Embeddings for " + map_dict[args.agg_type] + " Aggregation")
-	if args.rand_embed:
+	if args.random:
 		plt.title("Random Embeddings for " + map_dict[args.agg_type] + " Aggregation")
 	# plt.show()
 	plt.savefig("../visualizations/" + str(file_name) + "-boxplot.png")
@@ -83,12 +83,12 @@ def main():
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
-	argparser.add_argument("-rand_embed", "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
+	argparser.add_argument("-random", "--random", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	# argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	args = argparser.parse_args()
 
 	print("getting arguments...")
-	if not args.glove and not args.word2vec and not args.bert:
+	if not args.glove and not args.word2vec and not args.bert and not args.random:
 		file_loc = "../embeddings/parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat"
 		embed_loc = file_loc.format(
 			args.language, 
@@ -115,8 +115,8 @@ def main():
 		file_loc = f"../embeddings/bert/{args.agg_type}.p"
 		file_name = f"bert-{args.agg_type}"
 	if args.random:
-		file_loc = f"../embeddings/random/{args.agg_type}.p"
-		file_name = f"random-{args.agg_type}"
+		file_loc = f"../embeddings/rand_embed/rand_embed.p"
+		file_name = f"rand_embed"
 	# file_name = file_loc.split("/")[-1].split(".")[0]
 	print("getting embeddings...")
 	embed_matrix = pickle.load( open( file_loc, "rb" ) )
