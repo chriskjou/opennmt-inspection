@@ -105,23 +105,24 @@ def main():
 		embedding = scipy.io.loadmat(embed_loc)
 		embed_matrix = get_embed_matrix(embedding)
 		print(embed_matrix.shape)
-	if args.glove:
-		file_loc = f"../embeddings/glove/{args.agg_type}.p"
-		file_name = f"glove-{args.agg_type}"
-	if args.word2vec:
-		file_loc = f"../embeddings/word2vec/{args.agg_type}.p"
-		file_name = f"word2vec-{args.agg_type}"
-	if args.bert:
-		file_loc = f"../embeddings/bert/{args.agg_type}.p"
-		file_name = f"bert-{args.agg_type}"
-	if args.random:
-		file_loc = f"../embeddings/rand_embed/rand_embed.p"
-		file_name = f"rand_embed"
-	# file_name = file_loc.split("/")[-1].split(".")[0]
-	print("getting embeddings...")
-	embed_matrix = pickle.load( open( file_loc, "rb" ) )
-	embed_matrix = np.array(embed_matrix)
-	print(embed_matrix.shape)
+	else:
+		if args.glove:
+			file_loc = f"../embeddings/glove/{args.agg_type}.p"
+			file_name = f"glove-{args.agg_type}"
+		if args.word2vec:
+			file_loc = f"../embeddings/word2vec/{args.agg_type}.p"
+			file_name = f"word2vec-{args.agg_type}"
+		if args.bert:
+			file_loc = f"../embeddings/bert/{args.agg_type}.p"
+			file_name = f"bert-{args.agg_type}"
+		if args.random:
+			file_loc = f"../embeddings/rand_embed/rand_embed.p"
+			file_name = f"rand_embed"
+		# file_name = file_loc.split("/")[-1].split(".")[0]
+		print("getting embeddings...")
+		embed_matrix = pickle.load( open( file_loc, "rb" ) )
+		embed_matrix = np.array(embed_matrix)
+		print(embed_matrix.shape)
 
 
 	avg = np.nanmean(embed_matrix, axis=0)
@@ -141,7 +142,7 @@ def main():
 
 	# per sentence
 	## TODO:
-
+	print(file_name)
 	print("done.")
 
 	return

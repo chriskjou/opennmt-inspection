@@ -4,8 +4,12 @@ import argparse
 from tqdm import tqdm
 
 def save_script(args):
-	if not os.path.exists('../../decoding_scripts/'):
-		os.makedirs('../../decoding_scripts/')
+	if args.local:
+		if not os.path.exists('../decoding_scripts/'):
+			os.makedirs('../decoding_scripts/')
+	else:
+		if not os.path.exists('../../decoding_scripts/'):
+			os.makedirs('../../decoding_scripts/')
 
 	# file name assignments
 	if args.brain_to_model:
@@ -55,11 +59,17 @@ def save_script(args):
 	)
 	print(folder_name)
 
-	if not os.path.exists('../../decoding_scripts/' + str(folder_name) + '/'):
-		os.makedirs('../../decoding_scripts/' + str(folder_name) + '/')
+	if args.local:
+		if not os.path.exists('../decoding_scripts/' + str(folder_name) + '/'):
+			os.makedirs('../decoding_scripts/' + str(folder_name) + '/')
+		script_to_open = "../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh"
+	else:
+		if not os.path.exists('../../decoding_scripts/' + str(folder_name) + '/'):
+			os.makedirs('../../decoding_scripts/' + str(folder_name) + '/')
+		script_to_open = "../../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh"
 
 	# make master script
-	with open("../../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh", "w") as rsh:
+	with open(script_to_open, "w") as rsh:
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
@@ -97,7 +107,10 @@ done
 			args.agg_type
 		)
 
-		fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+		if args.local:
+			fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+		else:
+			fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
 		with open(fname, 'w') as rsh:
 			rflag = "" if (rlabel == "") else "--" + str(rlabel)
@@ -172,6 +185,7 @@ def main():
 	parser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
