@@ -126,6 +126,7 @@ def main():
 	argparser.add_argument("--word2vec",  action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("--bert",  action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
+	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -195,10 +196,15 @@ def main():
 	else:
 		bertlabel = ""
 
+	if args.permutation:
+		plabel = "permutation_"
+	else:
+		plabel = ""
+
 	# get modified activations
-	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/activations.p", "rb" ) )
+	activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/" + str(plabel) + "activations.p", "rb" ) )
 	volmask = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/modified_activations.p", "rb" ) )
+	modified_activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{subj_num}/" + str(plabel) + "modified_activations.p", "rb" ) )
 
 	if args.normalize:
 		modified_activations = normalize_voxels(modified_activations)
@@ -216,7 +222,7 @@ def main():
 	if not os.path.exists('../../projects/predictions/'):
 		os.makedirs('../../projects/predictions/')
 
-	altered_file_name = "../../projects/residuals/" + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
+	altered_file_name = "../../projects/residuals/" + str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
 	pickle.dump( all_residuals, open(altered_file_name, "wb" ) )
 
 	# altered_file_name = "../../projects/predictions/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)

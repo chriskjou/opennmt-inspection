@@ -267,6 +267,7 @@ def main():
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
 	argparser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-bert",  "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	argparser.add_argument("-permutation",  "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	argparser.add_argument("-hard_drive",  "--hard_drive", action='store_true', default=False, help="True if running from hard drive")
 	args = argparser.parse_args()
@@ -315,8 +316,13 @@ def main():
 	else:
 		bertlabel = ""
 
+	if args.permutation:
+		plabel = "permutation_"
+	else:
+		plabel = ""
+
 	# residual_file = sys.argv[1]
-	file_loc = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	file_loc = str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 
 	file_name = file_loc.format(
 		args.subject_number, 
@@ -338,6 +344,7 @@ def main():
 		atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
 		roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
 		roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+	
 	elif args.hard_drive:
 		atlas_vals = pickle.load( open( f"/Volumes/passport/\!RESEARCH/examplesGLM/subj{args.subject_number}/atlas_vals.p", "rb" ) )
 		atlas_labels = pickle.load( open( f"/Volumes/passport/\!RESEARCH/examplesGLM/subj{args.subject_number}/atlas_labels.p", "rb" ) )

@@ -67,6 +67,7 @@ def main():
 	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-rand_embed", "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("-permutation",  "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	args = argparser.parse_args()
 
 	print("getting arguments...")

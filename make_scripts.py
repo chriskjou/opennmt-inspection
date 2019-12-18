@@ -47,8 +47,13 @@ def save_script(args):
 	else:
 		bertlabel = ""
 
+	if args.permutation:
+		plabel = "permutation_"
+	else:
+		plabel = ""
+
 	# create subfolder
-	model_type = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	model_type = str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	folder_name = model_type.format(
 		args.subject_number, 
 		args.language, 
@@ -73,9 +78,10 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
+  sbatch "{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
 done
 '''.format(
+		plabel,
 		rlabel,
 		elabel,
 		glabel,
@@ -95,7 +101,7 @@ done
 
 	# break into batches
 	for i in range(args.total_batches):
-		file = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file = str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		job_id = file.format(
 			args.subject_number, 
 			i, 
@@ -113,6 +119,7 @@ done
 			fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
 		with open(fname, 'w') as rsh:
+			pflag = "" if (plabel == "") else "--" + str(plabel)
 			rflag = "" if (rlabel == "") else "--" + str(rlabel)
 			gflag = "" if (glabel == "") else "--" + str(glabel)
 			w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)
@@ -141,7 +148,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --subject_number {6} \
 --batch_num {9} \
 --total_batches {10} \
-{11} {12} {13} {14} {15}
+{11} {12} {13} {14} {15} {16}
 '''.format(
 		job_id, 
 		args.language, 
@@ -159,6 +166,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		gflag,
 		w2vflag,
 		bertflag,
+		pflag
 	)
 )
 
@@ -185,6 +193,7 @@ def main():
 	parser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	args = parser.parse_args()
 
