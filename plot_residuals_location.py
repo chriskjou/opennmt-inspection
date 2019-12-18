@@ -124,8 +124,10 @@ def plot_roi(df, args, file_name, zoom=False):
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE" + ", " + str(bm) + " " + str(cv))
 	elif args.bert:
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT" + ", " + str(bm) + " " + str(cv))	
+	elif args.random and args.rand_embed:
+		plt.title("RMSE in all Language Regions for Random Activations and Embeddings, " + str(bm) + " " + str(cv))	
 	else: # args.rand_embed:
-		plt.title("RMSE in all Language Regions for Random Embeddings" + ", " + str(bm) + " " + str(cv))	
+		plt.title("RMSE in all Language Regions for Random Embeddings, " + str(bm) + " " + str(cv))
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -151,8 +153,10 @@ def plot_boxplot_for_atlas(df, args, file_name):
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE" + ", " + str(bm) + " " + str(cv))
 	elif args.bert:
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT" + ", " + str(bm) + " " + str(cv))	
+	elif args.random and args.rand_embed:
+		plt.title("RMSE in all Language Regions for Random Activations and Embeddings, " + str(bm) + " " + str(cv))	
 	else: # args.rand_embed:
-		plt.title("RMSE in all Language Regions for Random Embeddings")	
+		plt.title("RMSE in all Language Regions for Random Embeddings, " + str(bm) + " " + str(cv))
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -168,7 +172,8 @@ def plot_boxplot_for_roi(df, args, file_name):
 	all_residuals = list(df.residuals)
 	g = sns.catplot(x="roi_labels", y="residuals", data=df, height=7.5, aspect=1.5, kind="box")
 	g.set_xticklabels(rotation=90)
-	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	# g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set(ylim=(min(all_residuals), 50))
 	g.set_axis_labels("RMSE", "")
 	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
@@ -178,8 +183,10 @@ def plot_boxplot_for_roi(df, args, file_name):
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE" + ", " + str(bm) + " " + str(cv))
 	elif args.bert:
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT" + ", " + str(bm) + " " + str(cv))	
+	elif args.random and args.rand_embed:
+		plt.title("RMSE in all Language Regions for Random Activations and Embeddings, " + str(bm) + " " + str(cv))	
 	else: # args.rand_embed:
-		plt.title("RMSE in all Language Regions for Random Embeddings")	
+		plt.title("RMSE in all Language Regions for Random Embeddings, " + str(bm) + " " + str(cv))
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
 
@@ -195,8 +202,8 @@ def plot_violinplot_for_atlas(df, args, file_name):
 		bm = "Model-to-Brain"
 	all_residuals = list(df.residuals)
 	g = sns.violinplot(x="atlas_labels", y="residuals", data=df, height=17.5, aspect=1.5)
-	# g.set_xticklabels(rotation=90)
-	g.set(ylim=(min(all_residuals), max(all_residuals)))
+	g.set_xticklabels(rotation=90)
+	# g.set(ylim=(min(all_residuals), max(all_residuals)))
 	# g.set_axis_labels("RMSE", "")
 	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language])
@@ -235,8 +242,10 @@ def plot_violinplot_for_roi(df, args, file_name):
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE" + ", " + str(bm) + " " + str(cv))
 	elif args.bert:
 		plt.title("RMSE in all Language Regions for " + map_dict[args.agg_type] + " Aggregation of BERT" + ", " + str(bm) + " " + str(cv))	
+	elif args.random and args.rand_embed:
+		plt.title("RMSE in all Language Regions for Random Activations and Embeddings, " + str(bm) + " " + str(cv))	
 	else: # args.rand_embed:
-		plt.title("RMSE in all Language Regions for Random Embeddings")	
+		plt.title("RMSE in all Language Regions for Random Embeddings, " + str(bm) + " " + str(cv))
 	
 	plt.savefig("../visualizations/" + str(file_name) + ".png")
 	return
@@ -259,6 +268,7 @@ def main():
 	argparser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-bert",  "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
+	argparser.add_argument("-hard_drive",  "--hard_drive", action='store_true', default=False, help="True if running from hard drive")
 	args = argparser.parse_args()
 
 	# get residuals
@@ -328,6 +338,12 @@ def main():
 		atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
 		roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
 		roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+	elif args.hard_drive:
+		atlas_vals = pickle.load( open( f"/Volumes/passport/\!RESEARCH/examplesGLM/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+		atlas_labels = pickle.load( open( f"/Volumes/passport/\!RESEARCH/examplesGLM/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+		roi_vals = pickle.load( open( f"/Volumes/passport/\!RESEARCH/examplesGLM/subj{args.subject_number}/roi_vals.p", "rb" ) )
+		roi_labels = pickle.load( open( f"/Volumes/passport/\!RESEARCH/examplesGLM/subj{args.subject_number}/roi_labels.p", "rb" ) )
+		
 	else:
 		atlas_vals = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/atlas_vals.p", "rb" ) )
 		atlas_labels = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/atlas_labels.p", "rb" ) )
@@ -367,7 +383,7 @@ def main():
 	print("creating plots...")
 	# plot_roi(df, args, file_name + "-roi", zoom=False)
 	# plot_atlas(df, args, file_name + "-atlas", zoom=False)
-	plot_roi(df, args, file_name + "-roi", zoom=True)
+	# plot_roi(df, args, file_name + "-roi", zoom=True)
 	# plot_atlas(df, args, file_name + "-atlas", zoom=True)
 	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
 	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")

@@ -9,6 +9,7 @@ def concatenate_all(rlabel, elabel, glabel, w2vlabel, bertlabel, subject_number,
 	for i in range(total_batches):
 		# specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
 		specific_file = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
+		# specific_file = "parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
 		# if type_concat == 'residuals':
 			# file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
@@ -115,6 +116,8 @@ def main():
 			# final_predictions = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "predictions")
 			
 			# RMSES
+			# specific_file = "parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(layer) + "-" + str(args.agg_type)
+		
 			specific_file = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			file_format = specific_file.format(
 				args.subject_number, 

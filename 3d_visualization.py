@@ -62,6 +62,11 @@ def main():
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
+	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
+	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	argparser.add_argument("-rand_embed", "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
+	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	args = argparser.parse_args()
 
 	print("getting arguments...")
@@ -87,8 +92,33 @@ def main():
 	else:
 		validate = "nocv_"
 
+	if args.random:
+		rlabel = "random"
+	else:
+		rlabel = ""
+
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
+		
+	if args.glove:
+		glabel = "glove"
+	else:
+		glabel = ""
+
+	if args.word2vec:
+		w2vlabel = "word2vec"
+	else:
+		w2vlabel = ""
+
+	if args.bert:
+		bertlabel = "bert"
+	else:
+		bertlabel = ""
+
 	# residual_file = sys.argv[1]
-	file_loc = str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	file_loc = str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	
 	file_name = file_loc.format(
 		args.subject_number, 
