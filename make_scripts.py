@@ -48,12 +48,17 @@ def save_script(args):
 		bertlabel = ""
 
 	if args.permutation:
-		plabel = "permutation_"
+		plabel = "permutation"
 	else:
 		plabel = ""
 
+	if args.permutation_region:
+		prlabel = "permutation_region"
+	else:
+		prlabel = ""
+
 	# create subfolder
-	model_type = str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	folder_name = model_type.format(
 		args.subject_number, 
 		args.language, 
@@ -78,10 +83,11 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
+  sbatch "{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
 done
 '''.format(
 		plabel,
+		prlabel,
 		rlabel,
 		elabel,
 		glabel,
@@ -101,7 +107,7 @@ done
 
 	# break into batches
 	for i in range(args.total_batches):
-		file = str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		job_id = file.format(
 			args.subject_number, 
 			i, 
@@ -120,6 +126,7 @@ done
 
 		with open(fname, 'w') as rsh:
 			pflag = "" if (plabel == "") else "--" + str(plabel)
+			prflag = "" if (prlabel == "") else "--" + str(prlabel)
 			rflag = "" if (rlabel == "") else "--" + str(rlabel)
 			gflag = "" if (glabel == "") else "--" + str(glabel)
 			w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)
@@ -148,7 +155,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --subject_number {6} \
 --batch_num {9} \
 --total_batches {10} \
-{11} {12} {13} {14} {15} {16}
+{11} {12} {13} {14} {15} {16} {17}
 '''.format(
 		job_id, 
 		args.language, 
@@ -166,7 +173,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		gflag,
 		w2vflag,
 		bertflag,
-		pflag
+		pflag,
+		prflag
 	)
 )
 
@@ -194,6 +202,7 @@ def main():
 	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
+	parser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	args = parser.parse_args()
 

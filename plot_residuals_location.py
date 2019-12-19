@@ -268,6 +268,7 @@ def main():
 	argparser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-bert",  "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-permutation",  "--permutation", action='store_true', default=False, help="True if permutation, False if not")
+	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	argparser.add_argument("-hard_drive",  "--hard_drive", action='store_true', default=False, help="True if running from hard drive")
 	args = argparser.parse_args()
@@ -321,8 +322,13 @@ def main():
 	else:
 		plabel = ""
 
+	if args.permutation_region:
+		prlabel = "permutation_region_"
+	else:
+		prlabel = ""
+
 	# residual_file = sys.argv[1]
-	file_loc = str(plabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	file_loc = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 
 	file_name = file_loc.format(
 		args.subject_number, 
