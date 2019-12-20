@@ -22,12 +22,20 @@ def main():
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	parser.add_argument("-subj_num", "--subj_num", help="fMRI subject number ([1:11])", type=int, default=1)
 	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
-	parser.add_argument("-create_model", "--create_model", help="Create OpenNMT prediction model", action='store_true', default=False)
+	parser.add_argument("-create_model", "--create_model", help="create OpenNMT prediction model", action='store_true', default=False)
 	parser.add_argument("-format_data", "--format_data", help="Format fMRI data", action='store_true', default=False)
 	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-	parser.add_argument("--random",  action='store_true', default=False, help="True if add cross validation, False if not")
+	parser.add_argument("-random", "--random",  action='store_true', default=False, help="True if add cross validation, False if not")
+	parser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
+	parser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
+	parser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
+	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
+	parser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
+	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	args = parser.parse_args()
 
 	############# VALIDATE ARGUMENTS #############
@@ -57,13 +65,23 @@ def main():
 		exit()
 
 	############# GLOBAL OPTIONS #############
-	options = "--language " + str(args.language) + 
-				" --num_layers " + str(args.num_layers) + 
-				" --model_type " + str(args.type) + 
-				" --which_layer " + str(args.which_layer) + 
-				" --agg_type " + str(args.agg_type) + 
-				" --subject_number " + str(args.subj_num)
 	get_residuals_and_make_scripts = " --num_batches" + str(args.num_batches)
+	if not args.rand_embed and not args.bert and not args.word2vec and not args.glove:
+		options = "--language " + str(args.language) + 
+					" --num_layers " + str(args.num_layers) + 
+					" --model_type " + str(args.type) + 
+					" --which_layer " + str(args.which_layer) + 
+					" --agg_type " + str(args.agg_type) + 
+					" --subject_number " + str(args.subj_num)
+	if args.rand_embed:
+		options += " --rand_embed"
+	if args.glove:
+		options += " --glove"
+	if args.word2vec:
+		options += " --word2vec"
+	if args.bert:
+		options += " --bert"
+
 	if args.cross_validation:
 		options += " --cross_validation"
 	if args.brain_to_model:
@@ -72,6 +90,10 @@ def main():
 		options += " --model_to_brain"
 	if args.random:
 		options += " --random"
+	if args.permutation:
+		options += " --permutation"
+	if args.permutation_region:
+		options += " --permutation_region"
 
 	############# CREATE MODEL #############
 	
@@ -121,8 +143,39 @@ def main():
 		rlabel = "random"
 	else:
 		rlabel = ""
+		
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
 
-	model_type = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	if args.glove:
+		glabel = "glove"
+	else:
+		glabel = ""
+
+	if args.word2vec:
+		w2vlabel = "word2vec"
+	else:
+		w2vlabel = ""
+
+	if args.bert:
+		bertlabel = "bert"
+	else:
+		bertlabel = ""
+
+	if args.permutation:
+		plabel = "permutation"
+	else:
+		plabel = ""
+
+	if args.permutation_region:
+		prlabel = "permutation_region"
+	else:
+		prlabel = ""
+
+	model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	# model_type = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	folder_name = model_type.format(
 		args.subject_number, 
 		args.language, 
@@ -162,9 +215,9 @@ def main():
 	os.system(entire_cmd)
 
 	############# PLOT VISUALIZATIONS #############
-	plot = "python plot_residuals_location.py" 
-	entire_cmd = plot + " " + options
-	os.system(entire_cmd)
+	# plot = "python plot_residuals_location.py" 
+	# entire_cmd = plot + " " + options
+	# os.system(entire_cmd)
 
 	############# PERMUTATION TESTING #############
 

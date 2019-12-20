@@ -63,7 +63,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		res, pred = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
-		# predictions.append(pred)
+		predictions.append(pred)
 		index+=1
 		## DECODING ABOVE
 
@@ -87,12 +87,12 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
-			# predicted_trials.append(np.dot(X_test, p))
+			predicted_trials.append(np.dot(X_test, p))
 			errors.append(residuals)
-		# predicted.append(np.mean(predicted_trials, axis=0))
+		predicted.append(np.mean(predicted_trials, axis=0))
 		return np.mean(errors), predicted
 	p, res, rnk, s = lstsq(from_regress, to_regress)
-	# predicted.append(np.dot(from_regress, p))
+	predicted.append(np.dot(from_regress, p))
 	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2))
 	print("RESIDUALS: " + str(residuals))
 	print("PREDICTED: " + str(predicted))
@@ -222,22 +222,20 @@ def main():
 	all_residuals, predictions = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
 	
 	# make file path
-	if not os.path.exists('../../projects/residuals/'):
-		os.makedirs('../../projects/residuals/')
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/residuals/')
 
-	if not os.path.exists('../../projects/predictions/'):
-		os.makedirs('../../projects/predictions/')
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions/')
 
-	altered_file_name = "../../projects/residuals/" + str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
+	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" + str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
+	print("RESIDUALS FILE: " + str(altered_file_name))
 	pickle.dump( all_residuals, open(altered_file_name, "wb" ) )
 
-	# altered_file_name = "../../projects/predictions/" + str(rlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
-	# pickle.dump( predictions, open(altered_file_name+"-decoding-predictions.p", "wb" ) )
+	pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions/" + str(rlabel) + str(prlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
+	print("PREDICTIONS FILE: " + str(pred_file_name))
+	pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ) )
 	print("done.")
-
-	### RUN SIGNIFICANT TESTS BELOW
-
-	### RUN SIGNIFICANCE TESTS ABOVE
 
 	return
 

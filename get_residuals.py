@@ -12,7 +12,7 @@ def concatenate_all(plabel, prlabel, rlabel, elabel, glabel, w2vlabel, bertlabel
 		# specific_file = "parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
 		# if type_concat == 'residuals':
 			# file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
-		file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
+		file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		# if type_concat == 'predictions':
 		# 	file_name = "../predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
 		# print("FILE NAME: " + str(file_name))

@@ -148,8 +148,8 @@ module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
 python ../../projects/opennmt-inspection/odyssey_decoding.py \
---embedding_layer /n/scratchlfs/shieber_lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
---subject_mat_file /n/scratchlfs/shieber_lab/users/fmri/subj{6}/examplesGLM.mat \
+--embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
+--subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{6}/examplesGLM.mat \
 --brain_to_model {7} \
 --cross_validation {8} \
 --subject_number {6} \
@@ -202,7 +202,7 @@ def main():
 	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
-	parser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
+	parser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	args = parser.parse_args()
 
@@ -263,9 +263,10 @@ def main():
 	save_script(args)
 
 	# residuals path (relative from opennmt):
-	resid_path = '../residuals'
-	if not os.path.isdir(resid_path):
-		os.mdkir(resid_path)
+	# resid_path = '../residuals'
+	# if not os.path.isdir(resid_path):
+	# 	os.mdkir(resid_path)
+	
 	# embedding_layer = sys.argv[1]
 	# subject_number = sys.argv[2]
 	# num_batches = int(sys.argv[3])
