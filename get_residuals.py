@@ -7,14 +7,14 @@ import os
 def concatenate_all(plabel, prlabel, rlabel, elabel, glabel, w2vlabel, bertlabel, subject_number, language, num_layers, model_type, layer, agg_type, total_batches, direction, validate, type_concat):
 	final_residuals = []
 	for i in range(total_batches):
-		# specific_file = str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
-		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
+		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
+		# specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
 		# specific_file = "parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
 		# if type_concat == 'residuals':
 			# file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
-		# if type_concat == 'predictions':
-		# 	file_name = "../predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
+		if type_concat == 'predictions':
+			file_name = "/n/shieber_lab/Lab/users/cjou/predictions/" + specific_file + "_predictions_part" + str(i) + "of" + str(total_batches) + ".p"
 		# print("FILE NAME: " + str(file_name))
 		print("FILE NAME: " + str(file_name))
 		part = pickle.load( open( file_name, "rb" ) )
@@ -42,12 +42,12 @@ def main():
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	args = argparser.parse_args()
 
-	languages = 'spanish' #['spanish', 'german', 'italian', 'french', 'swedish']
-	num_layers = 2 #[2, 4]
-	model_type = 'brnn' #['brnn', 'rnn']
-	agg_type = ['avg', 'max', 'min', 'last']
-	subj_num = 1
-	nbatches = 100
+	# languages = 'spanish' #['spanish', 'german', 'italian', 'french', 'swedish']
+	# num_layers = 2 #[2, 4]
+	# model_type = 'brnn' #['brnn', 'rnn']
+	# agg_type = ['avg', 'max', 'min', 'last']
+	# subj_num = 1
+	# nbatches = 100
 
 	# check conditions // can remove when making pipeline
 	if args.brain_to_model and args.model_to_brain:
@@ -117,17 +117,18 @@ def main():
 	#total_batches = args.total_batches
 
 	# make final path
-	if not os.path.isdir('../rmses/'):
-		os.mkdir('../rmses/')
+	if not os.path.isdir('/n/shieber_lab/Lab/users/cjou/rmses/'):
+		os.mkdir('/n/shieber_lab/Lab/users/cjou/rmses/')
 
-	# if not os.path.isdir('../final_predictions/'):
-	# 	os.mkdir('../final_predictions/')
+	if not os.path.isdir('/n/shieber_lab/Lab/users/cjou/final_predictions/'):
+		os.mkdir('/n/shieber_lab/Lab/users/cjou/final_predictions/')
 
 	for atype in agg_type:
-		for layer in list(range(1, num_layers+1)):
-			print(layer)
+		# for layer in list(range(1, num_layers+1)):
+		for layer in [args.which_layer]:
+			print("LAYER: " + str(layer))
 			final_residuals = concatenate_all(plabel, prlabel, rlabel, elabel, glabel, w2vlabel, bertlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, 'residuals')
-			# final_predictions = concatenate_all(rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, "predictions")
+			# final_predictions = concatenate_all(plabel, prlabel, rlabel, args.subject_number, args.language, args.num_layers, args.model_type, layer, args.agg_type, args.total_batches, direction, validate, 'predictions')
 			
 			# RMSES
 			# specific_file = "parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(layer) + "-" + str(args.agg_type)
@@ -141,12 +142,12 @@ def main():
 				args.which_layer, 
 				args.agg_type
 			)
-			file_name = "../rmses/concatenated-" + str(file_format) + ".p"
+			file_name = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-" + str(file_format) + ".p"
 			pickle.dump( final_residuals, open( file_name, "wb" ) )
 
 			# PREDICTIONS
-			# file_name = "../final_predictions/concatenated-" + str(file_format) + ".p"
-			# pickle.dump( final_predictions, open( file_name, "wb" ) )
+			file_name = "/n/shieber_lab/Lab/users/cjou/final_predictions/concatenated-" + str(file_format) + ".p"
+			pickle.dump( final_predictions, open( file_name, "wb" ) )
 	print("done.")
 	return
 
