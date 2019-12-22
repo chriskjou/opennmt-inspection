@@ -1,13 +1,15 @@
 import numpy as np
 import argparse
 from tqdm import tqdm
+import pickle
+from odyssey_decoding import normalize_voxels
 
 def calculate_euclidean_distance(a, b):
 	return np.sqrt(np.sum((a-b)**2))
 
 def get_file_name(file_path, specific_file, args, i):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) + "-decoding-predictions.p"
-	print("FILE NAME: " + str( file_path + file_name))
+	print("FILE NAME: " + str(file_path + file_name))
 	return file_path + file_name
 
 def get_voxel_number(batch_size, VOXEL_NUMBER, i):
@@ -15,10 +17,52 @@ def get_voxel_number(batch_size, VOXEL_NUMBER, i):
 
 def set_voxel_number(file_path, specific_file, args, i):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) + "-decoding-predictions.p"
-	file_contents = pickle.load( open( file_name, "rb" ) )
+	file_contents = pickle.load( open( file_path + file_name, "rb" ) )
 	return len(file_contents)
 
-def calculate_voxel_distance_given_batch_files(first_file_contents, second_file_contents, which_file1, which_file2, VOXEL_NUMBER, first_round_completed, previously_calculated):
+def compare_rankings_to_brain(predictions, volmask, modified_activations, which_match_point, VOXEL_NUMBER):
+	a,b,c = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	distances = []
+
+	for pt_index in range(len(nonzero_pts)):
+		# SPHERE MASK BELOW
+		sphere_mask = np.zeros((a,b,c))
+		x1,y1,z1 = nonzero_pts[pt_index]
+		for i in range(-radius, radius+1):
+			for j in range(-radius, radius+1):
+				for k in range(-radius, radius+1):
+					xp = x1 + i
+					yp = y1 + j
+					zp = z1 + k
+					pt2 = [xp,yp,zp]
+					if 0 <= xp and 0 <= yp and 0 <= zp and xp < a and yp < b and zp < c:
+						dist = math.sqrt(i ** 2 + j ** 2 + k ** 2)
+						if pt2 in nonzero_pts and dist <= radius:
+							sphere_mask[x1+i][y1+j][z1+k] = 1
+		# SPHERE MASK ABOVE
+
+		spotlights = []
+
+		# iterate over each sentence
+		for sentence_act in modified_activations:
+			spot = sentence_act[sphere_mask.astype(bool)]
+			remove_nan = np.nan_to_num(spot)
+			spotlights.append(remove_nan)
+
+		if len(spotlights) == len(predictions):
+			dist = calculate_euclidean_distance(spotlights, predictions)
+			distances.append(dist)
+	
+	distances.sort()
+	index_of_dist = np.where(distances == which_match_point)
+	voxel_number = get_voxel_number(which_file1, VOXEL_NUMBER, which_match_point)
+	return {voxel_number: index_of_dist}
+
+def compare_rankings_to_embeddings(prediction, embeddings):
+	return
+
+def calculate_voxel_distance_given_batch_files(first_file_contents, which_file1, VOXEL_NUMBER):
 	voxel_rankings = {}
 
 	num_voxels_file1 = len(first_file_contents)
@@ -26,48 +70,52 @@ def calculate_voxel_distance_given_batch_files(first_file_contents, second_file_
 	total_voxels = len(first_file_contents) + len(second_file_contents)
 
 	print("calculating across two files...")
-	for i in tqdm(range(total_voxels)):
+	for i in range(total_voxels):
 		for j in range(i + 1, total_voxels):
+			print("I, J: " + str(i) + ", " + str(j))
 			if i < num_voxels_file1 and j < num_voxels_file1:
-				if not first_round_completed:
+				if not first_round_completed and first_file_contents[i][0].shape == first_file_contents[j][0].shape:
 					dist = calculate_euclidean_distance(first_file_contents[i][0], first_file_contents[j][0])
 					voxel_a = get_voxel_number(which_file1, VOXEL_NUMBER, i)
 					voxel_b = get_voxel_number(which_file1, VOXEL_NUMBER, j)
 					voxel_rankings[(voxel_a,voxel_b)] = dist
 			elif i < num_voxels_file1 and j>= num_voxels_file1:
-				dist = calculate_euclidean_distance(first_file_contents[i][0], second_file_contents[j][0])
-				voxel_a = get_voxel_number(which_file1, VOXEL_NUMBER, i)
-				voxel_b = get_voxel_number(which_file2, VOXEL_NUMBER, j)
-				voxel_rankings[(voxel_a,voxel_b)] = dist
+				modified_index = j - num_voxels_file1
+				if first_file_contents[i][0].shape == second_file_contents[modified_index][0].shape:
+					dist = calculate_euclidean_distance(first_file_contents[i][0], second_file_contents[modified_index][0])
+					voxel_a = get_voxel_number(which_file1, VOXEL_NUMBER, i)
+					voxel_b = get_voxel_number(which_file2, VOXEL_NUMBER, modified_index)
+					voxel_rankings[(voxel_a,voxel_b)] = dist
 			else: # i >= num_voxels_file1 and j>= num_voxels_file1:
-				if not previously_calculated:
-					dist = calculate_euclidean_distance(second_file_contents[i][0], second_file_contents[j][0])
-					voxel_a = get_voxel_number(which_file2, VOXEL_NUMBER, i)
-					voxel_b = get_voxel_number(which_file2, VOXEL_NUMBER, j)
+				modified_index1 = i - num_voxels_file1
+				modified_index2 = j - num_voxels_file2
+				if not previously_calculated and second_file_contents[modified_index1][0].shape == second_file_contents[modified_index2][0].shape:
+					dist = calculate_euclidean_distance(second_file_contents[modified_index1][0], second_file_contents[modified_index2][0])
+					voxel_a = get_voxel_number(which_file2, VOXEL_NUMBER, modified_index1)
+					voxel_b = get_voxel_number(which_file2, VOXEL_NUMBER, modified_index2)
 					voxel_rankings[(voxel_a,voxel_b)] = dist
 	return voxel_rankings
 
-def calculate_average_rank(file_path, specific_file, args):
+def calculate_average_rank(file_path, specific_file, args, volmask, modified_activations, embeddings, match_points_file):
 	final_rankings = {}
-	VOXEL_NUMBER = set_voxel_number(file_path, specific_file, args, 1)
-	first_round_completed = False
-	previously_calculated = False
+	VOXEL_NUMBER = set_voxel_number(file_path, specific_file, args, 0)
+
 	print("across all batches...")
 	for i in tqdm(range(args.total_batches)):
-		for j in list(range(i+1, args.total_batches)):
-			first_file = get_file_name(file_path, specific_file, args, i)
-			second_file = get_file_name(file_path, specific_file, args, j)
-			
-			first_file_contents = pickle.load( open( first_file, "rb" ) )
-			second_file_contents = pickle.load( open( second_file, "rb" ) )
-			
-			voxel_dict = calculate_voxel_distance_given_batch_files(first_file_contents, second_file_contents, i, j, VOXEL_NUMBER, first_round_completed, previously_calculated)
+		file = get_file_name(file_path, specific_file, args, i)
+		file_contents = pickle.load( open( file, "rb" ) )
+		num_voxels = len(file_contents)
 
-			if not first_round_completed:
-				first_round_completed = True
-
-			final_rankings.update(voxel_dict)
-		previously_calculated = True
+		for pred_index in range(num_voxels):
+			# if args.brain_to_model:
+			# 	prediction = embeddings
+			# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
+			if args.model_to_brain:
+				match_points_file_path = match_points_file.format(i)
+				match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
+				voxel_dict = compare_rankings_to_brain(file_contents[pred_index], volmask, modified_activations, match_points[pred_index], VOXEL_NUMBER)
+		
+		final_rankings.update(voxel_dict)
 	return final_rankings
 
 def main():
@@ -144,6 +192,7 @@ def main():
 	else:
 		prlabel = ""
 
+	### PREDICTIONS BELOW ###
 	file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
 	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
 	file_name = specific_file.format(
@@ -154,9 +203,50 @@ def main():
 		args.which_layer, 
 		args.agg_type
 	)
+	### PREDICTIONS ABOVE ###
+
+	### EMBEDDINGS BELOW ###
+
+	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
+		embed_loc = args.embedding_layer
+		file_name = embed_loc.split("/")[-1].split(".")[0]
+		embedding = scipy.io.loadmat(embed_loc)
+		embed_matrix = get_embed_matrix(embedding)
+	else:
+		embed_loc = args.embedding_layer
+		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] # aggregation type
+		if args.word2vec:
+			# embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+		elif args.glove:
+			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
+		elif args.bert:
+			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )
+		else: # args.rand_embed
+			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
+	### EMBEDDINGS ABOVE ###
+
+	### BRAIN ACTIVATIONS BELOW ###
+	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/volmask.p", "rb" ) )
+	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/" + str(plabel) + str(prlabel) + "modified_activations.p", "rb" ) )
+
+	if args.normalize:
+		modified_activations = normalize_voxels(modified_activations)
+
+	if args.random:
+		print("RANDOM ACTIVATIONS")
+		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
+	### BRAIN ACTIVATIONS ABOVE ###
+
+	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part{}of" + str(total_batches)
+	match_points_file = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
+	print("MATCH POINTS FILE: " + str(match_points_file))
 
 	print("calculating average rank...")
-	final_rankings = calculate_average_rank(file_path, file_name, args)
+	final_rankings = calculate_average_rank(file_path, file_name, args, volmask, modified_activations, match_points_file)
 	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/final_predictions/concatenated-" + file_name + ".p", "wb" ) )
 	print("done.")
 

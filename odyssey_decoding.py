@@ -28,6 +28,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	predictions = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
+	points_glm = []
 
 	# iterate over spotlight
 	print("for each spotlight...")
@@ -38,6 +39,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		# SPHERE MASK BELOW
 		sphere_mask = np.zeros((a,b,c))
 		x1,y1,z1 = pt
+		points_glm.append(pt)
 		for i in range(-radius, radius+1):
 			for j in range(-radius, radius+1):
 				for k in range(-radius, radius+1):
@@ -67,7 +69,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		index+=1
 		## DECODING ABOVE
 
-	return res_per_spotlight, predictions
+	return res_per_spotlight, predictions, points_glm
 
 def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
 	predicted = []
@@ -87,12 +89,21 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
-			predicted_trials.append(np.dot(X_test, p))
+			predicted_trials.append(np.dot(from_regress, p))
 			errors.append(residuals)
-		predicted.append(np.mean(predicted_trials, axis=0))
+		predicted = np.mean(predicted_trials, axis=0)
+		# print(rnk.shape)
 		return np.mean(errors), predicted
+	# print("FROM REGRESS: " + str(from_regress.shape))
+	# print("TO REGRESS: " + str(to_regress.shape))
 	p, res, rnk, s = lstsq(from_regress, to_regress)
-	predicted.append(np.dot(from_regress, p))
+	# print("P: " + str(p.shape))
+	# print("RES: " + str(res.shape))
+	# print("RNK: " + str(np.array(rnk).shape))
+	# print("S: " + str(s.shape))
+	# print("COMPUTED: " + str(np.dot(from_regress, p).shape))
+	# print("EQUAL: " + str(np.array_equal(p, np.dot(from_regress, p))))
+	predicted = np.dot(from_regress, p)
 	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2))
 	print("RESIDUALS: " + str(residuals))
 	print("PREDICTED: " + str(predicted))
@@ -219,7 +230,7 @@ def main():
 		print("RANDOM ACTIVATIONS")
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
-	all_residuals, predictions = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+	all_residuals, predictions, points_glm = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
 	
 	# make file path
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals/'):
@@ -228,13 +239,23 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions/')
 
-	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" + str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches) + ".p"
-	print("RESIDUALS FILE: " + str(altered_file_name))
-	pickle.dump( all_residuals, open(altered_file_name, "wb" ) )
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/match_points/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/match_points/')
 
-	pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions/" + str(rlabel) + str(prlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
+	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
+	
+	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" +  temp_file_name
+	print("RESIDUALS FILE: " + str(altered_file_name))
+	pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ) )
+
+	pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions/" + temp_file_name
 	print("PREDICTIONS FILE: " + str(pred_file_name))
 	pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ) )
+
+	pred_file_name = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
+	print("MATCH POINTS FILE: " + str(pred_file_name))
+	pickle.dump( points_glm, open(pred_file_name+"-match-points.p", "wb" ) )
+	
 	print("done.")
 
 	return
