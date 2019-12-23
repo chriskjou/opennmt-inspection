@@ -2,7 +2,10 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 import pickle
-from odyssey_decoding import normalize_voxels
+from odyssey_decoding import normalize_voxels, get_embed_matrix
+import scipy.io
+import os
+import math
 
 def calculate_euclidean_distance(a, b):
 	return np.sqrt(np.sum((a-b)**2))
@@ -20,10 +23,13 @@ def set_voxel_number(file_path, specific_file, args, i):
 	file_contents = pickle.load( open( file_path + file_name, "rb" ) )
 	return len(file_contents)
 
-def compare_rankings_to_brain(predictions, volmask, modified_activations, which_match_point, VOXEL_NUMBER):
+def compare_rankings_to_brain(predictions, volmask, modified_activations, which_match_point_index, VOXEL_NUMBER, which_file):
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	distances = []
+
+	correct_stimulus_val = []
+	index_within_activations = 0
 
 	for pt_index in range(len(nonzero_pts)):
 		# SPHERE MASK BELOW
@@ -50,51 +56,24 @@ def compare_rankings_to_brain(predictions, volmask, modified_activations, which_
 			remove_nan = np.nan_to_num(spot)
 			spotlights.append(remove_nan)
 
+		# calculate distances
 		if len(spotlights) == len(predictions):
 			dist = calculate_euclidean_distance(spotlights, predictions)
 			distances.append(dist)
-	
-	distances.sort()
-	index_of_dist = np.where(distances == which_match_point)
-	voxel_number = get_voxel_number(which_file1, VOXEL_NUMBER, which_match_point)
-	return {voxel_number: index_of_dist}
+
+		# log correct brain activation
+		if which_match_point_index == pt_index:
+			correct_stimulus_val = spotlights
+			index_within_activations = pt_index
+
+	predicted_distance = calculate_euclidean_distance(correct_stimulus_val, predictions)
+	index_of_dist = len(np.where(distances < predicted_distance))
+	voxel_number = get_voxel_number(which_file, VOXEL_NUMBER, index_within_activations)
+
+	return {voxel_number: ranking_in_distances}
 
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return
-
-def calculate_voxel_distance_given_batch_files(first_file_contents, which_file1, VOXEL_NUMBER):
-	voxel_rankings = {}
-
-	num_voxels_file1 = len(first_file_contents)
-	num_voxels_file2 = len(second_file_contents)
-	total_voxels = len(first_file_contents) + len(second_file_contents)
-
-	print("calculating across two files...")
-	for i in range(total_voxels):
-		for j in range(i + 1, total_voxels):
-			print("I, J: " + str(i) + ", " + str(j))
-			if i < num_voxels_file1 and j < num_voxels_file1:
-				if not first_round_completed and first_file_contents[i][0].shape == first_file_contents[j][0].shape:
-					dist = calculate_euclidean_distance(first_file_contents[i][0], first_file_contents[j][0])
-					voxel_a = get_voxel_number(which_file1, VOXEL_NUMBER, i)
-					voxel_b = get_voxel_number(which_file1, VOXEL_NUMBER, j)
-					voxel_rankings[(voxel_a,voxel_b)] = dist
-			elif i < num_voxels_file1 and j>= num_voxels_file1:
-				modified_index = j - num_voxels_file1
-				if first_file_contents[i][0].shape == second_file_contents[modified_index][0].shape:
-					dist = calculate_euclidean_distance(first_file_contents[i][0], second_file_contents[modified_index][0])
-					voxel_a = get_voxel_number(which_file1, VOXEL_NUMBER, i)
-					voxel_b = get_voxel_number(which_file2, VOXEL_NUMBER, modified_index)
-					voxel_rankings[(voxel_a,voxel_b)] = dist
-			else: # i >= num_voxels_file1 and j>= num_voxels_file1:
-				modified_index1 = i - num_voxels_file1
-				modified_index2 = j - num_voxels_file2
-				if not previously_calculated and second_file_contents[modified_index1][0].shape == second_file_contents[modified_index2][0].shape:
-					dist = calculate_euclidean_distance(second_file_contents[modified_index1][0], second_file_contents[modified_index2][0])
-					voxel_a = get_voxel_number(which_file2, VOXEL_NUMBER, modified_index1)
-					voxel_b = get_voxel_number(which_file2, VOXEL_NUMBER, modified_index2)
-					voxel_rankings[(voxel_a,voxel_b)] = dist
-	return voxel_rankings
 
 def calculate_average_rank(file_path, specific_file, args, volmask, modified_activations, embeddings, match_points_file):
 	final_rankings = {}
@@ -113,13 +92,14 @@ def calculate_average_rank(file_path, specific_file, args, volmask, modified_act
 			if args.model_to_brain:
 				match_points_file_path = match_points_file.format(i)
 				match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
-				voxel_dict = compare_rankings_to_brain(file_contents[pred_index], volmask, modified_activations, match_points[pred_index], VOXEL_NUMBER)
+				voxel_dict = compare_rankings_to_brain(file_contents[pred_index], volmask, modified_activations, match_points[pred_index], VOXEL_NUMBER, i)
 		
 		final_rankings.update(voxel_dict)
 	return final_rankings
 
 def main():
-	argparser = argparse.ArgumentParser(description="concatenate residuals/predictions from the relevant batches")
+	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
+	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
@@ -137,6 +117,7 @@ def main():
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	argparser.add_argument("-permutation",  "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
+	argparser.add_argument("-normalize", "--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -209,7 +190,7 @@ def main():
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
 		embed_loc = args.embedding_layer
-		file_name = embed_loc.split("/")[-1].split(".")[0]
+		# file_name = embed_loc.split("/")[-1].split(".")[0]
 		embedding = scipy.io.loadmat(embed_loc)
 		embed_matrix = get_embed_matrix(embedding)
 	else:
@@ -230,8 +211,8 @@ def main():
 	### EMBEDDINGS ABOVE ###
 
 	### BRAIN ACTIVATIONS BELOW ###
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/" + str(plabel) + str(prlabel) + "modified_activations.p", "rb" ) )
+	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
+	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/" + str(plabel) + str(prlabel) + "modified_activations.p", "rb" ) )
 
 	if args.normalize:
 		modified_activations = normalize_voxels(modified_activations)
@@ -241,13 +222,13 @@ def main():
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 	### BRAIN ACTIVATIONS ABOVE ###
 
-	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part{}of" + str(total_batches)
+	temp_file_name = str(file_name) + "_residuals_part{}of" + str(args.total_batches)
 	match_points_file = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
 	print("MATCH POINTS FILE: " + str(match_points_file))
 
 	print("calculating average rank...")
-	final_rankings = calculate_average_rank(file_path, file_name, args, volmask, modified_activations, match_points_file)
-	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/final_predictions/concatenated-" + file_name + ".p", "wb" ) )
+	final_rankings = calculate_average_rank(file_path, file_name, args, volmask, modified_activations, embed_matrix, match_points_file)
+	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/concatenated-" + file_name + ".p", "wb" ) )
 	print("done.")
 
 if __name__ == "__main__":
