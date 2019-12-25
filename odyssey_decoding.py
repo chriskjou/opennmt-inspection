@@ -28,7 +28,9 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	predictions = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
-	points_glm = []
+	# points_glm = []
+	true_spotlights = []
+	boolean_masks = []
 
 	# iterate over spotlight
 	print("for each spotlight...")
@@ -39,7 +41,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		# SPHERE MASK BELOW
 		sphere_mask = np.zeros((a,b,c))
 		x1,y1,z1 = pt
-		points_glm.append(pt)
+		# points_glm.append(pt)
 		for i in range(-radius, radius+1):
 			for j in range(-radius, radius+1):
 				for k in range(-radius, radius+1):
@@ -54,12 +56,17 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		# SPHERE MASK ABOVE
 
 		spotlights = []
+		spotlight_mask = []
 
 		# iterate over each sentence
 		for sentence_act in modified_activations:
 			spot = sentence_act[sphere_mask.astype(bool)]
 			remove_nan = np.nan_to_num(spot)
 			spotlights.append(remove_nan)
+			# spotlight_mask.append(sphere_mask.astype(bool))
+
+		true_spotlights.append(spotlights)
+		# boolean_masks.append(spotlight_mask)
 
 		## DECODING BELOW
 		res, pred = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
@@ -69,7 +76,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		index+=1
 		## DECODING ABOVE
 
-	return res_per_spotlight, predictions, points_glm
+	return res_per_spotlight, predictions, true_spotlights #boolean_masks
 
 def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
 	predicted = []
@@ -230,7 +237,9 @@ def main():
 		print("RANDOM ACTIVATIONS")
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
-	all_residuals, predictions, points_glm = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+	
+	# all_residuals, predictions, points_glm, boolean_masks = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
 	
 	# make file path
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals/'):
@@ -239,8 +248,14 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/match_points/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/match_points/')
+	# if not os.path.exists('/n/shieber_lab/Lab/users/cjou/match_points/'):
+	# 	os.makedirs('/n/shieber_lab/Lab/users/cjou/match_points/')
+
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights/')
+
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/boolean_masks/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/boolean_masks/')
 
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
 	
@@ -252,9 +267,17 @@ def main():
 	print("PREDICTIONS FILE: " + str(pred_file_name))
 	pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ) )
 
-	pred_file_name = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
-	print("MATCH POINTS FILE: " + str(pred_file_name))
-	pickle.dump( points_glm, open(pred_file_name+"-match-points.p", "wb" ) )
+	# pred_file_name = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
+	# print("MATCH POINTS FILE: " + str(pred_file_name))
+	# pickle.dump( points_glm, open(pred_file_name+"-match-points.p", "wb" ) )
+
+	spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights/" + temp_file_name
+	print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
+	pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ) )
+
+	# mask_file_name = "/n/shieber_lab/Lab/users/cjou/boolean_masks/" + temp_file_name
+	# print("BOOLEAN MASKS FILE: " + str(mask_file_name))
+	# pickle.dump( boolean_masks, open(mask_file_name+"-boolean-masks.p", "wb" ) )
 	
 	print("done.")
 
