@@ -2,15 +2,20 @@ import numpy as np
 import argparse
 from tqdm import tqdm
 import pickle
-from odyssey_decoding import normalize_voxels, get_embed_matrix, chunkify
 import scipy.io
 import os
 import math
 
+def get_embed_matrix(embedding):
+	dict_keys = list(embedding.keys())[3:]
+	embed_matrix = np.array([embedding[i][0][1:] for i in dict_keys])
+	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
+	return embed_matrix
+
 def calculate_euclidean_distance(a, b):
 	return np.sqrt(np.sum((a-b)**2))
 
-def get_file_name(file_path, specific_file, args, i, true_activations=False):
+def get_file_name(args, file_path, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
 	if not true_activations:
 		print("FILE NAME: " + str(file_path + file_name + "-decoding-predictions.p"))
@@ -21,41 +26,32 @@ def get_file_name(file_path, specific_file, args, i, true_activations=False):
 def get_voxel_number(batch_size, VOXEL_NUMBER, i):
 	return batch_size * VOXEL_NUMBER + i
 
-def set_voxel_number(file_path, file_name, args):
+def set_voxel_number(args, file_path, file_name):
 	file_name = file_name + "_residuals_part0of" + str(args.total_batches) + "-decoding-predictions.p"
 	file_contents = pickle.load( open( file_path + file_name, "rb" ) )
 	return len(file_contents)
 
-def get_true_activations(file_path, file_name, args, pred_index):
+def get_true_activations(args, file_path, file_name, pred_index):
 	entire_file_name = file_name + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches) + "-true-spotlights.p"
-	file_contents = pickle.load(open(file_path entire_file_name, "rb"))
+	file_contents = pickle.load(open(file_path + entire_file_name, "rb"))
 	return file_contents[pred_index]
 
-def compare_rankings_to_brain(args, predictions, true_activations, VOXEL_NUMBER, radius=5):
+def compare_rankings_to_brain(args, file_name, predictions, true_activations, VOXEL_NUMBER, radius=5):
 
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
-	file_path = "/n/shieber_lab/Lab/users/cjou/true-spotlights/"
-	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
-	file_name = specific_file.format(
-		args.subject_number, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.which_layer, 
-		args.agg_type
-	)
+	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
 
 	distances = []
 
-	for i in tqdm(range(args.total_batches)):
-		print("BATCH: " + str(i))
+	for i in range(args.total_batches):
+		# print("BATCH: " + str(i))
 
-		spotlight_activations_in_batch_file_name = get_file_name(file_path, file_name, args, i, true_activations=True)
+		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
 		spotlight_activations = pickle.load(open(spotlight_activations_in_batch_file_name, "rb"))
 
 		# iterate over each sentence
-		for sentence_act in all_spotlight_activations_in_batch:
+		for sentence_act in spotlight_activations:
 			if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
 				dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
 				distances.append(dist)
@@ -66,32 +62,24 @@ def compare_rankings_to_brain(args, predictions, true_activations, VOXEL_NUMBER,
 	# CALCULATE PREDICTED DISTANCE
 	distances = np.array(distances)
 	predicted_distance = calculate_euclidean_distance(predictions, true_activations)
-	index_of_dist = len(np.where(distances < predicted_distance))
+	rank = len(np.where(distances < predicted_distance))
 
 	# FIND RANKING OF PREDICTED DISTANCE
-	voxel_number = get_voxel_number(which_file, VOXEL_NUMBER, index_within_activations)
+	# voxel_number = get_voxel_number(which_file, VOXEL_NUMBER, index_within_activations)
 
-	return {voxel_number: ranking_in_distances}
+	return rank
 
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return
 
-def calculate_average_rank(args, true_activations, embeddings):
+def calculate_average_rank(args, file_name, embeddings):
+
 	### PREDICTIONS BELOW ###
 	file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
-	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
-	file_name = specific_file.format(
-		args.subject_number, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.which_layer, 
-		args.agg_type
-	)
 	### PREDICTIONS ABOVE ###
 
 	### GET PREDICTION FILE BELOW ###
-	file = get_file_name(file_path, file_name, args, args.batch_num)
+	file = get_file_name(args, file_path, file_name, args.batch_num)
 	pred_contents = pickle.load( open( file, "rb" ) )
 	num_voxels = len(pred_contents)
 	### GET PREDICTION FILE ABOVE ###
@@ -104,35 +92,37 @@ def calculate_average_rank(args, true_activations, embeddings):
 	### GET DICTIONARY MATCHING FILE ABOVE ###
 
 	### FIND VOXEL NUMBER OF BATCH ###
-	VOXEL_NUMBER = set_voxel_number(file_path, file_name, args)
+	VOXEL_NUMBER = set_voxel_number(args, file_path, file_name)
 	### FIND VOXEL NUMBER OF BATCH ###
 
-	final_rankings = {}
+	final_rankings = []
 
 	# match_points_file_path = match_points_file.format(i)
 	# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
 
 	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
+	print("iterating through file...")
 	for pred_index in tqdm(range(num_voxels)):
 		# if args.brain_to_model:
 		# 	prediction = embeddings
 		# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
 		if args.model_to_brain:
-			true_activations = get_true_activations(spotlight_file_path, file_name, pred_index, args)
+			true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
 			# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
 			# print(match_points[pred_index].shape)
-			voxel_dict = compare_rankings_to_brain(args, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
+			rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
 	
-		final_rankings.update(voxel_dict)
-		del voxel_dict
-		del true_activations
+			final_rankings.append(rank)
+		# del voxel_dict
+			del true_activations
 
-	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/rankings-" + specific_file + "-" + str(args.num_batch) + "of" + str(args.total_batches) + ".p", "wb" ) )
+	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + ".p", "wb" ) )
 	return 
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
+	argparser.add_argument("-batch_num", "--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
@@ -151,8 +141,6 @@ def main():
 	argparser.add_argument("-permutation",  "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("-normalize", "--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
-	argparser.add_argument("-batch_num", "--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
-	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches", required=True)
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -208,29 +196,42 @@ def main():
 	else:
 		prlabel = ""
 
-	### EMBEDDINGS BELOW ###
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rankings/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/rankings/')
 
-	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
-		embed_loc = args.embedding_layer
-		# file_name = embed_loc.split("/")[-1].split(".")[0]
-		embedding = scipy.io.loadmat(embed_loc)
-		embed_matrix = get_embed_matrix(embedding)
-	else:
-		embed_loc = args.embedding_layer
-		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] # aggregation type
-		if args.word2vec:
-			# embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
-			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
-		elif args.glove:
-			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
-			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
-		elif args.bert:
-			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
-			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )
-		else: # args.rand_embed
-			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
-			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
+	### EMBEDDINGS BELOW ###
+	# if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
+	# 	embed_loc = args.embedding_layer
+	# 	# file_name = embed_loc.split("/")[-1].split(".")[0]
+	# 	embedding = scipy.io.loadmat(embed_loc)
+	# 	embed_matrix = get_embed_matrix(embedding)
+	# else:
+	# 	embed_loc = args.embedding_layer
+	# 	file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] # aggregation type
+	# 	if args.word2vec:
+	# 		# embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+	# 		embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
+	# 	elif args.glove:
+	# 		# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+	# 		embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
+	# 	elif args.bert:
+	# 		# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+	# 		embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )
+	# 	else: # args.rand_embed
+	# 		# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
+	# 		embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
 	### EMBEDDINGS ABOVE ###
+	embed_matrix = []
+
+	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
+	file_name = specific_file.format(
+		args.subject_number, 
+		args.language, 
+		args.num_layers, 
+		args.model_type, 
+		args.which_layer, 
+		args.agg_type
+	)
 
 	### BRAIN ACTIVATIONS BELOW ###
 	# volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
@@ -245,7 +246,7 @@ def main():
 	### BRAIN ACTIVATIONS ABOVE ###
 
 	print("calculating average rank...")
-	calculate_average_rank(args, embed_matrix)
+	calculate_average_rank(args, file_name, embed_matrix)
 	print("done.")
 
 if __name__ == "__main__":

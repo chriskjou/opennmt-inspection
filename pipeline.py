@@ -209,12 +209,29 @@ def main():
 	# )
 	# fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
-	############# CONCATENATE RMSE #############
+	############# EVALUATION #############
+
+	# 1. RMSE
+
+	# CONCATENATE RMSE 
 	rmse = "python get_residuals.py" 
 	entire_cmd = rmse + " " + options + " " + " " + get_residuals_and_make_scripts
 	os.system(entire_cmd)
 
-	############# PLOT VISUALIZATIONS #############
+	# CONVERT CONCATENATE TO MATLAB 
+	convert = "python convert_np_to_matlab.py"
+	entire_cmd = convert + " " + options + " " + " " + get_residuals_and_make_scripts + " -local"
+	os.system(entire_cmd)
+
+	# 2. AVERAGE RANK
+
+	# RUN AVERAGE RANK
+
+	# CONCATENATE AVERAGE RANK
+
+	# CONVERT AVERAGE RANK TO MATLAB
+
+	############# VISUALIZATIONS #############
 	# plot = "python plot_residuals_location.py" 
 	# entire_cmd = plot + " " + options
 	# os.system(entire_cmd)
