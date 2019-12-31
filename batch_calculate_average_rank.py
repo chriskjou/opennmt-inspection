@@ -5,6 +5,8 @@ import pickle
 import scipy.io
 import os
 import math
+import time
+from numba import jit, cuda 
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -12,8 +14,20 @@ def get_embed_matrix(embedding):
 	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
 	return embed_matrix
 
-def calculate_euclidean_distance(a, b):
-	return np.sqrt(np.sum((a-b)**2))
+# @jit(nopython=True, parallel=True)
+# def calculate_euclidean_distance(a, b):
+# 	return np.sqrt(sum((a-b)**2))
+
+@cuda.jit
+def calculate_euclidean_distance(a, b, dist):
+	x,y = a.shape
+	running_sum = 0
+
+	for i in range(x):
+		for j in range(y):
+			running_sum += ((b[i][j] - a[i][j])**2)
+
+	dist = math.sqrt(running_sum)
 
 def get_file_name(args, file_path, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
@@ -36,6 +50,18 @@ def get_true_activations(args, file_path, file_name, pred_index):
 	file_contents = pickle.load(open(file_path + entire_file_name, "rb"))
 	return file_contents[pred_index]
 
+def chunkify(lst, num, total):
+	if len(lst) % total == 0:
+		chunk_size = len(lst) // total
+	else:
+		chunk_size = len(lst) // total + 1
+	start = num * chunk_size
+	if num != total - 1:
+		end = num * chunk_size + chunk_size
+	else:
+		end = len(lst)
+	return lst[start:end]
+
 def compare_rankings_to_brain(args, file_name, predictions, true_activations, VOXEL_NUMBER, radius=5):
 
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
@@ -43,11 +69,14 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
 
 	# distances = []
-
-	predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
+	predicted_distance = np.ones(1, dtype=np.float32)
+	calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
 
 	rank = 0
-	for i in range(args.total_batches):
+
+	batches = chunkify(range(args.total_batches), args.sub_batch_num, args.total_sub_batches)
+
+	for i in batches:
 		# print("BATCH: " + str(i))
 
 		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
@@ -56,7 +85,8 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 		# iterate over each sentence
 		for sentence_act in spotlight_activations:
 			if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
-				dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
+				dist = np.ones(1, dtype=np.float32)
+				calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
 				if dist <= predicted_distance:
 					rank+=1
 				# distances.append(dist)
@@ -80,7 +110,7 @@ def compare_rankings_to_embeddings(prediction, embeddings):
 def calculate_average_rank(args, file_name, embeddings):
 
 	### PREDICTIONS BELOW ###
-	file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
+	file_path = "/n/shieber_lab/Lab/users/cjou/predictions_bin/"
 	### PREDICTIONS ABOVE ###
 
 	### GET PREDICTION FILE BELOW ###
@@ -105,12 +135,9 @@ def calculate_average_rank(args, file_name, embeddings):
 	# match_points_file_path = match_points_file.format(i)
 	# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
 
-	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
+	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_bin/"
 	print("iterating through file...")
 	for pred_index in tqdm(range(num_voxels)):
-		# if args.brain_to_model:
-		# 	prediction = embeddings
-		# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
 		if args.model_to_brain:
 			true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
 			# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
@@ -121,13 +148,24 @@ def calculate_average_rank(args, file_name, embeddings):
 		# del voxel_dict
 			del true_activations
 
-	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + ".p", "wb" ) )
+		# if args.brain_to_model:
+		# 	true_embeddings = embed_matrix
+
+		# 	rank = compare_rankings_to_embeddings(args, file_name, pred_contents[pred_index], true_embeddings, pred_index)
+		# 	final_rankings.append(rank)
+
+	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + "-subbatch" + str(args.sub_batch_num) + ".p", "wb" ) )
 	return 
 
 def main():
+	print("GPU:")
+	print(cuda.gpus)
+
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-batch_num", "--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
+	argparser.add_argument("-sub_batch_num", "--sub_batch_num", type=int, help="chunkify sub batch number to run euclidean distance", required=True)
+	argparser.add_argument("-total_sub_batches", "--total_sub_batches", type=int, help="total number of sub_batches to run euclidean distance", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
@@ -251,7 +289,10 @@ def main():
 	### BRAIN ACTIVATIONS ABOVE ###
 
 	print("calculating average rank...")
+	start = time.time()
 	calculate_average_rank(args, file_name, embed_matrix)
+	end = time.time()
+	print("time: " + str(end-start)) 
 	print("done.")
 
 if __name__ == "__main__":

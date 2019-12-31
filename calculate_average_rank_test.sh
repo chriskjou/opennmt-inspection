@@ -2,7 +2,7 @@
 #SBATCH -J only_voxel_count  					# Job name
 #SBATCH -p seas_dgx1 							# partition (queue)
 #SBATCH --mem 10000 							# memory pool for all cores
-#SBATCH -t 0-48:00 								# time (D-HH:MM)
+#SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../rank_logs/outpt_only_voxel_count.txt 		# File that STDOUT writes to
 #SBATCH -e ../../rank_logs/err_only_voxel_count.txt			# File that STDERR writes to
