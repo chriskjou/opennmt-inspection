@@ -261,23 +261,23 @@ def main():
 	
 	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" +  temp_file_name
 	print("RESIDUALS FILE: " + str(altered_file_name))
-	pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ) )
+	pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1)
 
 	pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions/" + temp_file_name
 	print("PREDICTIONS FILE: " + str(pred_file_name))
-	pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ) )
+	pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
 
 	# pred_file_name = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
 	# print("MATCH POINTS FILE: " + str(pred_file_name))
-	# pickle.dump( points_glm, open(pred_file_name+"-match-points.p", "wb" ) )
+	# pickle.dump( points_glm, open(pred_file_name+"-match-points.p", "wb" ), protocol=-1 )
 
 	spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights/" + temp_file_name
 	print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
-	pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ) )
+	pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
 	# mask_file_name = "/n/shieber_lab/Lab/users/cjou/boolean_masks/" + temp_file_name
 	# print("BOOLEAN MASKS FILE: " + str(mask_file_name))
-	# pickle.dump( boolean_masks, open(mask_file_name+"-boolean-masks.p", "wb" ) )
+	# pickle.dump( boolean_masks, open(mask_file_name+"-boolean-masks.p", "wb" ), protocol=-1 )
 	
 	print("done.")
 

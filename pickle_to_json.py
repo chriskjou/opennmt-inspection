@@ -30,6 +30,7 @@ def convert_pickle_to_binary(filename, filepath):
 
 	f = open(filepath + filename + ".p", "wb")
 	pickle.dump(data, f, protocol=-1)
+	# pickle.HIGHEST_PROTOCOL
 	f.close()
 
 	# f = open(filename + "-binary-cp.p", "wb") 

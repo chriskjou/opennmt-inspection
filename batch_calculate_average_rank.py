@@ -7,6 +7,7 @@ import os
 import math
 import time
 from numba import jit, cuda 
+import gc
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -42,13 +43,19 @@ def get_voxel_number(batch_size, VOXEL_NUMBER, i):
 
 def set_voxel_number(args, file_path, file_name):
 	file_name = file_name + "_residuals_part0of" + str(args.total_batches) + "-decoding-predictions.p"
-	file_contents = pickle.load( open( file_path + file_name, "rb" ) )
-	return len(file_contents)
+	gc.disable()
+	with open(file_path + file_name, "rb") as f:
+		file_contents = pickle.load(f)
+		gc.enable()
+		return len(file_contents)
 
 def get_true_activations(args, file_path, file_name, pred_index):
 	entire_file_name = file_name + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches) + "-true-spotlights.p"
-	file_contents = pickle.load(open(file_path + entire_file_name, "rb"))
-	return file_contents[pred_index]
+	gc.disable()
+	with open(file_path + entire_file_name, "rb") as f:
+		file_contents = pickle.load(f)
+		gc.enable()
+		return file_contents[pred_index]
 
 def chunkify(lst, num, total):
 	if len(lst) % total == 0:
@@ -80,19 +87,22 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 		# print("BATCH: " + str(i))
 
 		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
-		spotlight_activations = pickle.load(open(spotlight_activations_in_batch_file_name, "rb"))
+		gc.disable()
+		with open(spotlight_activations_in_batch_file_name, "rb") as f:
+			spotlight_activations = pickle.load(f)
+			gc.enable()
 
-		# iterate over each sentence
-		for sentence_act in spotlight_activations:
-			if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
-				dist = np.ones(1, dtype=np.float32)
-				calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
-				if dist <= predicted_distance:
-					rank+=1
-				# distances.append(dist)
+			# iterate over each sentence
+			for sentence_act in spotlight_activations:
+				if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
+					dist = np.ones(1, dtype=np.float32)
+					calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
+					if dist <= predicted_distance:
+						rank+=1
+					# distances.append(dist)
 
-		# REMOVE FROM MEMORY
-		del spotlight_activations
+			# REMOVE FROM MEMORY
+			del spotlight_activations
 
 	# CALCULATE PREDICTED DISTANCE
 	# distances = np.array(distances)
@@ -115,8 +125,11 @@ def calculate_average_rank(args, file_name, embeddings):
 
 	### GET PREDICTION FILE BELOW ###
 	file = get_file_name(args, file_path, file_name, args.batch_num)
-	pred_contents = pickle.load( open( file, "rb" ) )
-	num_voxels = len(pred_contents)
+	gc.disable()
+	with open(file, "rb") as f:
+		pred_contents = pickle.load(f)
+		gc.enable()
+		num_voxels = len(pred_contents)
 	### GET PREDICTION FILE ABOVE ###
 
 	### GET DICTIONARY MATCHING FILE BELOW ###
@@ -126,41 +139,42 @@ def calculate_average_rank(args, file_name, embeddings):
 	# print("MATCH POINTS FILE: " + str(match_points_file))
 	### GET DICTIONARY MATCHING FILE ABOVE ###
 
-	### FIND VOXEL NUMBER OF BATCH ###
-	VOXEL_NUMBER = set_voxel_number(args, file_path, file_name)
-	### FIND VOXEL NUMBER OF BATCH ###
+		### FIND VOXEL NUMBER OF BATCH ###
+		VOXEL_NUMBER = set_voxel_number(args, file_path, file_name)
+		### FIND VOXEL NUMBER OF BATCH ###
 
-	final_rankings = []
+		final_rankings = []
 
-	# match_points_file_path = match_points_file.format(i)
-	# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
+		# match_points_file_path = match_points_file.format(i)
+		# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
 
-	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_bin/"
-	print("iterating through file...")
-	for pred_index in tqdm(range(num_voxels)):
-		if args.model_to_brain:
-			true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
-			# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
-			# print(match_points[pred_index].shape)
-			rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
-	
-			final_rankings.append(rank)
-		# del voxel_dict
-			del true_activations
+		spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_bin/"
+		print("iterating through file...")
+		for pred_index in tqdm(range(num_voxels)):
+			if args.model_to_brain:
+				true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
+				# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
+				# print(match_points[pred_index].shape)
+				rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
+		
+				final_rankings.append(rank)
+			# del voxel_dict
+				del true_activations
 
-		# if args.brain_to_model:
-		# 	true_embeddings = embed_matrix
+			# if args.brain_to_model:
+			# 	true_embeddings = embed_matrix
 
-		# 	rank = compare_rankings_to_embeddings(args, file_name, pred_contents[pred_index], true_embeddings, pred_index)
-		# 	final_rankings.append(rank)
+			# 	rank = compare_rankings_to_embeddings(args, file_name, pred_contents[pred_index], true_embeddings, pred_index)
+			# 	final_rankings.append(rank)
 
-	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + "-subbatch" + str(args.sub_batch_num) + ".p", "wb" ) )
+		to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + "-subbatch" + str(args.sub_batch_num) + ".p"
+		gc.disable()
+		with open(to_save_file, "wb") as f:
+			pickle.dump(final_rankings, f)
+			gc.enable()
 	return 
 
 def main():
-	print("GPU:")
-	print(cuda.gpus)
-
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-batch_num", "--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
