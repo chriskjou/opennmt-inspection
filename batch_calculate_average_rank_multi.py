@@ -7,6 +7,7 @@ import os
 import math
 import time
 # from numba import jit, cuda 
+import multiprocessing as mp
 import gc
 
 def get_embed_matrix(embedding):
@@ -69,54 +70,51 @@ def chunkify(lst, num, total):
 		end = len(lst)
 	return lst[start:end]
 
-def compare_rankings_to_brain(args, file_name, predictions, true_activations, VOXEL_NUMBER, radius=5):
-
+def multiparallelize_batch(i, args, file_name, predicted_distance, predictions):
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
 	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
+
+	print("BATCH: " + str(i))
+	# rank = 0
+	# spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
+	# gc.disable()
+	# with open(spotlight_activations_in_batch_file_name, "rb") as f:
+	# 	spotlight_activations = pickle.load(f)
+	# 	gc.enable()
+
+	# 	# iterate over each sentence
+	# 	for sentence_act in spotlight_activations:
+	# 		if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
+	# 			# dist = np.ones(1, dtype=np.float32)
+	# 			# calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
+	# 			dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
+	# 			print("DISTANCE: " + str(dist))
+	# 			print("PREDICTED: " + str(predicted_distance))
+	# 			if dist <= predicted_distance:
+	# 				rank+=1
+	# 			# distances.append(dist)
+
+	# 	# REMOVE FROM MEMORY
+	# 	del spotlight_activations
+	# return rank
+	return i
+
+def compare_rankings_to_brain(args, file_name, predictions, true_activations, VOXEL_NUMBER, radius=5):
 
 	# distances = []
 	# predicted_distance = np.ones(1, dtype=np.float32)
 	# calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
 	predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
 
-	rank = 0
-
+	### MULTIPARALLELIZE
 	batches = chunkify(range(args.total_batches), args.sub_batch_num, args.total_sub_batches)
-
-	for i in batches:
-		# print("BATCH: " + str(i))
-
-		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
-		gc.disable()
-		with open(spotlight_activations_in_batch_file_name, "rb") as f:
-			spotlight_activations = pickle.load(f)
-			gc.enable()
-
-			# iterate over each sentence
-			for sentence_act in spotlight_activations:
-				if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
-					# dist = np.ones(1, dtype=np.float32)
-					# calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
-					dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
-					print("DISTANCE: " + str(dist))
-					print("PREDICTED: " + str(predicted_distance))
-					if dist <= predicted_distance:
-						rank+=1
-					# distances.append(dist)
-
-			# REMOVE FROM MEMORY
-			del spotlight_activations
-
-	# CALCULATE PREDICTED DISTANCE
-	# distances = np.array(distances)
-	
-	# rank = len(np.where(distances < predicted_distance))
-
-	# FIND RANKING OF PREDICTED DISTANCE
-	# voxel_number = get_voxel_number(which_file, VOXEL_NUMBER, index_within_activations)
-
-	return rank
+	# extra_args = [args, file_path, file_name, predicted_distance]
+	pool = mp.Pool(mp.cpu_count())
+	print("CPU COUNT: " + str(mp.cpu_count()))
+	ranks = [pool.apply(multiparallelize_batch, args=(i, args, file_name, predicted_distance, predictions)) for i in batches]
+	pool.close()    
+	return np.sum(ranks)
 
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return

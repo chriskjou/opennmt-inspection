@@ -7,7 +7,10 @@ import os
 import math
 import time
 # from numba import jit, cuda 
+import multiprocessing as mp
 import gc
+
+spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -121,6 +124,13 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return
 
+def multiparallelize_voxel(pred_index, args, file_name, pred_contents):
+	print("PRED INDEX: " + str(pred_index))
+	true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
+	rank = compare_rankings_to_brain(args, file_name, pred_contents, true_activations, 0) # REMOVE VOXEL NUMBER
+	del true_activations
+	return rank
+
 def calculate_average_rank(args, file_name, embeddings):
 
 	### PREDICTIONS BELOW ###
@@ -152,24 +162,19 @@ def calculate_average_rank(args, file_name, embeddings):
 		# match_points_file_path = match_points_file.format(i)
 		# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
 
-		spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
+		NUM_THREADS = 5
 		print("iterating through file...")
-		for pred_index in tqdm(range(num_voxels)):
-			if args.model_to_brain:
-				true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
-				# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
-				# print(match_points[pred_index].shape)
-				rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
-		
-				final_rankings.append(rank)
-			# del voxel_dict
-				del true_activations
-
-			# if args.brain_to_model:
-			# 	true_embeddings = embed_matrix
-
-			# 	rank = compare_rankings_to_embeddings(args, file_name, pred_contents[pred_index], true_embeddings, pred_index)
-			# 	final_rankings.append(rank)
+		print("CPU COUNT: " + str(mp.cpu_count()))
+		print("NUM THREADS: " + str(NUM_THREADS))
+		pool = mp.Pool(NUM_THREADS)
+		final_rankings = [pool.apply(multiparallelize_voxel, args=(pred_index, args, file_name, pred_contents[pred_index])) for pred_index in range(num_voxels)]
+		pool.close()    
+		# for pred_index in tqdm(range(num_voxels)):
+		# 	if args.model_to_brain:
+		# 		true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
+		# 		rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
+		# 		final_rankings.append(rank)
+		# 		del true_activations
 
 		to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + "-subbatch" + str(args.sub_batch_num) + ".p"
 		gc.disable()
