@@ -61,7 +61,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		# iterate over each sentence
 		for sentence_act in modified_activations:
 			spot = sentence_act[sphere_mask.astype(bool)]
-			remove_nan = np.nan_to_num(spot)
+			remove_nan = np.nan_to_num(spot).astype(np.float32)
 			spotlights.append(remove_nan)
 			# spotlight_mask.append(sphere_mask.astype(bool))
 
@@ -98,9 +98,9 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
 			predicted_trials.append(np.dot(from_regress, p))
 			errors.append(residuals)
-		predicted = np.mean(predicted_trials, axis=0)
+		predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
 		# print(rnk.shape)
-		return np.mean(errors), predicted
+		return np.mean(errors).astype(np.float32), predicted
 	# print("FROM REGRESS: " + str(from_regress.shape))
 	# print("TO REGRESS: " + str(to_regress.shape))
 	p, res, rnk, s = lstsq(from_regress, to_regress)
@@ -110,8 +110,8 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 	# print("S: " + str(s.shape))
 	# print("COMPUTED: " + str(np.dot(from_regress, p).shape))
 	# print("EQUAL: " + str(np.array_equal(p, np.dot(from_regress, p))))
-	predicted = np.dot(from_regress, p)
-	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2))
+	predicted = np.dot(from_regress, p).astype(np.float32)
+	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2)).astype(np.float32)
 	print("RESIDUALS: " + str(residuals))
 	print("PREDICTED: " + str(predicted))
 	return residuals, predicted
@@ -248,37 +248,23 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions/')
 
-	# if not os.path.exists('/n/shieber_lab/Lab/users/cjou/match_points/'):
-	# 	os.makedirs('/n/shieber_lab/Lab/users/cjou/match_points/')
-
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/boolean_masks/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/boolean_masks/')
-
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
 	
-	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals/" +  temp_file_name
+	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
 	print("RESIDUALS FILE: " + str(altered_file_name))
 	pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1)
 
-	pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions/" + temp_file_name
+	pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
 	print("PREDICTIONS FILE: " + str(pred_file_name))
 	pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
 
-	# pred_file_name = "/n/shieber_lab/Lab/users/cjou/match_points/" + temp_file_name
-	# print("MATCH POINTS FILE: " + str(pred_file_name))
-	# pickle.dump( points_glm, open(pred_file_name+"-match-points.p", "wb" ), protocol=-1 )
-
-	spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights/" + temp_file_name
+	spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
 	print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
 	pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
-	# mask_file_name = "/n/shieber_lab/Lab/users/cjou/boolean_masks/" + temp_file_name
-	# print("BOOLEAN MASKS FILE: " + str(mask_file_name))
-	# pickle.dump( boolean_masks, open(mask_file_name+"-boolean-masks.p", "wb" ), protocol=-1 )
-	
 	print("done.")
 
 	return

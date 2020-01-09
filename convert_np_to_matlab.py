@@ -4,11 +4,18 @@ from tqdm import tqdm
 import pickle
 import scipy.io
 
-def get_concatenated_residuals(file_path, file_name, args):
+def get_concatenated_residuals(args, file_path, file_name):
+	if args.log:
+		concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-log-rmse.p", "rb"))
+		return concatenated_residuals
 	concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-rmse.p", "rb"))
 	return concatenated_residuals
 
-def save_to_mat(vals, file_name):
+def save_to_mat(args, vals, file_name):
+	if args.log:
+		scipy.io.savemat("../mat/" + file_name + "-log.mat", dict(rmse = vals))
+		print("saved file: ../mat/" + file_name + "-log.mat")
+		return
 	scipy.io.savemat("../mat/" + file_name + ".mat", dict(rmse = vals))
 	print("saved file: ../mat/" + file_name + ".mat")
 	return
@@ -33,6 +40,7 @@ def main():
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("-normalize", "--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local, False if not")
+	argparser.add_argument("-log", "--log",  action='store_true', default=False, help="True if use log coordinates, False if not")
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -90,7 +98,10 @@ def main():
 
 	### PREDICTIONS BELOW ###
 	if args.local:
-		file_path = "../3d-brain/"
+		if args.log:
+			file_path = "../3d-brain-log/"
+		else:
+			file_path = "../3d-brain/"
 		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
 		file_name = specific_file.format(
 			args.subject_number, 
@@ -100,8 +111,8 @@ def main():
 			args.which_layer, 
 			args.agg_type
 		)
-		vals = get_concatenated_residuals(file_path, file_name, args)
-		save_to_mat(vals, file_name)
+		vals = get_concatenated_residuals(args, file_path, file_name)
+		save_to_mat(args, vals, file_name)
 		print('done.')
 
 
