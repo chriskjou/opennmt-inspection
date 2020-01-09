@@ -5,6 +5,9 @@ import pickle
 import scipy.io
 import os
 import math
+from numba import jit, cuda 
+import gc
+import time
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -12,8 +15,19 @@ def get_embed_matrix(embedding):
 	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
 	return embed_matrix
 
-def calculate_euclidean_distance(a, b):
-	return np.sqrt(np.sum((a-b)**2))
+# def calculate_euclidean_distance(a, b):
+# 	return np.sqrt(np.sum((a-b)**2))
+
+@cuda.jit
+def calculate_euclidean_distance_gpu(a, b, dist):
+	x,y = a.shape
+	running_sum = 0
+
+	for i in range(x):
+		for j in range(y):
+			running_sum += ((b[i][j] - a[i][j])**2)
+
+	dist = math.sqrt(running_sum)
 
 def get_file_name(args, file_path, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
@@ -39,39 +53,35 @@ def get_true_activations(args, file_path, file_name, pred_index):
 def compare_rankings_to_brain(args, file_name, predictions, true_activations, VOXEL_NUMBER, radius=5):
 
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
-	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
+	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
 
 	# distances = []
-
-	predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
+	predicted_distance = np.ones(1, dtype=np.float32)
+	calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
+	# predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
 
 	rank = 0
 	for i in range(args.total_batches):
 		# print("BATCH: " + str(i))
-
 		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
-		spotlight_activations = pickle.load(open(spotlight_activations_in_batch_file_name, "rb"))
+		gc.disable()
+		with open(spotlight_activations_in_batch_file_name, "rb") as f:
+			spotlight_activations = pickle.load(f)
+			gc.enable()
 
-		# iterate over each sentence
-		for sentence_act in spotlight_activations:
-			if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
-				dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
-				if dist <= predicted_distance:
-					rank+=1
-				# distances.append(dist)
+			# iterate over each sentence
+			for sentence_act in spotlight_activations:
+				if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
+					dist = np.ones(1, dtype=np.float32)
+					calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
+					# dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
+					if dist <= predicted_distance:
+						rank+=1
+					# distances.append(dist)
 
-		# REMOVE FROM MEMORY
-		del spotlight_activations
-
-	# CALCULATE PREDICTED DISTANCE
-	# distances = np.array(distances)
-	
-	# rank = len(np.where(distances < predicted_distance))
-
-	# FIND RANKING OF PREDICTED DISTANCE
-	# voxel_number = get_voxel_number(which_file, VOXEL_NUMBER, index_within_activations)
-
+			# REMOVE FROM MEMORY
+			del spotlight_activations
 	return rank
 
 def compare_rankings_to_embeddings(prediction, embeddings):
@@ -80,49 +90,49 @@ def compare_rankings_to_embeddings(prediction, embeddings):
 def calculate_average_rank(args, file_name, embeddings):
 
 	### PREDICTIONS BELOW ###
-	file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
+	file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
 	### PREDICTIONS ABOVE ###
 
 	### GET PREDICTION FILE BELOW ###
 	file = get_file_name(args, file_path, file_name, args.batch_num)
-	pred_contents = pickle.load( open( file, "rb" ) )
-	num_voxels = len(pred_contents)
+	gc.disable()
+	with open(file, "rb") as f:
+		pred_contents = pickle.load(f)
+		gc.enable()
+		num_voxels = len(pred_contents)
 	### GET PREDICTION FILE ABOVE ###
 
-	### GET DICTIONARY MATCHING FILE BELOW ###
-	# matches_file_path = "/n/shieber_lab/Lab/users/cjou/match_points/" 
-	# temp_file_name = str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
-	# match_points_file = matches_file_path + temp_file_name
-	# print("MATCH POINTS FILE: " + str(match_points_file))
-	### GET DICTIONARY MATCHING FILE ABOVE ###
+		### FIND VOXEL NUMBER OF BATCH ###
+		VOXEL_NUMBER = set_voxel_number(args, file_path, file_name)
+		### FIND VOXEL NUMBER OF BATCH ###
 
-	### FIND VOXEL NUMBER OF BATCH ###
-	VOXEL_NUMBER = set_voxel_number(args, file_path, file_name)
-	### FIND VOXEL NUMBER OF BATCH ###
+		final_rankings = []
 
-	final_rankings = []
+		# match_points_file_path = match_points_file.format(i)
+		# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
 
-	# match_points_file_path = match_points_file.format(i)
-	# match_points = 	pickle.load( open(match_points_file_path +"-match-points.p", "rb" ) )
+		spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
+		print("iterating through file...")
+		for pred_index in tqdm(range(num_voxels)):
+			# if args.brain_to_model:
+			# 	prediction = embeddings
+			# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
+			if args.model_to_brain:
+				true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
+				# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
+				# print(match_points[pred_index].shape)
+				rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
+		
+				final_rankings.append(rank)
+			# del voxel_dict
+				del true_activations
 
-	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights/"
-	print("iterating through file...")
-	for pred_index in tqdm(range(num_voxels)):
-		# if args.brain_to_model:
-		# 	prediction = embeddings
-		# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
-		if args.model_to_brain:
-			true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
-			# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
-			# print(match_points[pred_index].shape)
-			rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
-	
-			final_rankings.append(rank)
-		# del voxel_dict
-			del true_activations
-
-	pickle.dump( final_rankings, open("/n/shieber_lab/Lab/users/cjou/rankings/rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + ".p", "wb" ) )
-	return 
+			to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + ".p"
+			gc.disable()
+			with open(to_save_file, "wb") as f:
+				pickle.dump(final_rankings, f)
+				gc.enable()
+		return 
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
@@ -201,8 +211,8 @@ def main():
 	else:
 		prlabel = ""
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rankings/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/rankings/')
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rankings_od32/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/rankings_od32/')
 
 	### EMBEDDINGS BELOW ###
 	# if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -251,7 +261,10 @@ def main():
 	### BRAIN ACTIVATIONS ABOVE ###
 
 	print("calculating average rank...")
+	start = time.time()
 	calculate_average_rank(args, file_name, embed_matrix)
+	end = time.time()
+	print("time: " + str(end-start)) 
 	print("done.")
 
 if __name__ == "__main__":
