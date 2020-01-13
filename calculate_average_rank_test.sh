@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH -J entire_pickle32_with_gpu  			# Job name
 #SBATCH -p seas_dgx1 							# partition (queue)
+#SBATCH --gres=gpu:1							# for GPU
 #SBATCH --mem 10000 							# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
-#SBATCH -o ../../rank_logs/outpt_entire_pickle32_with_gpu.txt 		# File that STDOUT writes to
-#SBATCH -e ../../rank_logs/err_entire_pickle32_with_gpu.txt			# File that STDERR writes to
+#SBATCH -o ../../outpt_entire_pickle32_with_gpu.txt 		# File that STDOUT writes to
+#SBATCH -e ../../err_entire_pickle32_with_gpu.txt			# File that STDERR writes to
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=ckjou@college.harvard.edu
 

@@ -19,7 +19,7 @@ def get_embed_matrix(embedding):
 # 	return np.sqrt(np.sum((a-b)**2))
 
 @cuda.jit
-def calculate_euclidean_distance_gpu(a, b, dist):
+def calculate_euclidean_distance(a, b, dist):
 	x,y = a.shape
 	running_sum = 0
 
@@ -64,6 +64,7 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 	rank = 0
 	for i in range(args.total_batches):
 		# print("BATCH: " + str(i))
+
 		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
 		gc.disable()
 		with open(spotlight_activations_in_batch_file_name, "rb") as f:
@@ -127,12 +128,12 @@ def calculate_average_rank(args, file_name, embeddings):
 			# del voxel_dict
 				del true_activations
 
-			to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + ".p"
-			gc.disable()
-			with open(to_save_file, "wb") as f:
-				pickle.dump(final_rankings, f)
-				gc.enable()
-		return 
+		to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(args.batch_num) + "of" + str(args.total_batches) + ".p"
+		gc.disable()
+		with open(to_save_file, "wb") as f:
+			pickle.dump(final_rankings, f)
+			gc.enable()
+	return 
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")

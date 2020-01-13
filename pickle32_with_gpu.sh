@@ -7,7 +7,7 @@
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../outpt_pickle32_with_gpu_same_batch.txt 		# File that STDOUT writes to
 #SBATCH -e ../../err_pickle32_with_gpu_same_batch.txt			# File that STDERR writes to
-#SBATCH --mail-type=ALL
+#SBATCH --mail-type=ALL 
 #SBATCH --mail-user=ckjou@college.harvard.edu
 
 module load Anaconda3/5.0.1-fasrc02

@@ -116,10 +116,9 @@ def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold
 	print("PREDICTED: " + str(predicted))
 	return residuals, predicted
 
-def get_embed_matrix(embedding):
-	dict_keys = list(embedding.keys())[3:]
-	embed_matrix = np.array([embedding[i][0][1:] for i in dict_keys])
-	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
+def get_embed_matrix(embedding, num_sentences=240):
+	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
+	in_training_bools = np.array([embedding["sentence" + str(i+1)][0][0] for i in range(num_sentences)])
 	return embed_matrix
 
 # normalize voxels across all sentences per participant

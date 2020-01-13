@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH -J pickle32_without_gpu  				# Job name
 #SBATCH -p serial_requeue 						# partition (queue)
-#SBATCH --gres=gpu:1							# for GPU
 #SBATCH --mem 5000 								# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location

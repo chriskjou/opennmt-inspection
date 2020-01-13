@@ -6,7 +6,7 @@ import scipy.io
 import os
 import math
 import time
-from numba import jit, cuda 
+# from numba import jit, cuda 
 import multiprocessing as mp
 import gc
 
@@ -18,20 +18,19 @@ def get_embed_matrix(embedding):
 	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
 	return embed_matrix
 
-# @jit(nopython=True, parallel=True)
-# def calculate_euclidean_distance(a, b):
-# 	return np.sqrt(np.sum((a-b)**2))
+def calculate_euclidean_distance(a, b):
+	return np.sqrt(np.sum((a-b)**2))
 
-@cuda.jit
-def calculate_euclidean_distance(a, b, dist):
-	x,y = a.shape
-	running_sum = 0
+# @cuda.jit
+# def calculate_euclidean_distance(a, b, dist):
+# 	x,y = a.shape
+# 	running_sum = 0
 
-	for i in range(x):
-		for j in range(y):
-			running_sum += ((b[i][j] - a[i][j])**2)
+# 	for i in range(x):
+# 		for j in range(y):
+# 			running_sum += ((b[i][j] - a[i][j])**2)
 
-	dist = math.sqrt(running_sum)
+# 	dist = math.sqrt(running_sum)
 
 def get_file_name(args, file_path, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
@@ -46,142 +45,114 @@ def get_voxel_number(batch_size, VOXEL_NUMBER, i):
 
 def set_voxel_number(args, file_path, file_name):
 	file_name = file_name + "_residuals_part0of" + str(args.total_batches) + "-decoding-predictions.p"
-	gc.disable()
-	with open(file_path + file_name, "rb") as f:
-		file_contents = pickle.load(f)
-		gc.enable()
-		return len(file_contents)
+	file_contents = pickle.load( open( file_path + file_name, "rb" ) )
+	return len(file_contents)
 
 def get_true_activations(args, file_path, file_name, pred_index):
 	entire_file_name = file_name + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches) + "-true-spotlights.p"
-	gc.disable()
-	with open(file_path + entire_file_name, "rb") as f:
-		file_contents = pickle.load(f)
-		gc.enable()
-		return file_contents[pred_index]
+	file_contents = pickle.load(open(file_path + entire_file_name, "rb"))
+	return file_contents[pred_index]
 
-def chunkify(lst, num, total):
-	if len(lst) % total == 0:
-		chunk_size = len(lst) // total
-	else:
-		chunk_size = len(lst) // total + 1
-	start = num * chunk_size
-	if num != total - 1:
-		end = num * chunk_size + chunk_size
-	else:
-		end = len(lst)
-	return lst[start:end]
-
-def compare_rankings_to_brain(args, file_name, predictions, true_activations, VOXEL_NUMBER, radius=5):
+def mp_compare_rankings_to_brain(i, predictions):
+	global g_args
+	global g_file_name
+	global g_predicted_distance
 
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
 	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
 
-	# distances = []
-	predicted_distance = np.ones(1, dtype=np.float32)
-	calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
-	# predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
-
+	spotlight_activations_in_batch_file_name = get_file_name(g_args, file_path, g_file_name, i, true_activations=True)
 	rank = 0
+	gc.disable()
+	with open(spotlight_activations_in_batch_file_name, "rb") as f:
+		spotlight_activations = pickle.load(f)
+		gc.enable()
 
-	batches = chunkify(range(args.total_batches), args.sub_batch_num, args.total_sub_batches)
+		# iterate over each sentence
+		for sentence_act in spotlight_activations:
+			if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
+				# dist = np.ones(1, dtype=np.float32)
+				# calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
+				dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
+				if dist <= g_predicted_distance:
+					rank+=1
+				# distances.append(dist)
 
-	for i in batches:
-		# print("BATCH: " + str(i))
-
-		spotlight_activations_in_batch_file_name = get_file_name(args, file_path, file_name, i, true_activations=True)
-		gc.disable()
-		with open(spotlight_activations_in_batch_file_name, "rb") as f:
-			spotlight_activations = pickle.load(f)
-			gc.enable()
-
-			# iterate over each sentence
-			for sentence_act in spotlight_activations:
-				if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
-					dist = np.ones(1, dtype=np.float32)
-					calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
-					# dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
-					# print("DISTANCE: " + str(dist))
-					# print("PREDICTED: " + str(predicted_distance))
-					if dist <= predicted_distance:
-						rank+=1
-					# distances.append(dist)
-
-			# REMOVE FROM MEMORY
-			del spotlight_activations
-
-	# CALCULATE PREDICTED DISTANCE
-	# distances = np.array(distances)
-	
-	# rank = len(np.where(distances < predicted_distance))
-
-	# FIND RANKING OF PREDICTED DISTANCE
-	# voxel_number = get_voxel_number(which_file, VOXEL_NUMBER, index_within_activations)
-
+		# REMOVE FROM MEMORY
+		del spotlight_activations
 	return rank
+
+def compare_rankings_to_brain(predictions, true_activations, radius=5):
+	global g_args
+	global g_pred_contents
+	global g_predicted_distance
+
+	# distances = []
+	# predicted_distance = np.ones(1, dtype=np.float32)
+	# calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
+	predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
+	g_predicted_distance = predicted_distance
+
+	# NUM_THREADS = 5
+	# print("CUDA: ")
+	# print(cuda.gpus)
+	print("iterating through file...")
+	print("CPU COUNT: " + str(mp.cpu_count()))
+	print("CPU on slurm: " + str(int(os.environ["SLURM_CPUS_ON_NODE"])))
+	# print("NUM THREADS: " + str(NUM_THREADS))
+
+	pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
+	final_rankings = [pool.apply(mp_compare_rankings_to_brain, args=(pred_index, g_pred_contents[pred_index])) for pred_index in range(g_args.total_batches)]
+	pool.close()
+
+	return np.sum(final_rankings)
 
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return
 
-def multiparallelize_voxel(pred_index, pred_contents):
-	global spotlight_file_path
-	global g_file_name
-	global g_args
-
-	print("PRED INDEX: " + str(pred_index))
-	true_activations = get_true_activations(g_args, spotlight_file_path, g_file_name, pred_index)
-	rank = compare_rankings_to_brain(g_args, g_file_name, pred_contents, true_activations, 0) # REMOVE VOXEL NUMBER
-	del true_activations
-	return rank
-	# return pred_index
-
 def calculate_average_rank(args, file_name, embeddings):
 	global g_args
 	global g_file_name
+	global g_pred_contents
+	global g_true_activations
 
 	### PREDICTIONS BELOW ###
 	file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
 	### PREDICTIONS ABOVE ###
 
 	### GET PREDICTION FILE BELOW ###
-	file = get_file_name(g_args, file_path, g_file_name, g_args.batch_num)
+	file = get_file_name(g_args, file_path, g_file_name, args.batch_num)
 	gc.disable()
 	with open(file, "rb") as f:
-		pred_contents = pickle.load(f)
+		g_pred_contents = pickle.load(f)
 		gc.enable()
-		num_voxels = len(pred_contents)
+		num_voxels = len(g_pred_contents)
 	### GET PREDICTION FILE ABOVE ###
 
-	### GET DICTIONARY MATCHING FILE BELOW ###
-	# matches_file_path = "/n/shieber_lab/Lab/users/cjou/match_points/" 
-	# temp_file_name = str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
-	# match_points_file = matches_file_path + temp_file_name
-	# print("MATCH POINTS FILE: " + str(match_points_file))
-	### GET DICTIONARY MATCHING FILE ABOVE ###
-
 		### FIND VOXEL NUMBER OF BATCH ###
-		VOXEL_NUMBER = set_voxel_number(g_args, file_path, g_file_name)
+		# VOXEL_NUMBER = set_voxel_number(g_args, file_path, g_file_name)
 		### FIND VOXEL NUMBER OF BATCH ###
 
 		final_rankings = []
 
-		# NUM_THREADS = 5
-		# print("iterating through file...")
-		# print("CPU COUNT: " + str(mp.cpu_count()))
-		# print("NUM THREADS: " + str(NUM_THREADS))
-		# pool = mp.Pool(NUM_THREADS)
-		# final_rankings = [pool.apply(multiparallelize_voxel, args=(pred_index, pred_contents[pred_index])) for pred_index in range(num_voxels)]
-		# pool.close() 
-
+		spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
+		print("iterating through file...")
 		for pred_index in tqdm(range(num_voxels)):
+			# if args.brain_to_model:
+			# 	prediction = embeddings
+			# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
 			if args.model_to_brain:
-				true_activations = get_true_activations(args, spotlight_file_path, file_name, pred_index)
-				rank = compare_rankings_to_brain(args, file_name, pred_contents[pred_index], true_activations, VOXEL_NUMBER)
+				g_true_activations = get_true_activations(args, spotlight_file_path, g_file_name, pred_index)
+				# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
+				# print(match_points[pred_index].shape)
+				rank = compare_rankings_to_brain(g_pred_contents[pred_index], g_true_activations, 0)
+		
 				final_rankings.append(rank)
-				del true_activations
+			# del voxel_dict
+				# del g_true_activations
 
-		to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(g_args.batch_num) + "of" + str(g_args.total_batches) + "-subbatch" + str(g_args.sub_batch_num) + ".p"
+		to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(g_args.batch_num) + "of" + str(g_args.total_batches) + ".p"
 		gc.disable()
 		with open(to_save_file, "wb") as f:
 			pickle.dump(final_rankings, f)
@@ -195,8 +166,6 @@ def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-batch_num", "--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
-	argparser.add_argument("-sub_batch_num", "--sub_batch_num", type=int, help="chunkify sub batch number to run euclidean distance", required=True)
-	argparser.add_argument("-total_sub_batches", "--total_sub_batches", type=int, help="total number of sub_batches to run euclidean distance", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)

@@ -18,6 +18,7 @@ def get_activations(info, save_path=""):
 	roi_vals = mat["multimask_group"]
 	roi_labels = mat["labels_langloc"]
 	atlas_labels = mat["labels_aal"]
+	individual_activations = mat["examples_sentences_individual"]
 
 	print("writing to file...")
 	pickle.dump( activations, open(save_path+"activations.p", "wb" ) )
@@ -28,6 +29,8 @@ def get_activations(info, save_path=""):
 
 	pickle.dump(roi_vals, open(save_path+"roi_vals.p", "wb") )
 	pickle.dump(roi_labels, open(save_path+"roi_labels.p", "wb") )
+
+	pickle.dump( individual_activations, open(save_path+"individual-activations.p", "wb" ) )
 
 	print("finished.")
 	return activations, volmask
