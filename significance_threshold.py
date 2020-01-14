@@ -10,6 +10,7 @@ from scipy.stats import pearsonr
 from scipy import stats
 from scipy.linalg import lstsq
 import random
+import matplotlib.pyplot as plt
 
 def get_embed_matrix(embedding, num_sentences=240):
 	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])

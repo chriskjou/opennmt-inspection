@@ -5,7 +5,7 @@ import pickle
 import scipy.io
 import os
 import math
-from numba import jit, cuda 
+# from numba import jit, cuda 
 import gc
 import time
 
@@ -15,19 +15,19 @@ def get_embed_matrix(embedding):
 	in_training_bools = np.array([embedding[i][0][0] for i in dict_keys])
 	return embed_matrix
 
-# def calculate_euclidean_distance(a, b):
-# 	return np.sqrt(np.sum((a-b)**2))
+def calculate_euclidean_distance(a, b):
+	return np.sqrt(np.sum((a-b)**2))
 
-@cuda.jit
-def calculate_euclidean_distance(a, b, dist):
-	x,y = a.shape
-	running_sum = 0
+# @cuda.jit
+# def calculate_euclidean_distance(a, b, dist):
+# 	x,y = a.shape
+# 	running_sum = 0
 
-	for i in range(x):
-		for j in range(y):
-			running_sum += ((b[i][j] - a[i][j])**2)
+# 	for i in range(x):
+# 		for j in range(y):
+# 			running_sum += ((b[i][j] - a[i][j])**2)
 
-	dist = math.sqrt(running_sum)
+# 	dist = math.sqrt(running_sum)
 
 def get_file_name(args, file_path, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
@@ -57,9 +57,9 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
 
 	# distances = []
-	predicted_distance = np.ones(1, dtype=np.float32)
-	calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
-	# predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
+	# predicted_distance = np.ones(1, dtype=np.float32)
+	# calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
+	predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
 
 	rank = 0
 	for i in range(args.total_batches):
@@ -74,9 +74,9 @@ def compare_rankings_to_brain(args, file_name, predictions, true_activations, VO
 			# iterate over each sentence
 			for sentence_act in spotlight_activations:
 				if np.array_equal(np.array(predictions).shape, np.array(sentence_act).shape):
-					dist = np.ones(1, dtype=np.float32)
-					calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
-					# dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
+					# dist = np.ones(1, dtype=np.float32)
+					# calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
+					dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
 					if dist <= predicted_distance:
 						rank+=1
 					# distances.append(dist)
