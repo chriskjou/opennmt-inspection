@@ -103,7 +103,8 @@ def compare_rankings_to_brain(predictions, true_activations, radius=5):
 	# print("NUM THREADS: " + str(NUM_THREADS))
 
 	pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
-	final_rankings = [pool.apply(mp_compare_rankings_to_brain, args=(pred_index, g_pred_contents[pred_index])) for pred_index in range(g_args.total_batches)]
+	extra_arguments = [(pred_index, np.array(g_pred_contents[pred_index])) for pred_index in range(g_args.total_batches)]
+	final_rankings = pool.starmap(mp_compare_rankings_to_brain, extra_arguments)
 	pool.close()
 
 	return np.sum(final_rankings)

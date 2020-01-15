@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J fdr_test  							# Job name
-#SBATCH -p seas_dgx1 							# partition (queue)
-#SBATCH --mem 5000 								# memory pool for all cores
+#SBATCH -p serial_requeue 						# partition (queue)
+#SBATCH --mem 3000 								# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../../outpt_fdr_test.txt 		# File that STDOUT writes to

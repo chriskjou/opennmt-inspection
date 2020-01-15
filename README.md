@@ -1,6 +1,6 @@
 # OpenNMT-py with inspection & sentence representation
 
-## OpenNMT-py modifications
+## OpenNMT-py modifications (TBD)
 This is a modification of a OpenNMT-py fork that creates sentence representations in a MAT file. The following scripts have been added. Your sentence representations must be formatted such that each sentence is on a new line; an example format is included in `examplesGLM.txt`. The flags mentioned below for `separate-layers` and `dump-layers` must be true when running `train.py` and `translate.py`, respectively.
 
 ```

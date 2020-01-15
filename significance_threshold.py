@@ -44,7 +44,7 @@ def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, 
 	correlations = {}
 	pvals = {}
 
-	for train_index, test_index in kf.split(range(num_sentences)):
+	for train_index, test_index in tqdm(kf.split(range(num_sentences))):
 		# create data
 		training_indices = generate_indices(train_index, train_session)
 		testing_indices = generate_indices(test_index, test_session)
@@ -55,7 +55,7 @@ def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, 
 		X_test = np.array(list(embeddings[test_index]) * len(test_session))
 
 		# GLM per voxel
-		for voxel_index in tqdm(range(num_voxels)):
+		for voxel_index in range(num_voxels):
 			train_valid_index = check_for_nan_infinity(y_train, voxel_index)
 			test_valid_index = check_for_nan_infinity(y_test, voxel_index)
 			if len(train_valid_index) == 0:
@@ -108,7 +108,7 @@ def get_pval_from_ttest(pvals_per_voxel):
 
 def evaluate_performance(correlations, pvals_per_voxel):
 	pvals = get_pval_from_ttest(pvals_per_voxel)
-	min_index = plot_pvals(pvals)
+	plot_pvals(pvals)
 	valid_correlations = get_bounds(correlations, pval_dict)
 	return valid_correlations
 
@@ -151,7 +151,7 @@ def main():
 	
 	# 1. z-score
 	print("z-scoring activations and embeddings...")
-	individual_activations = pickle.load(open("../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
+	individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
 	z_activations = z_score(individual_activations)
 	z_embeddings = z_score(embed_matrix)
 
@@ -160,10 +160,10 @@ def main():
 	correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
 	
 	# 3. evaluate significance
-	save_location = "../../"
+	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 	print("evaluating significance...")
 	valid_correlations = evaluate_performance(correlations, pvals)
-	pickle.dump(open(save_location+"valid_correlations.p", "wb"))
+	pickle.dump(open(save_location+"_valid_correlations.p", "wb"))
 	print("done.")
 
 	return

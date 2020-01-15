@@ -11,34 +11,7 @@ agg_type = ['avg', 'max', 'min', 'last']
 subj_num = range(1,12)
 nbatches = 100
 
-def main():
-
-	############# GET ARGUMENTS #############
-	parser = argparse.ArgumentParser(description="entire OpenNMT pipeline: data prep, model, decoding, visualization")
-	parser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
-	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
-	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
-	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
-	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
-	parser.add_argument("-subj_num", "--subj_num", help="fMRI subject number ([1:11])", type=int, default=1)
-	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
-	parser.add_argument("-create_model", "--create_model", help="create OpenNMT prediction model", action='store_true', default=False)
-	parser.add_argument("-format_data", "--format_data", help="Format fMRI data", action='store_true', default=False)
-	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
-	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
-	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-	parser.add_argument("-random", "--random",  action='store_true', default=False, help="True if add cross validation, False if not")
-	parser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
-	parser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
-	parser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
-	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
-	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
-	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
-	parser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
-	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
-	args = parser.parse_args()
-
-	############# VALIDATE ARGUMENTS #############
+def validate_arguments(args):
 	if args.language not in languages:
 		print("invalid language")
 		exit()
@@ -61,10 +34,116 @@ def main():
 		print("select only one flag for brain_to_model or model_to_brain")
 		exit()
 	if not args.brain_to_model and not args.model_to_brain:
-		print("select at least flag for brain_to_model or model_to_brain")
+		print("select at least one flag for brain_to_model or model_to_brain")
 		exit()
+	if (args.brain_to_model or args.model_to_brain) and not args.decoding:
+		print("select decoding option for model to brain or brain to model")
+		exit()
+	if not args.decoding and not args.fdr and not args.llh and not args.rank:
+		print("select at least one evaluation metric")
+		exit()
+	return
+
+def generate_labels(args):
+	if args.brain_to_model:
+		direction = "brain2model_"
+	else:
+		direction = "model2brain_"
+
+	if args.cross_validation:
+		validate = "cv_"
+	else:
+		validate = "nocv_"
+	if args.random:
+		rlabel = "random"
+	else:
+		rlabel = ""
+		
+	if args.rand_embed:
+		elabel = "rand_embed"
+	else:
+		elabel = ""
+
+	if args.glove:
+		glabel = "glove"
+	else:
+		glabel = ""
+
+	if args.word2vec:
+		w2vlabel = "word2vec"
+	else:
+		w2vlabel = ""
+
+	if args.bert:
+		bertlabel = "bert"
+	else:
+		bertlabel = ""
+
+	if args.permutation:
+		plabel = "permutation"
+	else:
+		plabel = ""
+
+	if args.permutation_region:
+		prlabel = "permutation_region"
+	else:
+		prlabel = ""
+	return
+
+def main():
+
+	############# GET ARGUMENTS BELOW #############
+
+	parser = argparse.ArgumentParser(description="entire OpenNMT pipeline: data prep, model, decoding, visualization")
+	
+	# model type
+	parser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
+	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
+	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
+	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
+	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
+	parser.add_argument("-nbatches", "--nbatches", help="Total number of batches to run", type=int, default=100)
+	
+	# subject for brain data
+	parser.add_argument("-subj_num", "--subj_num", help="fMRI subject number ([1:11])", type=int, default=1)
+	parser.add_argument("-format_data", "--format_data", help="Format fMRI data", action='store_true', default=False)
+	
+	# opennmt model
+	parser.add_argument("-create_model", "--create_model", help="create OpenNMT prediction model", action='store_true', default=False)
+	
+	# initializations
+	parser.add_argument("-random", "--random",  action='store_true', default=False, help="True if add cross validation, False if not")
+	parser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
+	parser.add_argument("-rand_embed",  "--rand_embed", action='store_true', default=False, help="True if initialize random embeddings, False if not")
+	parser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
+	parser.add_argument("-word2vec", "--word2vec", action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
+	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
+	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
+	parser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
+	
+	# evaluation metrics
+	parser.add_argument("-decoding", "--decoding", action='store_true', default=False, help="True if decoding, False if not")
+	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
+	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
+	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
+	parser.add_argument("-fdr", "--fdr", action='store_true', default=False, help="True if FDR, False if not")
+	parser.add_argument("-rank", "--rank", action='store_true', default=False, help="True if rank, False if not")
+	parser.add_argument("-llh", "--llh", action='store_true', default=False, help="True if likelihood, False if not")
+
+	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
+
+	args = parser.parse_args()
+
+	############# VALIDATE ARGUMENTS #############
+
+	validate_arguments()
+
+	############# CREATE LABELS #############
+
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)
 
 	############# GLOBAL OPTIONS #############
+
 	get_residuals_and_make_scripts = " --num_batches" + str(args.num_batches)
 	if not args.rand_embed and not args.bert and not args.word2vec and not args.glove:
 		options = "--language " + str(args.language) + 
@@ -119,117 +198,79 @@ def main():
 		os.system(translate)
 
 	############# FORMAT BRAIN DATA #############
+
 	if args.format_data:
 		format_cmd = "python format_for_subject.py --subject_number " + str(subj_num)
 		os.system(format_cmd)
 
-	############# MAKE SCRIPTS #############
-	cmd = "python make_scripts.py"
-	entire_cmd = cmd + " " + options + " " + get_residuals_and_make_scripts
-	os.system(entire_cmd)
+	############# MAKE SCRIPTS  #############
+	
+	if args.decoding or args.rank or args.llh:
+		cmd = "python make_scripts.py"
+		entire_cmd = cmd + " " + options + " " + get_residuals_and_make_scripts
+		os.system(entire_cmd)
 
-	############# MASTER BASH SCRIPTS #############
-	# find script path
-	if args.brain_to_model:
-		direction = "brain2model_"
-	else:
-		direction = "model2brain_"
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		# model_type = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		folder_name = model_type.format(
+			args.subject_number, 
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.which_layer, 
+			args.agg_type
+		)
+		executable_path = "../../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh"
 
-	if args.cross_validation:
-		validate = "cv_"
-	else:
-		validate = "nocv_"
-	if args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-		
-	if args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
+		# make script executable
+		cmd = "chmod +x " + str(executable_path)
+		os.system(cmd)
+		exe = "sbatch " + str(executable_path) 
+		os.system(exe)
 
-	if args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
+		### wait for job dependency
+		### todo: get individual jobs ids
 
-	if args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
+		# for i in range(args.nbatches):
+		# file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		# job_id = file.format(
+		# 	args.subject_number, 
+		# 	i, 
+		# 	args.nbatches, 
+		# 	args.language, 
+		# 	args.num_layers, 
+		# 	args.model_type, 
+		# 	args.which_layer, 
+		# 	args.agg_type
+		# )
+		# fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
-	if args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
+		############# EVALUATION #############
 
-	if args.permutation:
-		plabel = "permutation"
-	else:
-		plabel = ""
+		# 1. RMSE
 
-	if args.permutation_region:
-		prlabel = "permutation_region"
-	else:
-		prlabel = ""
+		# CONCATENATE RMSE 
+		rmse = "python get_residuals.py" 
+		entire_cmd = rmse + " " + options + " " + " " + get_residuals_and_make_scripts
+		os.system(entire_cmd)
 
-	model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-	# model_type = str(rlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-	folder_name = model_type.format(
-		args.subject_number, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.which_layer, 
-		args.agg_type
-	)
-	executable_path = "../decoding_scripts/" + str(folder_name) + "/" + str(folder_name) + ".sh"
+		# CONVERT CONCATENATE TO MATLAB 
+		convert = "python convert_np_to_matlab.py"
+		entire_cmd = convert + " " + options + " " + " " + get_residuals_and_make_scripts + " -local"
+		os.system(entire_cmd)
 
-	# make script executable
-	cmd = "chmod +x " + str(executable_path)
-	os.system(cmd)
-	exe = "sbatch " + str(executable_path) 
-	os.system(exe)
+		# 2. AVERAGE RANK
 
-	### wait for job dependency
-	### todo: get individual jobs ids
+		# RUN AVERAGE RANK
 
-	# for i in range(args.nbatches):
-	# file = str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-	# job_id = file.format(
-	# 	args.subject_number, 
-	# 	i, 
-	# 	args.nbatches, 
-	# 	args.language, 
-	# 	args.num_layers, 
-	# 	args.model_type, 
-	# 	args.which_layer, 
-	# 	args.agg_type
-	# )
-	# fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+		# CONCATENATE AVERAGE RANK
 
-	############# EVALUATION #############
+		# CONVERT AVERAGE RANK TO MATLAB
 
-	# 1. RMSE
-
-	# CONCATENATE RMSE 
-	rmse = "python get_residuals.py" 
-	entire_cmd = rmse + " " + options + " " + " " + get_residuals_and_make_scripts
-	os.system(entire_cmd)
-
-	# CONVERT CONCATENATE TO MATLAB 
-	convert = "python convert_np_to_matlab.py"
-	entire_cmd = convert + " " + options + " " + " " + get_residuals_and_make_scripts + " -local"
-	os.system(entire_cmd)
-
-	# 2. AVERAGE RANK
-
-	# RUN AVERAGE RANK
-
-	# CONCATENATE AVERAGE RANK
-
-	# CONVERT AVERAGE RANK TO MATLAB
+	if args.fdr:
+		cmd = "python significance_threshold.py"
+		entire_cmd = cmd + " " + options + " " + get_residuals_and_make_scripts
+		os.system(entire_cmd)
 
 	############# VISUALIZATIONS #############
 	# plot = "python plot_residuals_location.py" 
