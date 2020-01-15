@@ -195,50 +195,7 @@ def main():
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
-	if g_args.brain_to_model:
-		direction = "brain2model_"
-	else:
-		direction = "model2brain_"
-
-	if g_args.cross_validation:
-		validate = "cv_"
-	else:
-		validate = "nocv_"
-
-	if g_args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-
-	if g_args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
-		
-	if g_args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
-
-	if g_args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
-
-	if g_args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
-
-	if g_args.permutation:
-		plabel = "permutation_"
-	else:
-		plabel = ""
-
-	if g_args.permutation_region:
-		prlabel = "permutation_region_"
-	else:
-		prlabel = ""
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(g_args)
 
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rankings_od32/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/rankings_od32/')

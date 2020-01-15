@@ -3,6 +3,7 @@ import pickle
 import sys
 import argparse
 import os
+import helper
 
 def concatenate_all(specific_file, args, type_concat):
 	final_residuals = []
@@ -59,50 +60,7 @@ def main():
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
-	if args.brain_to_model:
-		direction = "brain2model_"
-	else:
-		direction = "model2brain_"
-
-	if args.cross_validation:
-		validate = "cv_"
-	else:
-		validate = "nocv_"
-
-	if args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-
-	if args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
-		
-	if args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
-
-	if args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
-
-	if args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
-
-	if args.permutation:
-		plabel = "permutation_"
-	else:
-		plabel = ""
-
-	if args.permutation_region:
-		prlabel = "permutation_region_"
-	else:
-		prlabel = ""
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	print("CROSS VALIDATION: " + str(args.cross_validation))
 	print("BRAIN_TO_MODEL: " + str(args.brain_to_model))

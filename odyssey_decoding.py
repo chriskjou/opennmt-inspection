@@ -176,53 +176,16 @@ def main():
 
 	# file name adjustments
 	if args.brain_to_model == "True":
-		direction = "brain2model_"
 		brain_to_model = True
 	else:
-		direction = "model2brain_"
 		brain_to_model = False
 
 	if args.cross_validation == "True":
-		validate = "cv_"
 		cross_validation = True
 	else:
-		validate = "nocv_"
 		cross_validation = False
 
-	if args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-
-	if args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
-
-	if args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
-
-	if args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
-
-	if args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
-
-	if args.permutation:
-		plabel = "permutation_"
-	else:
-		plabel = ""
-
-	if args.permutation_region:
-		prlabel = "permutation_region_"
-	else:
-		prlabel = ""
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# get modified activations
 	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/" + str(plabel) + str(prlabel) + "activations.p", "rb" ) )

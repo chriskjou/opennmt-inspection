@@ -2,6 +2,7 @@ import os
 import sys
 import argparse
 from tqdm import tqdm
+import helper
 
 def save_script(args):
 	if args.local:
@@ -12,50 +13,7 @@ def save_script(args):
 			os.makedirs('../../decoding_scripts/')
 
 	# file name assignments
-	if args.brain_to_model:
-		direction = "brain2model_"
-	else:
-		direction = "model2brain_"
-
-	if args.cross_validation:
-		validate = "cv_"
-	else:
-		validate = "nocv_"
-
-	if args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-
-	if args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
-
-	if args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
-
-	if args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
-
-	if args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
-
-	if args.permutation:
-		plabel = "permutation"
-	else:
-		plabel = ""
-
-	if args.permutation_region:
-		prlabel = "permutation_region"
-	else:
-		prlabel = ""
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# create subfolder
 	model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"

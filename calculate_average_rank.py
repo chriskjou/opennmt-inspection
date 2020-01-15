@@ -8,6 +8,7 @@ import math
 # from numba import jit, cuda 
 import gc
 import time
+import helper
 
 def get_embed_matrix(embedding):
 	dict_keys = list(embedding.keys())[3:]
@@ -167,50 +168,7 @@ def main():
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
-	if args.brain_to_model:
-		direction = "brain2model_"
-	else:
-		direction = "model2brain_"
-
-	if args.cross_validation:
-		validate = "cv_"
-	else:
-		validate = "nocv_"
-
-	if args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-
-	if args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
-		
-	if args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
-
-	if args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
-
-	if args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
-
-	if args.permutation:
-		plabel = "permutation_"
-	else:
-		plabel = ""
-
-	if args.permutation_region:
-		prlabel = "permutation_region_"
-	else:
-		prlabel = ""
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rankings_od32/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/rankings_od32/')
