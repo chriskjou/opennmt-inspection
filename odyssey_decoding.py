@@ -10,10 +10,14 @@ import argparse
 import os
 
 def chunkify(lst, num, total):
+	global CHUNK_SIZE
+
 	if len(lst) % total == 0:
 		chunk_size = len(lst) // total
 	else:
 		chunk_size = len(lst) // total + 1
+	CHUNK_SIZE = chunk_size
+
 	start = num * chunk_size
 	if num != total - 1:
 		end = num * chunk_size + chunk_size
@@ -22,6 +26,8 @@ def chunkify(lst, num, total):
 	return lst[start:end]
 
 def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, do_cross_validation, radius=5, kfold_split=5):
+	global CHUNK_SIZE
+
 	print("getting activations for all sentences...")
 	# per_sentence = []
 	res_per_spotlight = []
@@ -76,6 +82,15 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		index+=1
 		## DECODING ABOVE
 
+		# add to memmap files
+		# predictions_memmap = np.load("/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name + ".dat", mmap_mode='w')
+		# predictions_memmap[CHUNK_SIZE * num + index] = predictions
+		# del predictions_memmap
+
+		# true_spotlights_memmap = np.load("/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name + ".dat", mmap_mode='w')
+		# true_spotlights_memmap[CHUNK_SIZE * num + index] = true_spotlights
+		# del true_spotlights_memmap
+
 	return res_per_spotlight, predictions, true_spotlights #boolean_masks
 
 def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
@@ -127,6 +142,15 @@ def normalize_voxels(activations):
 	std = np.std(activations, axis=0)
 	modified_act = (activations - avg)/std
 	return modified_act
+
+def create_memmap_files(args, file_path, temp_file_name, num_voxels, a, b):
+	if args.brain_to_model:
+		size = (a,b)
+	else:
+		size = (b,a)
+
+	fp = np.memmap(file_path + temp_file_name + ".dat", dtype='float32', mode='w+', shape=(num_voxels, size[0], size[1]))
+	del fp
 
 def main():
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
@@ -199,10 +223,6 @@ def main():
 		print("RANDOM ACTIVATIONS")
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
-	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
-	
-	# all_residuals, predictions, points_glm, boolean_masks = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
-	
 	# make file path
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/residuals/')
@@ -213,8 +233,19 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights/')
 
+	# create memmap
+	# temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
+	
+	# if args.batch_num == 0:
+	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/predictions_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
+	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
+		
+	# get residuals and predictions
+	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
 	
+	dump
 	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
 	print("RESIDUALS FILE: " + str(altered_file_name))
 	pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1)

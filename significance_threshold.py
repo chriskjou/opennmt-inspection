@@ -11,6 +11,7 @@ from scipy import stats
 from scipy.linalg import lstsq
 import random
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 
 def get_embed_matrix(embedding, num_sentences=240):
 	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
@@ -109,7 +110,7 @@ def get_pval_from_ttest(pvals_per_voxel):
 def evaluate_performance(correlations, pvals_per_voxel):
 	pvals = get_pval_from_ttest(pvals_per_voxel)
 	plot_pvals(pvals)
-	valid_correlations = get_bounds(correlations, pval_dict)
+	valid_correlations = get_bounds(correlations, pvals)
 	return valid_correlations
 
 def main():

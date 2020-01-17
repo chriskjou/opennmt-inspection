@@ -84,10 +84,14 @@ def mp_compare_rankings_to_brain(i, predictions):
 		del spotlight_activations
 	return rank
 
-def compare_rankings_to_brain(predictions, true_activations, radius=5):
+def compare_rankings_to_brain(pred_index, predictions, radius=5):
 	global g_args
 	global g_pred_contents
+	global g_file_name
 	global g_predicted_distance
+
+	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
+	true_activations = get_true_activations(args, spotlight_file_path, g_file_name, pred_index)
 
 	# distances = []
 	# predicted_distance = np.ones(1, dtype=np.float32)
@@ -98,17 +102,18 @@ def compare_rankings_to_brain(predictions, true_activations, radius=5):
 	# NUM_THREADS = 5
 	# print("CUDA: ")
 	# print(cuda.gpus)
-	print("iterating through file...")
-	print("CPU COUNT: " + str(mp.cpu_count()))
-	print("CPU on slurm: " + str(int(os.environ["SLURM_CPUS_ON_NODE"])))
 	# print("NUM THREADS: " + str(NUM_THREADS))
+	final_rankings = 0
+	for index in range(g_args.total_batches):
+		final_rankings += mp_compare_rankings_to_brain(index, predictions)
+	return final_rankings
 
-	pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
-	extra_arguments = [(pred_index, np.array(g_pred_contents[pred_index])) for pred_index in range(g_args.total_batches)]
-	final_rankings = pool.starmap(mp_compare_rankings_to_brain, extra_arguments)
-	pool.close()
+	# pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
+	# extra_arguments = [(pred_index, np.array(g_pred_contents[pred_index])) for pred_index in range(g_args.total_batches)]
+	# final_rankings = pool.starmap(mp_compare_rankings_to_brain, extra_arguments)
+	# pool.close()
 
-	return np.sum(final_rankings)
+	# return np.sum(final_rankings)
 
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return
@@ -138,21 +143,27 @@ def calculate_average_rank(args, file_name, embeddings):
 
 		final_rankings = []
 
-		spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
 		print("iterating through file...")
-		for pred_index in tqdm(range(num_voxels)):
-			# if args.brain_to_model:
-			# 	prediction = embeddings
-			# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
-			if args.model_to_brain:
-				g_true_activations = get_true_activations(args, spotlight_file_path, g_file_name, pred_index)
-				# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
-				# print(match_points[pred_index].shape)
-				rank = compare_rankings_to_brain(g_pred_contents[pred_index], g_true_activations, 0)
+		print("CPU COUNT: " + str(mp.cpu_count()))
+		print("CPU on slurm: " + str(int(os.environ["SLURM_CPUS_ON_NODE"])))
+
+		pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
+		extra_arguments = [(pred_index, np.array(g_pred_contents[pred_index])) for pred_index in range(num_voxels)]
+		final_rankings = list(tqdm(pool.starmap(compare_rankings_to_brain, extra_arguments), total=len(num_voxels))
+		pool.close()
+		# for pred_index in tqdm(range(num_voxels)):
+		# 	# if args.brain_to_model:
+		# 	# 	prediction = embeddings
+		# 	# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
+		# 	if args.model_to_brain:
+				
+		# 		# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
+		# 		# print(match_points[pred_index].shape)
+		# 		rank = compare_rankings_to_brain(g_pred_contents[pred_index], g_true_activations, 0)
 		
-				final_rankings.append(rank)
-			# del voxel_dict
-				# del g_true_activations
+		# 		final_rankings.append(rank)
+		# 	# del voxel_dict
+		# 		# del g_true_activations
 
 		to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(g_args.batch_num) + "of" + str(g_args.total_batches) + ".p"
 		gc.disable()

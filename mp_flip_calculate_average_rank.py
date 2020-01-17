@@ -113,6 +113,65 @@ def compare_rankings_to_brain(predictions, true_activations, radius=5):
 def compare_rankings_to_embeddings(prediction, embeddings):
 	return
 
+def flip_mp_compare_rankings_to_brain(pred_index, true_index, radius=5):
+	global g_args
+	global g_file_name
+	global g_predicted_distance
+
+	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
+	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
+	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
+
+	true_spotlight_activations = get_file_name(g_args, file_path, g_file_name, true_index, true_activations=True)
+
+	### PREDICTIONS BELOW ###
+	file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
+	### PREDICTIONS ABOVE ###
+
+	predicted_spotlight_activations = get_file_name(g_args, file_path, g_file_name, pred_index)
+
+	distances = []
+
+	gc.disable()
+	with open(true_spotlight_activations, "rb") as f:
+		spotlight_activations = pickle.load(f)
+
+		with open(predicted_spotlight_activations, "rb") as f2:
+			predicted_activations = pickle.load(f)
+			gc.enable()
+
+			# iterate over each sentence
+			for sentence_act in spotlight_activations:
+				for predicted_act in predicted_activations:
+					if np.array_equal(np.array(predicted_act).shape, np.array(sentence_act).shape):
+						# dist = np.ones(1, dtype=np.float32)
+						# calculate_euclidean_distance(np.array(predictions), np.array(sentence_act), dist)
+						dist = calculate_euclidean_distance(np.array(predicted_act), np.array(sentence_act))
+						distances.append(dist)
+
+			del predicted_activations
+		del spotlight_activations
+	return distances
+
+def flip_calculate_average_rank(args, file_name, embeddings):
+	global g_args
+	global g_file_name
+	global g_pred_contents
+	global g_true_activations
+
+	print("iterating through file...")
+	print("CPU COUNT: " + str(mp.cpu_count()))
+	print("CPU on slurm: " + str(int(os.environ["SLURM_CPUS_ON_NODE"])))
+	# print("NUM THREADS: " + str(NUM_THREADS))
+
+	pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
+	true_index = 0
+	extra_arguments = [(pred_index, true_index) for pred_index in range(g_args.total_batches)]
+	final_rankings = pool.starmap(flip_mp_compare_rankings_to_brain, extra_arguments)
+	pool.close()
+	return
+
+
 def calculate_average_rank(args, file_name, embeddings):
 	global g_args
 	global g_file_name

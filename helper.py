@@ -113,3 +113,78 @@ def generate_options(args):
 		options += " --permutation_region"
 
 	return get_residuals_and_make_scripts, options
+
+# create bash scripts for RANK and FDR
+def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)
+
+	if args.brain_to_model:
+		dflag = " --brain_to_model "
+	elif args.model_to_brain:
+		dflag = " --model_to_brain "
+	else:
+		dflag = ""
+
+	if args.cross_validation:
+		cvflag = " --cross_validation "
+	else:
+		cvflag = ""
+
+	sub_flag = " --subject_number {} ".format(args.subject_number)
+	pflag = "" if (plabel == "") else "--" + str(plabel)
+	prflag = "" if (prlabel == "") else "--" + str(prlabel)
+	rflag = "" if (rlabel == "") else "--" + str(rlabel)
+	gflag = "" if (glabel == "") else "--" + str(glabel)
+	w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)
+	bertflag = "" if (bertlabel == "") else "--" + str(bertlabel)
+	eflag = "" if (elabel == "") else "--" + str(elabel)
+	partition = "serial_requeue" if not args.gpu else "seas_dgx1"
+	num_cpu = "" if (cpu == 1) else "#SBATCH -n {} ".format(cpu)
+	batch_num = "" if (batch == -1) else " --batch_num {} ".format(batch)
+	total_batch_num = "" if (total_batches == -1) else " --total_batches {} ".format(total_batches)
+	
+	with open(fname, 'w') as rsh:
+		rsh.write('''\
+#!/bin/bash
+#SBATCH -J {0}  								# Job name
+#SBATCH -p {1} 									# partition (queue)
+#SBATCH --mem {2} 								# memory pool for all cores
+#SBATCH -t {3} 									# time (D-HH:MM)
+{4}
+#SBATCH --output=/n/home10/cjou/projects 		# file output location
+#SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
+#SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=ckjou@college.harvard.edu
+
+module load Anaconda3/5.0.1-fasrc02
+source activate virtualenv
+
+python {5} \
+--embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/parallel/{6}/{7}layer-{8}/{9}/parallel-english-to-{6}-model-{7}layer-{8}-pred-layer{10}-{9}.mat \
+{11} {12} {13} {14} {15} {16} {17} {18} {19} {20} {21} {22} {23}
+'''.format(
+		job_id, 
+		partition,
+		memory, 
+		time_limit,
+		num_cpu,
+		file_to_run,
+		args.language, 
+		args.num_layers, 
+		args.model_type, 
+		args.agg_type, 
+		args.which_layer, 
+		dflag,
+		cflag,
+		batch_num, 
+		total_batch_num,
+		sub_flag,
+		rflag,
+		eflag,
+		gflag,
+		w2vflag,
+		bertflag,
+		pflag,
+		prflag
+	)
