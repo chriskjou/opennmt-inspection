@@ -83,6 +83,8 @@ done
 			fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
 		with open(fname, 'w') as rsh:
+			cvflag = "" if not args.cross_validation else " --cross_validation "
+			dflag = " --brain_to_model " if args.brain_to_model else " --model_to_brain "
 			pflag = "" if (plabel == "") else "--" + str(plabel)
 			prflag = "" if (prlabel == "") else "--" + str(prlabel)
 			rflag = "" if (rlabel == "") else "--" + str(rlabel)
@@ -108,8 +110,7 @@ source activate virtualenv
 python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
 --subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{6}/examplesGLM.mat \
---brain_to_model {7} \
---cross_validation {8} \
+{7} {8} \
 --subject_number {6} \
 --batch_num {9} \
 --total_batches {10} \
@@ -122,8 +123,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		args.agg_type, 
 		args.which_layer, 
 		args.subject_number, 
-		args.brain_to_model,
-		args.cross_validation,
+		dflag,
+		cvflag,
 		i, 
 		args.total_batches,
 		rflag,
@@ -137,11 +138,6 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 )
 
 def main():
-	# if len(sys.argv) != 3:
-	# 	print("usage: python make_scripts.py -language -num_layers -brnn/rnn -which_layer -agg_type -subject_number -num_batches")
-	# 	# example: python make_scripts.pe
-	# 	exit()
-
 	# usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subject_number -num_batches"
 	parser = argparse.ArgumentParser("make scripts for Odyssey cluster")
 	parser.add_argument("-total_batches", "--total_batches", help="Total number of batches to run", type=int, default=100)

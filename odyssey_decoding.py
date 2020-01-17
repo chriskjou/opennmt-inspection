@@ -25,7 +25,7 @@ def chunkify(lst, num, total):
 		end = len(lst)
 	return lst[start:end]
 
-def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, do_cross_validation, radius=5, kfold_split=5):
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args, radius=5, kfold_split=5):
 	global CHUNK_SIZE
 
 	print("getting activations for all sentences...")
@@ -42,7 +42,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	print("for each spotlight...")
 
 	index=0
-	for pt in tqdm(chunkify(nonzero_pts, num, total_batches)):
+	for pt in tqdm(chunkify(nonzero_pts, args.batch_num, args.total_batches)):
 
 		# SPHERE MASK BELOW
 		sphere_mask = np.zeros((a,b,c))
@@ -75,7 +75,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		# boolean_masks.append(spotlight_mask)
 
 		## DECODING BELOW
-		res, pred = linear_model(embed_matrix, spotlights, do_cross_validation, kfold_split, brain_to_model)
+		res, pred = linear_model(embed_matrix, spotlights, args, kfold_split)
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
 		predictions.append(pred)
@@ -93,16 +93,16 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 	return res_per_spotlight, predictions, true_spotlights #boolean_masks
 
-def linear_model(embed_matrix, spotlight_activations, do_cross_validation, kfold_split, brain_to_model):
+def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 	predicted = []
-	if brain_to_model:
+	if args.brain_to_model:
 		from_regress = np.array(spotlight_activations)
 		to_regress = np.array(embed_matrix)
 	else:
 		from_regress = np.array(embed_matrix)
 		to_regress = np.array(spotlight_activations)
 
-	if do_cross_validation:
+	if args.cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
 		predicted_trials = []
@@ -156,8 +156,8 @@ def main():
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
-	argparser.add_argument("--brain_to_model", type=str, default="False", help="True if regressing brain to model, False if regressing model to brain")
-	argparser.add_argument("--cross_validation", type=str, default="False", help="True if add cross validation, False if not")
+	argparser.add_argument("--brain_to_model", type=str, default=False, help="True if regressing brain to model, False if regressing model to brain")
+	argparser.add_argument("--cross_validation", type=str, default=False, help="True if add cross validation, False if not")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
@@ -198,17 +198,6 @@ def main():
 	num = args.batch_num
 	total_batches = args.total_batches
 
-	# file name adjustments
-	if args.brain_to_model == "True":
-		brain_to_model = True
-	else:
-		brain_to_model = False
-
-	if args.cross_validation == "True":
-		cross_validation = True
-	else:
-		cross_validation = False
-
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# get modified activations
@@ -241,7 +230,7 @@ def main():
 	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
 		
 	# get residuals and predictions
-	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, num, total_batches, brain_to_model, cross_validation)
+	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(num) + "of" + str(total_batches)
 	
