@@ -93,6 +93,7 @@ def plot_pvals(pvals):
 def get_bounds(correlations, pvals):
 	N = len(pvals)
 	q = 0.05
+	i = np.arange(1, N+1)
 	below = pvals < (q * i / N)
 	max_below = np.max(np.where(below)[0])
 	print('p_i:' + str(pvals[max_below]))
