@@ -33,6 +33,14 @@ def calculate_euclidean_distance(a, b):
 
 # 	dist = math.sqrt(running_sum)
 
+def get_data(filename):
+	global VOXEL_NUMBER
+	fp = np.memmap(filename, dtype='float32', mode='r')
+	VOXEL_NUMBER, num_sentences, act = int(fp[0]), int(fp[1]), int(fp[2])
+	padding = num_sentences * act
+	fp = fp[padding:].reshape((VOXEL_NUMBER, num_sentences, act))
+	return fp
+
 def trim_zeros(padded_array):
 	return np.apply_along_axis(np.trim_zeros, 1, padded_array)
 
@@ -40,17 +48,16 @@ def get_data(filename):
 	global VOXEL_NUMBER
 	fp = np.memmap(filename, dtype='float32', mode='r')
 	VOXEL_NUMBER, num_sentences, act = int(fp[0]), int(fp[1]), int(fp[2])
-	padding = num_sentences, act
+	padding = num_sentences * act
 	fp = fp[padding:].reshape((VOXEL_NUMBER, num_sentences, act))
 	return fp
 
 def get_file_name(args, file_path, specific_file, i, true_activations=False):
-	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
-	if not true_activations:
-		# print("FILE NAME: " + str(file_path + file_name + "-decoding-predictions.p"))
-		return file_path + file_name + "-decoding-predictions.p"
-	# print("FILE NAME: " + str(file_path + file_name + "-true-spotlights.p"))
-	return file_path + file_name + "-true-spotlights.p"
+	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) + ".dat"
+	return file_path + file_name
+	# if not true_activations:
+	# 	return file_path + file_name + "-decoding-predictions.p"
+	# return file_path + file_name + "-true-spotlights.p"
 
 # def get_voxel_number(batch_size, VOXEL_NUMBER, i):
 # 	return batch_size * VOXEL_NUMBER + i
@@ -61,15 +68,19 @@ def get_file_name(args, file_path, specific_file, i, true_activations=False):
 # 	return len(file_contents)
 
 def get_true_activations(args, file_path, file_name, pred_index):
-	entire_file_name = file_name + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches) + "-true-spotlights.p"
-	file_contents = get_data(file_path, entire_file_name)
+	entire_file_name = file_name + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches) + ".dat"
+	# entire_file_name = file_name + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches) + "-true-spotlights.p"
+	file_contents = get_data(file_path + entire_file_name)
 	return file_contents[pred_index]
 
-def mp_compare_rankings_to_brain(i, predictions):
+def mp_compare_rankings_to_brain(i):
 	global g_args
+	global g_pred_contents
 	global g_file_name
 	global g_predicted_distance
 
+	predictions = g_pred_contents[i]
+	start = time.time()
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS BELOW ###
 	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/"
 	### GET ALL SPOTLIGHT BRAIN ACTIVATIONS ABOVE ###
@@ -86,13 +97,18 @@ def mp_compare_rankings_to_brain(i, predictions):
 			dist = calculate_euclidean_distance(np.array(predictions), np.array(sentence_act))
 			if dist <= g_predicted_distance:
 				rank+=1
+	end = time.time()
+	print("time to get data for batch " + str(i) + ": " + str(end-start))
+	del spotlight_activations
+
 	return rank
 
-def compare_rankings_to_brain(predictions, true_activations, radius=5):
+def compare_rankings_to_brain(i, true_activations, radius=5):
 	global g_args
 	global g_pred_contents
 	global g_predicted_distance
 
+	predictions = g_pred_contents[i]
 	# distances = []
 	# predicted_distance = np.ones(1, dtype=np.float32)
 	# calculate_euclidean_distance(np.array(predictions), np.array(true_activations), predicted_distance)
@@ -108,8 +124,8 @@ def compare_rankings_to_brain(predictions, true_activations, radius=5):
 	# print("NUM THREADS: " + str(NUM_THREADS))
 
 	pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
-	extra_arguments = [(pred_index, np.array(g_pred_contents[pred_index])) for pred_index in range(g_args.total_batches)]
-	final_rankings = pool.starmap(mp_compare_rankings_to_brain, extra_arguments)
+	extra_arguments = list(range(g_args.total_batches))
+	final_rankings = pool.map(mp_compare_rankings_to_brain, extra_arguments)
 	pool.close()
 
 	return np.sum(final_rankings)
@@ -141,7 +157,7 @@ def calculate_average_rank(args, file_name, embeddings):
 
 	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/"
 	print("iterating through file...")
-	for pred_index in tqdm(range(num_voxels)):
+	for pred_index in [1]: #tqdm(range(num_voxels)):
 		# if args.brain_to_model:
 		# 	prediction = embeddings
 		# 	voxel_dict = compare_rankings_to_embeddings(file_contents, embeddings)
@@ -149,7 +165,7 @@ def calculate_average_rank(args, file_name, embeddings):
 			g_true_activations = get_true_activations(args, spotlight_file_path, g_file_name, pred_index)
 			# print("WHICH MATCH POINT INDEX: " + str(match_points[pred_index]))
 			# print(match_points[pred_index].shape)
-			rank = compare_rankings_to_brain(g_pred_contents[pred_index], g_true_activations, 0)
+			rank = compare_rankings_to_brain(pred_index, g_true_activations)
 	
 			final_rankings.append(rank)
 		# del voxel_dict
