@@ -98,6 +98,8 @@ def get_bounds(correlations, pvals):
 	max_below = np.max(np.where(below)[0])
 	print('p_i:' + str(pvals[max_below]))
 	print('i:' + str(max_below + 1))
+	print(below)
+	print(correlations)
 	valid_correlations = np.array(correlations)[below.astype(bool)]
 	indices = np.where(below == False)
 	return valid_correlations, indices
@@ -109,10 +111,18 @@ def get_pval_from_ttest(pvals_per_voxel):
 		pvals.append(voxel_index)
 	return pvals
 
+def average_correlations(correlations):
+	avg_correlations = []
+	for index in sorted(correlations):
+		avg_corr = np.mean(correlations[index])
+		avg_correlations.append(avg_corr)
+	return avg_correlations
+
 def evaluate_performance(correlations, pvals_per_voxel):
 	pvals = get_pval_from_ttest(pvals_per_voxel)
 	plot_pvals(pvals)
-	valid_correlations, indices = get_bounds(correlations, pvals)
+	avg_correlations = average_correlations(correlations)
+	valid_correlations, indices = get_bounds(avg_correlations, pvals)
 	return valid_correlations, indices
 
 def main():
