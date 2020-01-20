@@ -32,7 +32,7 @@ def check_for_nan_infinity(y, index):
 	indx = np.argwhere(~np.isnan(y[:,index]) & np.isfinite(y[:,index]))
 	return np.reshape(indx, (len(indx), ))
 
-def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, num_scanner_runs=3, split_scanner_runs=False):
+def calculate_pearson_correlation(args, activations, embeddings, kfold_split=2, num_scanner_runs=3, split_scanner_runs=False):
 	num_sentences = embeddings.shape[0]
 	num_voxels = activations.shape[1]
 	print("num sentences: " + str(num_sentences))
@@ -98,8 +98,9 @@ def get_bounds(correlations, pvals):
 	max_below = np.max(np.where(below)[0])
 	print('p_i:' + str(pvals[max_below]))
 	print('i:' + str(max_below + 1))
-	valid_correlations = correlations[below]
-	return valid_correlations
+	valid_correlations = np.array(correlations)[below.astype(bool)]
+	indices = np.where(below == False)
+	return valid_correlations, indices
 
 def get_pval_from_ttest(pvals_per_voxel):
 	pvals = []
@@ -111,8 +112,8 @@ def get_pval_from_ttest(pvals_per_voxel):
 def evaluate_performance(correlations, pvals_per_voxel):
 	pvals = get_pval_from_ttest(pvals_per_voxel)
 	plot_pvals(pvals)
-	valid_correlations = get_bounds(correlations, pvals)
-	return valid_correlations
+	valid_correlations, indices = get_bounds(correlations, pvals)
+	return valid_correlations, indices
 
 def main():
 	argparser = argparse.ArgumentParser(description="FDR significance thresholding")
@@ -164,8 +165,9 @@ def main():
 	# 3. evaluate significance
 	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 	print("evaluating significance...")
-	valid_correlations = evaluate_performance(correlations, pvals)
+	valid_correlations, indices = evaluate_performance(correlations, pvals)
 	pickle.dump(open(save_location+"_valid_correlations.p", "wb"))
+	pickle.dump(open(save_location+"_valid_correlations_indices.p", "wb"))
 	print("done.")
 
 	return
