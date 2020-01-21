@@ -32,7 +32,7 @@ def check_for_nan_infinity(y, index):
 	indx = np.argwhere(~np.isnan(y[:,index]) & np.isfinite(y[:,index]))
 	return np.reshape(indx, (len(indx), ))
 
-def calculate_pearson_correlation(args, activations, embeddings, kfold_split=2, num_scanner_runs=3, split_scanner_runs=False):
+def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, num_scanner_runs=3, split_scanner_runs=False):
 	num_sentences = embeddings.shape[0]
 	num_voxels = activations.shape[1]
 	print("num sentences: " + str(num_sentences))
@@ -88,7 +88,7 @@ def plot_pvals(pvals):
 	plt.xlabel('$i$')
 	plt.ylabel('$p$')
 	plt.legend()
-	plt.savefig("FDR correction")
+	plt.savefig("FDR_correction")
 
 def get_bounds(correlations, pvals):
 	N = len(pvals)
@@ -176,8 +176,8 @@ def main():
 	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 	print("evaluating significance...")
 	valid_correlations, indices = evaluate_performance(correlations, pvals)
-	pickle.dump(open(save_location+"_valid_correlations.p", "wb"))
-	pickle.dump(open(save_location+"_valid_correlations_indices.p", "wb"))
+	pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
+	pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
 	print("done.")
 
 	return

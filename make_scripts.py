@@ -92,11 +92,12 @@ done
 			w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)
 			bertflag = "" if (bertlabel == "") else "--" + str(bertlabel)
 			eflag = "" if (elabel == "") else "--" + str(elabel)
+			memmap_flag = "" if not args.memmap else "--memmap"
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
 #SBATCH -p seas_dgx1 							# partition (queue)
-#SBATCH --mem 7000 								# memory pool for all cores
+#SBATCH --mem 5000 								# memory pool for all cores
 #SBATCH -t 0-5:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
@@ -114,7 +115,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --subject_number {6} \
 --batch_num {9} \
 --total_batches {10} \
-{11} {12} {13} {14} {15} {16} {17}
+{11} {12} {13} {14} {15} {16} {17} {18}
 '''.format(
 		job_id, 
 		args.language, 
@@ -133,7 +134,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		w2vflag,
 		bertflag,
 		pflag,
-		prflag
+		prflag,
+		memmap_flag
 	)
 )
 
@@ -158,6 +160,7 @@ def main():
 	parser.add_argument("-permutation", "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	parser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
+	parser.add_argument("-memmap", "--memmap",  action='store_true', default=False, help="True if memmep, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
