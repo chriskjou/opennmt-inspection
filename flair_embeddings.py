@@ -3,6 +3,7 @@ from flair.data import Sentence
 import numpy as np
 import os
 import pickle
+import argparse
 
 def process_sentence(vocab, typ):
 	nsentences = len(vocab)
@@ -23,7 +24,7 @@ def process_sentence(vocab, typ):
 	print(len(sentence_rep[0]))
 	return sentence_rep
 
-def get_bert_embeddings(file, model):
+def get_embeddings(file, model):
 	embed_matrix = []
 	for line in file:
 		sentence = Sentence(line)
@@ -33,12 +34,37 @@ def get_bert_embeddings(file, model):
 	return embed_matrix
 
 def main():
+	argparser = argparse.ArgumentParser(description="download embeddings for models")
+	argparser.add_argument("-embedding_layer", "--embedding_layer", type=int, help="embedding layer number", required=True)
+	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="bert embeddings")
+	argparser.add_argument("-roberta", "--roberta", action='store_true', default=False, help="roberta embeddings")
+	argparser.add_argument("-xlm", "--xlm", action='store_true', default=False, help="xlm embeddings")
+	args = argparser.parse_args()
+
+	# verify arguments
+	if args.bert and args.roberta and args.xlm:
+		print("select only one flag for model type from (bert, roberta, xlm)")
+		exit()
+	if not args.bert and not args.roberta and not args.xlm:
+		print("select at least flag for model type from (bert, roberta, xlm)")
+		exit()
+
+	# open sentences
 	file = open("cleaned_sentencesGLM.txt","r").read().splitlines()
 
-	print("uploading bert model...")
-	bert_embedding = BertEmbeddings("bert-base-multilingual-cased")
+	# specify model
+	print("uploading model...")
+	if args.bert:
+		embeddings = BertEmbeddings("bert-base-multilingual-cased", layers="-{}".format(args.embedding_layer))
+	elif args.roberta:
+		embeddings = RoBERTaEmbeddings("roberta-base", layers="-{}".format(args.embedding_layer))
+	elif args.xlm:
+		embeddings = XLMEmbeddings("xlm-mlm-en-2048", layers="-{}".format(args.embedding_layer))
+	else:
+		print("error on calling embeddings")
+		exit()
 
-	embed_matrix = get_bert_embeddings(file, bert_embedding)
+	embed_matrix = get_embeddings(file, embeddings)
 
 	print("aggregating types...")
 	avg_sentence = process_sentence(embed_matrix, "avg")

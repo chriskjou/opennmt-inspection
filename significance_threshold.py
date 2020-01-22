@@ -10,6 +10,7 @@ from scipy.stats import pearsonr
 from scipy import stats
 from scipy.linalg import lstsq
 import random
+import statsmodels.stats.multitest as smm
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
@@ -104,6 +105,9 @@ def get_bounds(correlations, pvals):
 	indices = np.where(below == False)
 	return valid_correlations, indices[0]
 
+def fdr_correction(correlations, pvals):
+	return
+	
 def get_pval_from_ttest(pvals_per_voxel):
 	pvals = []
 	for voxel_index in sorted(pvals_per_voxel):
@@ -120,7 +124,7 @@ def average_correlations(correlations):
 
 def evaluate_performance(correlations, pvals_per_voxel):
 	pvals = get_pval_from_ttest(pvals_per_voxel)
-	plot_pvals(pvals)
+	# plot_pvals(pvals)
 	avg_correlations = average_correlations(correlations)
 	valid_correlations, indices = get_bounds(avg_correlations, pvals)
 	return valid_correlations, indices
@@ -176,13 +180,15 @@ def main():
 	# 2. calculate correlation 
 	print("calculating correlations...")
 	correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
+	pickle.dump(pvals, open(save_location+"pvals.p", "wb"))
+	pickle.dump(correlations, open(save_location+"correlations.p", "wb"))
 	
 	# 3. evaluate significance
 	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 	print("evaluating significance...")
 	valid_correlations, indices = evaluate_performance(correlations, pvals)
-	corrected = get_2d_coordinates(valid_correlations, indices)
-	pickle.dump(indices, open(save_location+"_valid_correlations_2d_coordinates.p", "wb"))
+	corrected_coordinates = get_2d_coordinates(valid_correlations, indices)
+	pickle.dump(corrected_coordinates, open(save_location+"_valid_correlations_2d_coordinates.p", "wb"))
 	# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
 	# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
 	print("done.")
