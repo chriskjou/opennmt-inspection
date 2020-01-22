@@ -115,7 +115,7 @@ def generate_options(args):
 	return get_residuals_and_make_scripts, options
 
 # transform coordinates for SPM plotting
-def transform_coordinates(rmses, volmask, save_path=""):
+def transform_coordinates(rmses, volmask, save_path="", metric=""):
 	# niimg = datasets.load_mni152_template()
 	i,j,k = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
@@ -125,8 +125,8 @@ def transform_coordinates(rmses, volmask, save_path=""):
 		# x_p, y_p, z_p = image.coord_transform(20, 20, 20, niimg.affine)
 		# modified_rmses[int(x_p)][int(y_p)][int(z_p)] = rmses[pt]
 		modified_rmses[int(x)][int(y)][int(z)] = rmses[pt]
-	pickle.dump( modified_rmses, open(save_path + "-transform-rmse.p", "wb" ) )
-	pickle.dump( np.log(modified_rmses), open(save_path + "-transform-log-rmse.p", "wb" ) )
+	pickle.dump( modified_rmses, open(save_path + "-3dtransform-" + str(metric) + ".p", "wb" ) )
+	pickle.dump( np.log(modified_rmses), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
 	return modified_rmses
 
 # create bash scripts for RANK and FDR

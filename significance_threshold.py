@@ -102,7 +102,7 @@ def get_bounds(correlations, pvals):
 	print(correlations)
 	valid_correlations = np.array(correlations)[below.astype(bool)]
 	indices = np.where(below == False)
-	return valid_correlations, indices
+	return valid_correlations, indices[0]
 
 def get_pval_from_ttest(pvals_per_voxel):
 	pvals = []
@@ -124,6 +124,11 @@ def evaluate_performance(correlations, pvals_per_voxel):
 	avg_correlations = average_correlations(correlations)
 	valid_correlations, indices = get_bounds(avg_correlations, pvals)
 	return valid_correlations, indices
+
+def get_2d_coordinates(correlations, indices):
+	arr = np.arange(len(indices))
+	np.put(arr, indices, correlations)
+	return arr
 
 def main():
 	argparser = argparse.ArgumentParser(description="FDR significance thresholding")
@@ -176,8 +181,10 @@ def main():
 	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 	print("evaluating significance...")
 	valid_correlations, indices = evaluate_performance(correlations, pvals)
-	pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
-	pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
+	corrected = get_2d_coordinates(valid_correlations, indices)
+	pickle.dump(indices, open(save_location+"_valid_correlations_2d_coordinates.p", "wb"))
+	# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
+	# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
 	print("done.")
 
 	return
