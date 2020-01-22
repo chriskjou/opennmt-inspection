@@ -9,6 +9,7 @@ import time
 import multiprocessing as mp
 import gc
 import helper
+import sys
 
 spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
 
@@ -30,7 +31,7 @@ def get_data(filename):
 	return fp
 
 def trim_zeros(padded_array):
-	return np.apply_along_axis(np.trim_zeros, 1, padded_array)
+	return padded_array[:,~(padded_array==0).all(0)]
 
 def get_data(filename):
 	global VOXEL_NUMBER
@@ -50,28 +51,70 @@ def get_true_activations(args, file_path, file_name, pred_index):
 	file_contents = get_data(file_path + entire_file_name)
 	return file_contents[pred_index]
 
-def compare_rankings_to_brain(i, true_activations, radius=5):
+def mp_compare_rankings_to_brain(i):
+	global g_pred_contents
+	global g_true_activations_per_voxel
+	global g_true_predicted_distance
+	global count
+
+	if count % 100 == 0:
+		print("count: " + str(count))
+		count+=1
+		sys.stdout.flush()
+		
+	sentence_act = g_pred_contents[i]
+	true_activations = g_true_activations_per_voxel
+	if np.array_equal(true_activations.shape, np.array(sentence_act).shape):
+		dist = calculate_euclidean_distance(true_activations, np.array(sentence_act))
+		if dist <= g_true_predicted_distance:
+			return 1
+	return 0
+
+def compare_rankings_to_brain(i, radius=5):
 	global g_args
 	global g_pred_contents
 	global g_file_name
-	global g_predicted_distance
+	global g_true_activations
+	global g_true_activations_per_voxel
+	global g_true_predicted_distance
+	global count
+
+	count = 0
 
 	predictions = g_pred_contents[i]
+	true_activations = g_true_activations[i]
+	g_true_activations_per_voxel = true_activations
+
+	print("predictions shape: " + str(predictions.shape))
+	print("true_activations shape: " + str(true_activations.shape))
+	# start = time.time()
+	# trimmed_pred = trim_zeros(true_activations)
+	# end = time.time()
+	# print("trimming time: " + str(end-start))
+	# print("trimmed shape: " + str(trimmed_pred.shape))
+
 	rank = 0
 	spotlight_activations = g_pred_contents
 
 	true_predicted_distance = calculate_euclidean_distance(np.array(predictions), np.array(true_activations))
+	g_true_predicted_distance = true_predicted_distance 
 
 	start = time.time()
-	for sentence_act in spotlight_activations:
-		trimmed_pred = trim_zeros(np.array(true_activations))
-		if np.array_equal(trimmed_pred.shape, np.array(sentence_act).shape):
-			dist = calculate_euclidean_distance(trimmed_pred, np.array(sentence_act))
-			if dist <= true_predicted_distance:
-				rank+=1
+	pool = mp.Pool(processes=int(os.environ["SLURM_CPUS_ON_NODE"]))
+	extra_arguments = list(range(len(g_pred_contents)))
+	print("LENGTH FOR POOL: " + str(len(extra_arguments)))
+	rankings = pool.map(mp_compare_rankings_to_brain, extra_arguments)
+	pool.close()
 	end = time.time()
-	print("time to get data for batch " + str(i) + ": " + str(end-start))
-	
+	print("end time: " + str(end-start))
+	rank = np.sum(rankings)
+
+	# for sentence_act in spotlight_activations:
+	# 	if np.array_equal(true_activations.shape, np.array(sentence_act).shape):
+	# 		dist = calculate_euclidean_distance(true_activations, np.array(sentence_act))
+	# 		if dist <= true_predicted_distance:
+	# 			rank+=1
+
 	del spotlight_activations
 
 	return rank
@@ -91,21 +134,32 @@ def calculate_average_rank(args, file_name, embeddings):
 
 	### GET PREDICTIONS BELOW ###
 	start = time.time()
-	file = get_file_name(g_args, file_path, g_file_name, args.batch_num)
-	g_pred_contents = get_data(file)
+	# file = get_file_name(g_args, file_path, g_file_name, args.batch_num)
+	g_pred_contents = get_data(file_path + "model2brain_cv_-subj1-parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.dat")
 	num_voxels = len(g_pred_contents)
 	end = time.time()
-	print("get subbatch data memmap: " + str(end-start))
+	print("get subbatch prediction data memmap: " + str(end-start))
 	### GET PREDICTIONS ABOVE ###
+
+	### ACTIVATIONS ABOVE ###
+	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/"
+	### ACTIVATIONS ABOVE ###
+
+	### GET ACTIVATIONS BELOW ###
+	start = time.time()
+	# file = get_file_name(g_args, file_path, g_file_name, args.batch_num)
+	g_true_activations = get_data(spotlight_file_path + "model2brain_cv_-subj1-parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.dat")
+	end = time.time()
+	print("get subbatch spotlight data memmap: " + str(end-start))
+	### GET ACTIVATIONS ABOVE ###
 
 	final_rankings = []
 
-	spotlight_file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/"
 	print("iterating through file...")
-	for pred_index in [1]: #tqdm(range(num_voxels)):
+	for pred_index in [0]: #tqdm(range(num_voxels)):
 		if args.model_to_brain:
-			g_true_activations = get_true_activations(args, spotlight_file_path, g_file_name, pred_index)
-			rank = compare_rankings_to_brain(pred_index, g_true_activations)
+			# g_true_activations = get_true_activations(args, spotlight_file_path, g_file_name, pred_index)
+			rank = compare_rankings_to_brain(pred_index)
 			final_rankings.append(rank)
 
 	to_save_file = "/n/shieber_lab/Lab/users/cjou/rankings_od32/batch-rankings-" + file_name + "-" + str(g_args.batch_num) + "of" + str(g_args.total_batches) + ".p"

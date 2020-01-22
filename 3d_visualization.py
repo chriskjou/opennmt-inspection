@@ -1,4 +1,3 @@
-import torch
 import numpy as np
 import pickle
 import os
@@ -7,20 +6,7 @@ from nilearn import plotting, datasets, image
 from tqdm import tqdm
 import nibabel as nib
 from nilearn import datasets
-
-def transform_coordinates(rmses, volmask, save_path=""):
-	# niimg = datasets.load_mni152_template()
-	i,j,k = volmask.shape
-	nonzero_pts = np.transpose(np.nonzero(volmask))
-	modified_rmses = np.zeros((i,j,k))
-	for pt in tqdm(range(len(nonzero_pts))):
-		x,y,z = nonzero_pts[pt]
-		# x_p, y_p, z_p = image.coord_transform(20, 20, 20, niimg.affine)
-		# modified_rmses[int(x_p)][int(y_p)][int(z_p)] = rmses[pt]
-		modified_rmses[int(x)][int(y)][int(z)] = rmses[pt]
-	pickle.dump( modified_rmses, open(save_path + "-transform-rmse.p", "wb" ) )
-	pickle.dump( np.log(modified_rmses), open(save_path + "-transform-log-rmse.p", "wb" ) )
-	return modified_rmses
+import helper
 
 def plot_on_glass(data, file_name):
 	# used from affine from demo (https://nilearn.github.io/auto_examples/01_plotting/plot_demo_glass_brain.html)
@@ -85,50 +71,7 @@ def main():
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
-	if args.brain_to_model:
-		direction = "brain2model_"
-	else:
-		direction = "model2brain_"
-
-	if args.cross_validation:
-		validate = "cv_"
-	else:
-		validate = "nocv_"
-
-	if args.random:
-		rlabel = "random"
-	else:
-		rlabel = ""
-
-	if args.rand_embed:
-		elabel = "rand_embed"
-	else:
-		elabel = ""
-		
-	if args.glove:
-		glabel = "glove"
-	else:
-		glabel = ""
-
-	if args.word2vec:
-		w2vlabel = "word2vec"
-	else:
-		w2vlabel = ""
-
-	if args.bert:
-		bertlabel = "bert"
-	else:
-		bertlabel = ""
-
-	if args.permutation:
-		plabel = "permutation_"
-	else:
-		plabel = ""
-
-	if args.permutation_region:
-		prlabel = "permutation_region_"
-	else:
-		prlabel = ""
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(g_args)
 
 	# residual_file = sys.argv[1]
 	file_loc = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
@@ -157,7 +100,7 @@ def main():
 		os.makedirs('../3d-brain/')
 
 	print("transforming coordinates...")
-	transform_data = transform_coordinates(data, volmask, save_path="../3d-brain/"+file_name)
+	transform_data = helper.transform_coordinates(data, volmask, save_path="../3d-brain/"+file_name)
 	print("ORIGINAL DATA: " + str(len(data)))
 	print("TRANSFORMED DATA: " + str(transform_data.shape))
 

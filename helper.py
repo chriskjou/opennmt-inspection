@@ -114,6 +114,21 @@ def generate_options(args):
 
 	return get_residuals_and_make_scripts, options
 
+# transform coordinates for SPM plotting
+def transform_coordinates(rmses, volmask, save_path=""):
+	# niimg = datasets.load_mni152_template()
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	modified_rmses = np.zeros((i,j,k))
+	for pt in tqdm(range(len(nonzero_pts))):
+		x,y,z = nonzero_pts[pt]
+		# x_p, y_p, z_p = image.coord_transform(20, 20, 20, niimg.affine)
+		# modified_rmses[int(x_p)][int(y_p)][int(z_p)] = rmses[pt]
+		modified_rmses[int(x)][int(y)][int(z)] = rmses[pt]
+	pickle.dump( modified_rmses, open(save_path + "-transform-rmse.p", "wb" ) )
+	pickle.dump( np.log(modified_rmses), open(save_path + "-transform-log-rmse.p", "wb" ) )
+	return modified_rmses
+
 # create bash scripts for RANK and FDR
 def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)
