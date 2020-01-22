@@ -56,10 +56,13 @@ def main():
 	print("uploading model...")
 	if args.bert:
 		embeddings = BertEmbeddings("bert-base-multilingual-cased", layers="-{}".format(args.embedding_layer))
+		model_type = "bert"
 	elif args.roberta:
 		embeddings = RoBERTaEmbeddings("roberta-base", layers="-{}".format(args.embedding_layer))
+		model_type = "roberta"
 	elif args.xlm:
 		embeddings = XLMEmbeddings("xlm-mlm-en-2048", layers="-{}".format(args.embedding_layer))
+		model_type = "xlm"
 	else:
 		print("error on calling embeddings")
 		exit()
@@ -77,12 +80,12 @@ def main():
 
 	bool_labels = [1]*len(file)
 
-	if not os.path.exists('../embeddings/bert/'):
-		os.makedirs('../embeddings/bert/')
+	if not os.path.exists('../embeddings/{}/'.format(model_type)):
+		os.makedirs('../embeddings/{}/'.format(model_type))
 
 	print("saving files...")
 	for i in range(len(methods)):
-		pickle.dump(mats[i], open("../embeddings/bert/" + str(methods[i]) + ".p", "wb"))
+		pickle.dump(mats[i], open("../embeddings/{}/".format(model_type) + str(methods[i]) + ".p", "wb"))
 
 
 	print("done.")
