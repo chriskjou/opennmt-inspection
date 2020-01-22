@@ -36,9 +36,9 @@ def get_embeddings(file, model):
 def main():
 	argparser = argparse.ArgumentParser(description="download embeddings for models")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=int, help="embedding layer number", required=True)
-	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="bert embeddings")
-	argparser.add_argument("-roberta", "--roberta", action='store_true', default=False, help="roberta embeddings")
-	argparser.add_argument("-xlm", "--xlm", action='store_true', default=False, help="xlm embeddings")
+	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="bert embeddings (0-12 layers)")
+	argparser.add_argument("-roberta", "--roberta", action='store_true', default=False, help="roberta embeddings (0-12 layers)")
+	argparser.add_argument("-xlm", "--xlm", action='store_true', default=False, help="xlm embeddings (0-24 layers)")
 	args = argparser.parse_args()
 
 	# verify arguments
@@ -48,6 +48,13 @@ def main():
 	if not args.bert and not args.roberta and not args.xlm:
 		print("select at least flag for model type from (bert, roberta, xlm)")
 		exit()
+
+	if args.bert and args.embedding_layer not in range(12):
+		print("not a valid layer for bert. choose between 0-12 layers")
+	if args.roberta and args.embedding_layer not in range(12):
+		print("not a valid layer for roberta. choose between 0-12 layers")
+	if args.xlm and args.embedding_layer not in range(24):
+		print("not a valid layer for xlm. choose between 0-24 layers")
 
 	# open sentences
 	file = open("cleaned_sentencesGLM.txt","r").read().splitlines()
