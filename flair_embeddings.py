@@ -1,4 +1,4 @@
-from flair.embeddings import BertEmbeddings
+from flair.embeddings import BertEmbeddings, RoBERTaEmbeddings, XLMEmbeddings
 from flair.data import Sentence
 import numpy as np
 import os
@@ -39,6 +39,7 @@ def main():
 	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="bert embeddings (0-12 layers)")
 	argparser.add_argument("-roberta", "--roberta", action='store_true', default=False, help="roberta embeddings (0-12 layers)")
 	argparser.add_argument("-xlm", "--xlm", action='store_true', default=False, help="xlm embeddings (0-24 layers)")
+	argparser.add_argument("-local", "--local", action='store_true', default=False, help="if local")
 	args = argparser.parse_args()
 
 	# verify arguments
@@ -49,12 +50,15 @@ def main():
 		print("select at least flag for model type from (bert, roberta, xlm)")
 		exit()
 
-	if args.bert and args.embedding_layer not in range(12):
+	if args.bert and args.embedding_layer not in range(13):
 		print("not a valid layer for bert. choose between 0-12 layers")
-	if args.roberta and args.embedding_layer not in range(12):
+		exit()
+	if args.roberta and args.embedding_layer not in range(13):
 		print("not a valid layer for roberta. choose between 0-12 layers")
-	if args.xlm and args.embedding_layer not in range(24):
+		exit()
+	if args.xlm and args.embedding_layer not in range(25):
 		print("not a valid layer for xlm. choose between 0-24 layers")
+		exit()
 
 	# open sentences
 	file = open("cleaned_sentencesGLM.txt","r").read().splitlines()
@@ -87,13 +91,19 @@ def main():
 
 	bool_labels = [1]*len(file)
 
-	if not os.path.exists('../embeddings/{}/'.format(model_type)):
-		os.makedirs('../embeddings/{}/'.format(model_type))
-
 	print("saving files...")
-	for i in range(len(methods)):
-		pickle.dump(mats[i], open("../embeddings/{}/".format(model_type) + str(methods[i]) + ".p", "wb"))
+	if args.local:
+		if not os.path.exists('../embeddings/{}/layer{}/'.format(model_type, args.embedding_layer)):
+			os.makedirs('../embeddings/{}/layer{}/'.format(model_type, args.embedding_layer))
+		file_path = "../embeddings/{}/layer{}/".format(model_type, args.embedding_layer)
+	else:
+		if not os.path.exists('/n/shieber_lab/Lab/users/cjou//embeddings/{}/layer{}/'.format(model_type, args.embedding_layer)):
+			os.makedirs('/n/shieber_lab/Lab/users/cjou//embeddings/{}/layer{}/'.format(model_type, args.embedding_layer))
+		file_path = "/n/shieber_lab/Lab/users/cjou//embeddings/{}/layer{}/".format(model_type, args.embedding_layer)
 
+	for i in range(len(methods)):
+		print("saving file: " + file_path + str(methods[i]) + ".p")
+		pickle.dump(mats[i], open(file_path + str(methods[i]) + ".p", "wb"))
 
 	print("done.")
 

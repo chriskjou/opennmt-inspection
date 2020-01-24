@@ -12,6 +12,7 @@ from scipy.linalg import lstsq
 import random
 import statsmodels.stats.multitest as smm
 import matplotlib.pyplot as plt
+import helper
 plt.switch_backend('agg')
 
 def get_embed_matrix(embedding, num_sentences=240):
@@ -97,23 +98,25 @@ def get_bounds(correlations, pvals):
 	i = np.arange(1, N+1)
 	below = pvals < (q * i / N)
 	max_below = np.max(np.where(below)[0])
+	valid_correlations = np.array(correlations)[below.astype(bool)]
+	print(valid_correlations)
+	indices = np.where(below == False)
+	return valid_correlations, indices[0]
+
 	print('p_i:' + str(pvals[max_below]))
 	print('i:' + str(max_below + 1))
 	print(below)
 	print(correlations)
-	valid_correlations = np.array(correlations)[below.astype(bool)]
-	indices = np.where(below == False)
-	return valid_correlations, indices[0]
 
 def fdr_correction(correlations, pvals):
 	return
-	
+
 def get_pval_from_ttest(pvals_per_voxel):
 	pvals = []
 	for voxel_index in sorted(pvals_per_voxel):
 		t, prob = stats.ttest_1samp(pvals_per_voxel[voxel_index], 0.0)
-		pvals.append(voxel_index)
-	return pvals
+		pvals.append(prob)
+	return pvals, len(pvals_per_voxel)
 
 def average_correlations(correlations):
 	avg_correlations = []
@@ -123,14 +126,14 @@ def average_correlations(correlations):
 	return avg_correlations
 
 def evaluate_performance(correlations, pvals_per_voxel):
-	pvals = get_pval_from_ttest(pvals_per_voxel)
+	pvals, num_voxels = get_pval_from_ttest(pvals_per_voxel)
 	# plot_pvals(pvals)
 	avg_correlations = average_correlations(correlations)
-	valid_correlations, indices = get_bounds(avg_correlations, pvals)
+	valid_correlations, indices = get_bounds(avg_correlations, pvals, num_voxels)
 	return valid_correlations, indices
 
-def get_2d_coordinates(correlations, indices):
-	arr = np.arange(len(indices))
+def get_2d_coordinates(correlations, indices, num_voxels):
+	arr = np.zeros((num_voxels,))
 	np.put(arr, indices, correlations)
 	return arr
 
@@ -177,18 +180,20 @@ def main():
 	z_activations = z_score(individual_activations)
 	z_embeddings = z_score(embed_matrix)
 
+	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
+
 	# 2. calculate correlation 
 	print("calculating correlations...")
 	correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
-	pickle.dump(pvals, open(save_location+"pvals.p", "wb"))
-	pickle.dump(correlations, open(save_location+"correlations.p", "wb"))
+	# pickle.dump(pvals, open(save_location+"_pvals.p", "wb"))
+	# pickle.dump(correlations, open(save_location+"_correlations.p", "wb"))
 	
 	# 3. evaluate significance
-	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 	print("evaluating significance...")
 	valid_correlations, indices = evaluate_performance(correlations, pvals)
 	corrected_coordinates = get_2d_coordinates(valid_correlations, indices)
-	pickle.dump(corrected_coordinates, open(save_location+"_valid_correlations_2d_coordinates.p", "wb"))
+	# pickle.dump(corrected_coordinates, open(save_location+"subj{}_valid_correlations_2d_coordinates.p".format(args.subject_number), "wb"))
+	helper.transform_coordinates(corrected_coordinates, volmask, save_location, "fdr")
 	# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
 	# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
 	print("done.")
