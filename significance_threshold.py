@@ -137,6 +137,10 @@ def get_2d_coordinates(correlations, indices, num_voxels):
 	np.put(arr, indices, correlations)
 	return arr
 
+def fix_coords_to_absolute_value(coords):
+	norm_coords = [c if c==0 else c+1 for c in coords]
+	return norm_coords
+
 def main():
 	argparser = argparse.ArgumentParser(description="FDR significance thresholding")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
@@ -192,8 +196,9 @@ def main():
 	print("evaluating significance...")
 	valid_correlations, indices = evaluate_performance(correlations, pvals)
 	corrected_coordinates = get_2d_coordinates(valid_correlations, indices)
+	norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
 	# pickle.dump(corrected_coordinates, open(save_location+"subj{}_valid_correlations_2d_coordinates.p".format(args.subject_number), "wb"))
-	helper.transform_coordinates(corrected_coordinates, volmask, save_location, "fdr")
+	helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
 	# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
 	# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
 	print("done.")
