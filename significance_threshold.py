@@ -182,7 +182,8 @@ def main():
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
 
 	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
-
+	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+	
 	# 1. z-score
 	print("z-scoring activations and embeddings...")
 	individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))

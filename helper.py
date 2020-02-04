@@ -67,12 +67,12 @@ def generate_labels(args):
 		bertlabel = ""
 
 	if args.permutation:
-		plabel = "permutation"
+		plabel = "permutation_"
 	else:
 		plabel = ""
 
 	if args.permutation_region:
-		prlabel = "permutation_region"
+		prlabel = "permutation_region_"
 	else:
 		prlabel = ""
 

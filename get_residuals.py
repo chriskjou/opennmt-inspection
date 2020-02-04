@@ -8,7 +8,8 @@ import helper
 def concatenate_all(specific_file, args, type_concat):
 	final_residuals = []
 	for i in range(args.total_batches):
-		file_path = "/n/shieber_lab/Lab/users/cjou/residuals/"
+		# file_path = "/n/shieber_lab/Lab/users/cjou/residuals/"
+		file_path = "../residuals/"
 		# specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(args.which_layer) + "-" + str(args.agg_type)
 		### specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
 		### specific_file = "parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
@@ -16,7 +17,8 @@ def concatenate_all(specific_file, args, type_concat):
 			### file_name = "../residuals/" + specific_file + "_residuals_part" + str(i) + "of" + str(total_batches) + ".p"
 		file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches)
 		if type_concat == 'predictions':
-			file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
+			file_path = "../predictions/"
+			# file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
 			file_name += "-decoding-predictions"
 		# print("FILE NAME: " + str(file_name))
 		print("FILE NAME: " + str( file_path + file_name + ".p"))
@@ -102,8 +104,10 @@ def main():
 			
 			# RMSES
 			# specific_file = "parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(layer) + "-" + str(args.agg_type)
-		
-			file_name = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-" + str(file_format) + ".p"
+			
+			# file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
+			file_path = "../rmses/concatenated-"
+			file_name = file_path + str(file_format) + ".p"
 			pickle.dump( final_residuals, open( file_name, "wb" ) )
 
 			# # PREDICTIONS
