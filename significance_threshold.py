@@ -178,13 +178,16 @@ def main():
 			# embed_matrix = pickle.load( open( "../embeddings/glove/" + str(file_name) + ".p", "rb" ) )
 			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
 	
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mat/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
+
+	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
+
 	# 1. z-score
 	print("z-scoring activations and embeddings...")
 	individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
 	z_activations = z_score(individual_activations)
 	z_embeddings = z_score(embed_matrix)
-
-	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 
 	# 2. calculate correlation 
 	print("calculating correlations...")

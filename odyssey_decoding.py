@@ -197,8 +197,8 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 	# print("EQUAL: " + str(np.array_equal(p, np.dot(from_regress, p))))
 	predicted = np.dot(from_regress, p).astype(np.float32)
 	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2)).astype(np.float32)
-	print("RESIDUALS: " + str(residuals))
-	print("PREDICTED: " + str(predicted))
+	# print("RESIDUALS: " + str(residuals))
+	# print("PREDICTED: " + str(predicted))
 	return residuals, predicted
 
 def get_embed_matrix(embedding, num_sentences=240):
@@ -305,7 +305,7 @@ def main():
 	if not args.memmap:
 		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
 		print("RESIDUALS FILE: " + str(altered_file_name))
-		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1)
+		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
 		pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
 		print("PREDICTIONS FILE: " + str(pred_file_name))
