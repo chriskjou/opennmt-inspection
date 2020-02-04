@@ -4,6 +4,7 @@ from tqdm import tqdm
 import pickle
 import scipy.io
 import helper
+import os
 
 def get_concatenated_residuals(args, file_path, file_name):
 	if args.log:
@@ -52,20 +53,22 @@ def main():
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 
+	print("getting volmask...")
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
 	
 	### MAKE PATHS ###
+	print("making paths...")
 	if not os.path.exists('../mat/'):
 		os.makedirs('../mat/')
 
 	### PREDICTIONS BELOW ###
-	if args.log:
-		file_path = "../3d-brain-log/"
-	else:
-		file_path = "../3d-brain/"
+	# if args.log:
+	# 	file_path = "../3d-brain-log/"
+	# else:
+	# 	file_path = "../3d-brain/"
 
-	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
+	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
 	file_name = specific_file.format(
 		args.subject_number, 
 		args.language, 
@@ -74,9 +77,14 @@ def main():
 		args.which_layer, 
 		args.agg_type
 	)
-	vals = get_concatenated_residuals(args, "../rmses/concatenated-", file_name)
-	3d_rmses = helper.transform_coordinates(vals, volmask, save_path="../mat/", metric="rmse")
-	save_to_mat(args, 3d_rmses, file_name)
+	print("transform coordinates...")
+	# vals = get_concatenated_residuals(args, "../rmses/concatenated-", file_name)
+	vals = pickle.load( open( "../rmses/concatenated-" + file_name + ".p", "rb" ) )
+	
+	rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/", metric="rmse")
+
+	# print("saving matlab file...")
+	# save_to_mat(args, rmses_3d, file_name)
 	print('done.')
 
 if __name__ == "__main__":

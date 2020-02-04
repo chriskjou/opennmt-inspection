@@ -1,3 +1,7 @@
+import numpy as np
+from tqdm import tqdm
+import scipy.io
+
 def validate_arguments(args):
 	if args.language not in languages:
 		print("invalid language")
