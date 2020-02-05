@@ -81,7 +81,7 @@ def main():
 	# vals = get_concatenated_residuals(args, "../rmses/concatenated-", file_name)
 	vals = pickle.load( open( "../rmses/concatenated-" + file_name + ".p", "rb" ) )
 	
-	rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/", metric="rmse")
+	rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="rmse")
 
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)
