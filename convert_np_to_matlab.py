@@ -5,21 +5,35 @@ import pickle
 import scipy.io
 import helper
 import os
+import pandas as pd
+import helper
 
-def get_concatenated_residuals(args, file_path, file_name):
-	if args.log:
-		concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-log-rmse.p", "rb"))
-		return concatenated_residuals
-	concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-rmse.p", "rb"))
-	return concatenated_residuals
+# def get_concatenated_residuals(args, file_path, file_name):
+# 	if args.log:
+# 		concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-log-rmse.p", "rb"))
+# 		return concatenated_residuals
+# 	concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-rmse.p", "rb"))
+# 	return concatenated_residuals
 
-def save_to_mat(args, vals, file_name):
-	if args.log:
-		scipy.io.savemat("../mat/" + file_name + "-log.mat", dict(rmse = vals))
-		print("saved file: ../mat/" + file_name + "-log.mat")
-		return
-	scipy.io.savemat("../mat/" + file_name + ".mat", dict(rmse = vals))
-	print("saved file: ../mat/" + file_name + ".mat")
+# def save_to_mat(args, vals, file_name):
+# 	if args.log:
+# 		scipy.io.savemat("../mat/" + file_name + "-log.mat", dict(rmse = vals))
+# 		print("saved file: ../mat/" + file_name + "-log.mat")
+# 		return
+# 	scipy.io.savemat("../mat/" + file_name + ".mat", dict(rmse = vals))
+# 	print("saved file: ../mat/" + file_name + ".mat")
+# 	return
+
+def plot_average_rank_per_brain_region():
+	return
+
+def get_rankings_by_brain_region(values, atlas, roi):
+	df_dict = {'voxel_index': list(range(len(values))),
+		'rankings': values,
+		'atlas_labels': atlas,
+		'roi_labels': roi}
+
+	df = pd.DataFrame(df_dict)
 	return
 
 def main():
@@ -43,6 +57,10 @@ def main():
 	argparser.add_argument("-normalize", "--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local, False if not")
 	argparser.add_argument("-log", "--log",  action='store_true', default=False, help="True if use log coordinates, False if not")
+	argparser.add_argument("-rmse", "--rmse",  action='store_true', default=False, help="True if rmse, False if not")
+	argparser.add_argument("-ranking", "--ranking",  action='store_true', default=False, help="True if ranking, False if not")
+	argparser.add_argument("-fdr", "--fdr",  action='store_true', default=False, help="True if fdr, False if not")
+	argparser.add_argument("-llh", "--llh",  action='store_true', default=False, help="True if llh, False if not")
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -52,10 +70,28 @@ def main():
 	if not args.brain_to_model and not args.model_to_brain:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
+	if not args.rmse and not args.ranking and not args.fdr and not args.llh:
+		print("select at least flag for rmse, ranking, fdr, llh")
+		exit()
 
 	print("getting volmask...")
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+	if args.local:
+		volmask = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/volmask.p", "rb" ) )
+		if args.ranking:
+			atlas_vals = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+			atlas_labels = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+			roi_vals = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/roi_vals.p", "rb" ) )
+			roi_labels = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/roi_labels.p", "rb" ) )
+
+	else:
+		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+		if args.ranking:
+			atlas_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+			atlas_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+			roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
+			roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+	
 	
 	### MAKE PATHS ###
 	print("making paths...")
@@ -79,10 +115,15 @@ def main():
 	)
 	print("transform coordinates...")
 	# vals = get_concatenated_residuals(args, "../rmses/concatenated-", file_name)
-	vals = pickle.load( open( "../rmses/concatenated-" + file_name + ".p", "rb" ) )
-	
-	rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="rmse")
-
+	if args.rmse:
+		vals = pickle.load( open( "../rmses/concatenated-" + file_name + ".p", "rb" ) )
+		rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_namec, metric="rmse")
+	if args.ranking:
+		vals = pickle.load( open( "../final_rankings/" + file_name + ".p", "rb" ) )
+		final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
+		final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
+		get_rankings_by_brain_region(vals, final_atlas_labels, final_roi_labels)
+		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="ranking")
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)
 	print('done.')

@@ -132,6 +132,25 @@ def transform_coordinates(rmses, volmask, save_path="", metric=""):
 	# pickle.dump( np.log(modified_rmses), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
 	return modified_rmses
 
+# clean ROI labels for plotting and ranking
+def clean_roi(roi_vals, roi_labels):
+	roi_vals = roi_vals.reshape((len(roi_vals), ))
+	final_roi_labels = []
+	for val_index in roi_vals:
+		if val_index == 0:
+			final_roi_labels.append("other")
+		else:
+			final_roi_labels.append(roi_labels[val_index-1][0][0])
+	return final_roi_labels
+
+# clean atlas labels for plotting and ranking
+def clean_atlas(atlas_vals, atlas_labels):
+	at_vals = atlas_vals.reshape((len(atlas_vals), ))
+	at_labels = []
+	for val_index in at_vals:
+		at_labels.append(atlas_labels[val_index-1][0][0])
+	return at_labels
+
 # create bash scripts for RANK and FDR
 def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)

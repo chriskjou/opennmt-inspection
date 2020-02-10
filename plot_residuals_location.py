@@ -9,6 +9,7 @@ import argparse
 import os
 from tqdm import tqdm
 import math
+import helper
 
 map_dict = {
 	'avg': "Average",
@@ -21,23 +22,6 @@ map_dict = {
 	"german": "German",
 	"italian": "Italian"
 }
-
-def clean_roi(roi_vals, roi_labels):
-	roi_vals = roi_vals.reshape((len(roi_vals), ))
-	final_roi_labels = []
-	for val_index in roi_vals:
-		if val_index == 0:
-			final_roi_labels.append("other")
-		else:
-			final_roi_labels.append(roi_labels[val_index-1][0][0])
-	return final_roi_labels
-
-def clean_atlas(atlas_vals, atlas_labels):
-	at_vals = atlas_vals.reshape((len(atlas_vals), ))
-	at_labels = []
-	for val_index in at_vals:
-		at_labels.append(atlas_labels[val_index-1][0][0])
-	return at_labels
 
 def get_location(df, atype, layer_num, names, activations):
     df_agg = df[df.agg_type == atype][df.layer == layer_num]
@@ -326,8 +310,8 @@ def main():
 	print(len(roi_vals))
 	print(len(roi_labels))
 
-	final_roi_labels = clean_roi(roi_vals, roi_labels)
-	at_labels = clean_atlas(atlas_vals, atlas_labels)
+	final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
+	at_labels = helper.clean_atlas(atlas_vals, atlas_labels)
 
 	print("CLEANING")
 	print(len(final_roi_labels))

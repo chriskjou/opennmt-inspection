@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J batch_calculate_across_sentences 					# Job name
 #SBATCH -p seas_dgx1 							# partition (queue)
-#SBATCH --mem 3000 							# memory pool for all cores
+#SBATCH --mem 2000 							# memory pool for all cores
 #SBATCH -t 0-2:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../../err_batch_calculate_across_sentences_test.txt 		# File that STDOUT writes to

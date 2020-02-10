@@ -11,8 +11,8 @@ import helper
 from scipy.spatial import distance
 
 def calculate_true_distances(a, b):
-	return np.linalg.norm(a - b, axis=1)
-	# return math.sqrt(np.sum((a-b)**2), axis=1)
+	# return np.linalg.norm(a - b, axis=1)
+	return np.sqrt(np.sum((a-b)**2))
 
 def compute_distance_matrix(a, b):
 	return distance.cdist(a, b, 'euclidean')
@@ -23,7 +23,9 @@ def calculate_rank(true_distance, distance_matrix):
 	ranks = []
 	for sent_index in range(num_sentences):
 		distances = distance_matrix[sent_index]
+		print("ALL DISTANCES: " + str(distances))
 		true_sent_distance = true_distance[sent_index]
+		print("TRUE DISTANCE: " + str(true_sent_distance))
 		rank = np.sum(distances < true_sent_distance)
 		ranks.append(rank)
 
@@ -32,10 +34,16 @@ def calculate_rank(true_distance, distance_matrix):
 def get_file_name(args, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
 	if not true_activations:
-		file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
+		if args.local:
+			file_path = "../predictions_od32/"
+		else:
+			file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
 		print("FILE NAME: " + file_path+ file_name + "-decoding-predictions.p")
 		return file_path + file_name + "-decoding-predictions.p"
-	file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
+	if args.local:
+		file_path = "../true_spotlights_od32/"
+	else:
+		file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
 	print("FILE NAME: " + file_path + file_name + "-true-spotlights.p")
 	return file_path + file_name + "-true-spotlights.p"
 
@@ -48,7 +56,7 @@ def calculate_average_rank(args, file_name):
 		spotlight_activations_file_name = get_file_name(args, file_name, i, true_activations=True)
 		spotlight_predictions_file_name = get_file_name(args, file_name, i)
 		spotlight_activations = pickle.load(open(spotlight_activations_file_name, "rb"))
-		spotlight_predictions = pickle.load(open(spotlight_activations_file_name, "rb"))
+		spotlight_predictions = pickle.load(open(spotlight_predictions_file_name, "rb"))
 
 		num_voxels = len(spotlight_activations)
 		num_voxels_check = len(spotlight_predictions)
@@ -81,14 +89,13 @@ def calculate_average_rank(args, file_name):
 		del spotlight_activations
 		del spotlight_predictions
 
-	to_save_file = "/n/shieber_lab/Lab/users/cjou/final_rankings/" + file_name + ".p"
+	to_save_file = "/n/shieber_lab/Lab/users/cjou/final_rankings/np_sum_" + file_name + ".p"
 	pickle.dump(final_rankings, open(to_save_file, "wb"))
 	return 
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
-	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
-	argparser.add_argument("-batch_num", "--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
+	# argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
@@ -108,6 +115,7 @@ def main():
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("-normalize", "--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	argparser.add_argument("-gpu", "--gpu",  action='store_true', default=False, help="True if gpu False if not")
+	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local False if not")
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -124,8 +132,9 @@ def main():
 
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/final_rankings/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/final_rankings/')
+	if not args.local:
+		if not os.path.exists('/n/shieber_lab/Lab/users/cjou/final_rankings/'):
+			os.makedirs('/n/shieber_lab/Lab/users/cjou/final_rankings/')
 
 	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
 	file_name = specific_file.format(

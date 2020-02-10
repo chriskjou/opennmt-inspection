@@ -180,7 +180,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 			p, res, rnk, s = lstsq(X_train, y_train)
-			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2))
+			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
 			predicted_trials.append(np.dot(from_regress, p))
 			errors.append(residuals)
 		predicted = np.mean(predicted_trials, axis=0).astype(np.float32)

@@ -24,7 +24,7 @@ def plot_on_glass(data, file_name):
 def plot_interactive(data, file_name):
 	print(np.shape(data))
 	new_image = nib.Nifti1Image(data, affine=np.eye(4))
-	view = plotting.view_img(new_image, threshold=0)
+	view = plotting.view_img(new_image, threshold='auto')
 	view.open_in_browser()
 	return
 
