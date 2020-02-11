@@ -82,6 +82,27 @@ done
 		else:
 			fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
+		if not args.bert and not args.glove and not args.word2vec:
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat".format(
+				args.language, 
+				args.num_layers, 
+				args.model_type, 
+				args.agg_type, 
+				args.which_layer
+				)
+		elif args.bert:
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/bert/layer{0}/{1}.mat".format(
+				args.which_layer,
+				args.agg_type
+				)
+		elif args.glove:
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/glove/{0}.mat".format(args.agg_type)
+		elif args.word2vec:
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/{0}.mat".format(args.agg_type)
+		else:
+			print("error")
+			exit()
+
 		with open(fname, 'w') as rsh:
 			cvflag = "" if not args.cross_validation else " --cross_validation "
 			dflag = " --brain_to_model " if args.brain_to_model else " --model_to_brain "
@@ -109,25 +130,23 @@ module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
 python ../../projects/opennmt-inspection/odyssey_decoding.py \
---embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/parallel/{1}/{2}layer-{3}/{4}/parallel-english-to-{1}-model-{2}layer-{3}-pred-layer{5}-{4}.mat \
---subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{6}/examplesGLM.mat \
-{7} {8} \
---subject_number {6} \
---batch_num {9} \
---total_batches {10} \
-{11} {12} {13} {14} {15} {16} {17} {18}
+--embedding_layer {1} \
+--subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{2}/examplesGLM.mat \
+{3} {4} \
+--subject_number {2} \
+--batch_num {5} \
+--total_batches {6} \
+--which_layer {7} \
+{8} {9} {10} {11} {12} {13} {14} {15}
 '''.format(
 		job_id, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.agg_type, 
-		args.which_layer, 
+		embedding_layer_location,
 		args.subject_number, 
 		dflag,
 		cvflag,
 		i, 
 		args.total_batches,
+		args.which_layer,
 		rflag,
 		eflag,
 		gflag,
@@ -197,7 +216,18 @@ def main():
 	if args.subject_number not in subject_number:
 		print("invalid subject_number")
 		exit()
-	if args.which_layer not in list(range(1, args.num_layers+1)):
+
+	if args.bert and args.which_layer not in range(13):
+		print("not a valid layer for bert. choose between 0-12 layers")
+		exit()
+	# if args.roberta and args.which_layer not in range(13):
+	# 	print("not a valid layer for roberta. choose between 0-12 layers")
+	# 	exit()
+	# if args.xlm and args.which_layer not in range(25):
+	# 	print("not a valid layer for xlm. choose between 0-24 layers")
+	# 	exit()
+
+	if not args.bert and args.which_layer not in list(range(1, args.num_layers+1)):
 		print("invalid which_layer: which_layer must be between 1 and args.num_layers, inclusive")
 		exit()
 

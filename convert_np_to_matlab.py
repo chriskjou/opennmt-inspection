@@ -27,13 +27,15 @@ import helper
 def plot_average_rank_per_brain_region():
 	return
 
-def get_rankings_by_brain_region(values, atlas, roi):
+def get_rankings_by_brain_region(file_name, values, atlas, roi):
 	df_dict = {'voxel_index': list(range(len(values))),
 		'rankings': values,
 		'atlas_labels': atlas,
 		'roi_labels': roi}
 
 	df = pd.DataFrame(df_dict)
+	to_save_file = "../final_rankings/brain_loc_" + file_name + ".p"
+	pickle.dump(df, open(to_save_file, "wb"))
 	return
 
 def main():
@@ -122,7 +124,7 @@ def main():
 		vals = pickle.load( open( "../final_rankings/" + file_name + ".p", "rb" ) )
 		final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
 		final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
-		get_rankings_by_brain_region(vals, final_atlas_labels, final_roi_labels)
+		get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
 		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="ranking")
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)

@@ -222,6 +222,7 @@ def main():
 	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
 	argparser.add_argument("--brain_to_model", action='store_true', default=False, help="True if regressing brain to model, False if not")
 	argparser.add_argument("--model_to_brain", action='store_true', default=False, help="True if regressing model to brain, False if not")
+	argparser.add_argument("--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("--cross_validation", action='store_true', default=False, help="True if add cross validation, False if not")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
@@ -244,7 +245,7 @@ def main():
 		embed_matrix = get_embed_matrix(embedding)
 	else:
 		embed_loc = args.embedding_layer
-		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] # aggregation type
+		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + args.which_layer # aggregation type + which layer
 		if args.word2vec:
 			# embed_matrix = pickle.load( open( "../embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
 			embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
@@ -294,10 +295,10 @@ def main():
 	# if args.batch_num == 0:
 	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/predictions_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
 	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
-		
+	
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
 	memmap_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
-	
+
 	# get residuals and predictions
 	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	

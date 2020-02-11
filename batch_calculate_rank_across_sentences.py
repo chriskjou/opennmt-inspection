@@ -11,8 +11,8 @@ import helper
 from scipy.spatial import distance
 
 def calculate_true_distances(a, b):
-	# return np.linalg.norm(a - b, axis=1)
-	return np.sqrt(np.sum((a-b)**2))
+	return np.linalg.norm(a - b, axis=1)
+	# return np.sqrt(np.sum((a-b)**2))
 
 def compute_distance_matrix(a, b):
 	return distance.cdist(a, b, 'euclidean')
@@ -95,7 +95,7 @@ def calculate_average_rank(args, file_name):
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
-	# argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
+	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
