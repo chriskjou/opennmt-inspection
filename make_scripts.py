@@ -16,16 +16,31 @@ def save_script(args):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# create subfolder
-	model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-	folder_name = model_type.format(
-		args.subject_number, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.which_layer, 
-		args.agg_type
-	)
-	print(folder_name)
+	if not args.bert and not args.glove and not args.word2vec:
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		folder_name = model_type.format(
+			args.subject_number, 
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.which_layer, 
+			args.agg_type
+		)
+		print(folder_name)
+		master_script = "parallel-english-to-{}-model-{}layer-{}-pred-".format(
+			args.language, 
+			args.num_layers, 
+			args.model_type
+			)
+	else:
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_layer{}-{}"
+		folder_name = model_type.format(
+			args.subject_number,  
+			args.which_layer, 
+			args.agg_type
+		)
+		print(folder_name)
+		master_script = ""
 
 	if args.local:
 		if not os.path.exists('../decoding_scripts/' + str(folder_name) + '/'):
@@ -41,7 +56,7 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}.sh" -H
+  sbatch "{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_"{}layer{}-{}.sh" -H
 done
 '''.format(
 		plabel,
@@ -55,9 +70,7 @@ done
 		validate,
 		args.subject_number, 
 		args.total_batches, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
+		master_script,
 		args.which_layer, 
 		args.agg_type
 	)
@@ -65,23 +78,6 @@ done
 
 	# break into batches
 	for i in range(args.total_batches):
-		file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-		job_id = file.format(
-			args.subject_number, 
-			i, 
-			args.total_batches, 
-			args.language, 
-			args.num_layers, 
-			args.model_type, 
-			args.which_layer, 
-			args.agg_type
-		)
-
-		if args.local:
-			fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
-		else:
-			fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
-
 		if not args.bert and not args.glove and not args.word2vec:
 			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat".format(
 				args.language, 
@@ -90,18 +86,56 @@ done
 				args.agg_type, 
 				args.which_layer
 				)
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			job_id = file.format(
+				args.subject_number, 
+				i, 
+				args.total_batches, 
+				args.language, 
+				args.num_layers, 
+				args.model_type, 
+				args.which_layer, 
+				args.agg_type
+			)
 		elif args.bert:
-			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/bert/layer{0}/{1}.mat".format(
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/bert/layer{0}/{1}.p".format(
 				args.which_layer,
 				args.agg_type
 				)
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_layer{}_{}"
+			job_id = file.format(
+				args.subject_number, 
+				i, 
+				args.total_batches,  
+				args.which_layer, 
+				args.agg_type
+			)
 		elif args.glove:
-			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/glove/{0}.mat".format(args.agg_type)
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/glove/{0}.p".format(args.agg_type)
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_{}"
+			job_id = file.format(
+				args.subject_number, 
+				i, 
+				args.total_batches, 
+				args.agg_type
+			)
 		elif args.word2vec:
-			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/{0}.mat".format(args.agg_type)
+			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/{0}.p".format(args.agg_type)
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_{}"
+			job_id = file.format(
+				args.subject_number, 
+				i, 
+				args.total_batches, 
+				args.agg_type
+			)
 		else:
 			print("error")
 			exit()
+
+		if args.local:
+			fname = '../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
+		else:
+			fname = '../../decoding_scripts/' + str(folder_name) + '/' + str(job_id) + '.sh'
 
 		with open(fname, 'w') as rsh:
 			cvflag = "" if not args.cross_validation else " --cross_validation "
@@ -248,17 +282,6 @@ def main():
 	# 						args.cross_validation = True
 	# 						args.brain_to_model = True
 	save_script(args)
-
-	# residuals path (relative from opennmt):
-	# resid_path = '../residuals'
-	# if not os.path.isdir(resid_path):
-	# 	os.mdkir(resid_path)
-	
-	# embedding_layer = sys.argv[1]
-	# subject_number = sys.argv[2]
-	# num_batches = int(sys.argv[3])
-	# save_script(args)
-	# save_script(embedding_layer, subject_number, num_batches)
 	print("done.")
 
 if __name__ == "__main__":

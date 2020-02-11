@@ -7,6 +7,9 @@ import helper
 import os
 import pandas as pd
 import helper
+import seaborn as sns
+import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 
 # def get_concatenated_residuals(args, file_path, file_name):
 # 	if args.log:
@@ -24,7 +27,54 @@ import helper
 # 	print("saved file: ../mat/" + file_name + ".mat")
 # 	return
 
+map_dict = {
+	'avg': "Average",
+	'min': "Minimum", 
+	'max': "Maximum",
+	'last': "Last",
+	"spanish": "Spanish",
+	"swedish": "Swedish",
+	"french": "French",
+	"german": "German",
+	"italian": "Italian"
+}
+
 def plot_average_rank_per_brain_region():
+	return
+
+def plot_atlas(args, df, file_name, zoom=False):
+	if args.cross_validation:
+		cv = "Cross Validation"
+	else:
+		cv = ""
+	if args.brain_to_model:
+		bm = "Brain-to-Model"
+	else:
+		bm = "Model-to-Brain"
+
+	all_residuals = list(df.rankings)
+	g = sns.catplot(x="atlas_labels", y="rankings", data=df, height=17.5, aspect=1.5, kind="box")
+	g.set_xticklabels(rotation=90)
+
+	if zoom:
+		g.set(ylim=(min(all_residuals), 10)) #5 * math.pow(10, -11)))
+		file_name += "-zoom"
+	else:
+		g.set(ylim=(min(all_residuals), max(all_residuals)))
+
+	g.set_axis_labels("RMSE", "")
+	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
+		plt.title("AR in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + ", " + str(bm) + " " + str(cv))
+	elif args.word2vec:
+		plt.title("AR in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
+	elif args.glove:
+		plt.title("AR in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of GLoVE")
+	elif args.bert:
+		plt.title("AR in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of BERT")	
+	else: # args.rand_embed:
+		plt.title("AR in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of Random Embeddings")	
+	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	# plt.show()
 	return
 
 def get_rankings_by_brain_region(file_name, values, atlas, roi):
@@ -36,7 +86,7 @@ def get_rankings_by_brain_region(file_name, values, atlas, roi):
 	df = pd.DataFrame(df_dict)
 	to_save_file = "../final_rankings/brain_loc_" + file_name + ".p"
 	pickle.dump(df, open(to_save_file, "wb"))
-	return
+	return df
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
@@ -124,7 +174,8 @@ def main():
 		vals = pickle.load( open( "../final_rankings/" + file_name + ".p", "rb" ) )
 		final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
 		final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
-		get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
+		df = get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
+		plot_atlas(args, df, "../visualizations/test", zoom=True)
 		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="ranking")
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)

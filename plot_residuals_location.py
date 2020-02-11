@@ -68,7 +68,7 @@ def plot_atlas(df, args, file_name, zoom=False):
 		g.set(ylim=(min(all_residuals), max(all_residuals)))
 	g.set_axis_labels("RMSE", "")
 	if not args.rand_embed and not args.word2vec and not args.glove and not args.bert:
-		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + + ", " + str(bm) + " " + str(cv))
+		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of " + str(args.which_layer) + "-Layer " + str(args.model_type).upper() + " English-to-" + map_dict[args.language] + ", " + str(bm) + " " + str(cv))
 	elif args.word2vec:
 		plt.title("RMSE in all Brain Regions for " + map_dict[args.agg_type] + " Aggregation of Word2Vec")
 	elif args.glove:
