@@ -96,6 +96,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	# del true_spotlights_memmap
 
 	index=0
+	nn_matrix = calculate_dist_matrix(embed_matrix) if args.rsa else None 
 	for pt in tqdm(CHUNK):
 
 		# SPHERE MASK BELOW
@@ -131,7 +132,14 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		# boolean_masks.append(spotlight_mask)
 
 		## DECODING BELOW
-		res, pred = linear_model(embed_matrix, spotlights, args, kfold_split)
+		if args.rsa: 
+			res = rsa(nn_matrix, np.array(spotlights))
+		else: 
+			res, pred = linear_model(embed_matrix, spotlights, args, kfold_split)
+			predictions.append(pred)
+
+		print("RES for SPOTLIGHT #", index, ": ", res)
+		res_per_spotlight.append(res)
 
 		index+=1
 		# pad remaining
@@ -151,10 +159,6 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 				true_spotlights_memmap[index_of_voxel] = true_spotlight_pad
 			print(pred_pad.shape)
 		
-
-		print("RES for SPOTLIGHT #", index, ": ", res)
-		res_per_spotlight.append(res)
-		predictions.append(pred)
 		## DECODING ABOVE
 	if args.memmap:
 		del predictions_memmap
@@ -162,6 +166,31 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			del true_spotlights_memmap
 
 	return res_per_spotlight, predictions, true_spotlights #boolean_masks
+
+def standardize(X): 
+	return np.nan_to_num((X - np.mean(X, axis=0)) / np.std(X, axis=0))
+
+def calculate_dist_matrix(matrix_embeddings): 
+	n = matrix_embeddings.shape[0]
+	mat = np.zeros(shape=(n*(n-1)//2,))
+	cosine_sim = lambda x, y: np.dot(x, y) / (np.linalg.norm(x, ord=2) * np.linalg.norm(y, ord=2))
+	it = 0
+	for i in range(n): 
+		for j in range(i):
+			mat[it] = cosine_sim(matrix_embeddings[i], matrix_embeddings[j]) 
+			it += 1
+	return mat 
+
+def rsa(embed_matrix, spotlights): 
+	spotlight_mat = calculate_dist_matrix(spotlights)
+	# random_noise = np.random.normal(size=embed_matrix.shape)
+	# r_corr_e, _ = spearmanr(embed_matrix, random_noise)
+	# r_corr_s, _ = spearmanr(spotlight_mat, random_noise)
+	# print(f"RANDOM NOISES: {r_corr_e}, {r_corr_s}")
+	# print(embed_matrix, spotlight_mat)
+	# exit()
+	corr, _ = spearmanr(spotlight_mat, embed_matrix)
+	return corr
 
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 	predicted = []
@@ -219,6 +248,7 @@ def main():
 
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
+	argparser.add_argument("--rsa", action='store_true', default=False, help="True if RSA is used to generate residual values")
 	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
 	argparser.add_argument("--brain_to_model", action='store_true', default=False, help="True if regressing brain to model, False if not")
 	argparser.add_argument("--model_to_brain", action='store_true', default=False, help="True if regressing model to brain, False if not")
@@ -286,6 +316,9 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/')
 
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rsa/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/rsa/')
+
 	# create memmap
 	# temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
 	
@@ -300,7 +333,7 @@ def main():
 	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
 	# dump
-	if not args.memmap:
+	if not args.memmap and not args.rsa:
 		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
 		print("RESIDUALS FILE: " + str(altered_file_name))
 		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
@@ -313,6 +346,9 @@ def main():
 		print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
 		pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
+	if args.rsa:
+		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name)
+		pickle.dump( all_residuals, open(file_name, "wb" ) )
 	print("done.")
 
 	return
