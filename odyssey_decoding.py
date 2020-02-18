@@ -277,14 +277,14 @@ def main():
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
 	# make file path
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/residuals/')
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals_od32/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/residuals_od32/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions_memmap/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions_memmap/')
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions_od32/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions_od32/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/')
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/')
 
 	# create memmap
 	# temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
