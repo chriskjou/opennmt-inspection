@@ -208,7 +208,14 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 		for train_index, test_index in kf.split(from_regress):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
-			p, res, rnk, s = lstsq(X_train, y_train)
+
+			if not args.add_bias:
+				p, res, rnk, s = lstsq(X_train, y_train)
+			else:
+				new_col = np.ones((X_train.shape[0], 1))
+				with_bias = np.hstack((X_train, new_col))
+				p_with_bias, res, rnk, s = lstsq(with_bias, y_train)
+				p = p_with_bias[:-1]
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
 			predicted_trials.append(np.dot(from_regress, p))
 			errors.append(residuals)
@@ -217,7 +224,13 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 		return np.mean(errors).astype(np.float32), predicted
 	# print("FROM REGRESS: " + str(from_regress.shape))
 	# print("TO REGRESS: " + str(to_regress.shape))
-	p, res, rnk, s = lstsq(from_regress, to_regress)
+	if not args.add_bias:
+		p, res, rnk, s = lstsq(from_regress, to_regress)
+	else:
+		new_col = np.ones((from_regress.shape[0], 1))
+		with_bias = np.hstack((to_regress, new_col))
+		p_with_bias, res, rnk, s = lstsq(with_bias, to_regress)
+		p = p_with_bias[:-1]
 	# print("P: " + str(p.shape))
 	# print("RES: " + str(res.shape))
 	# print("RNK: " + str(np.array(rnk).shape))
@@ -266,6 +279,7 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--memmap",  action='store_true', default=False, help="True if memmep, False if not")
+	argparser.add_argument("--add_bias",  action='store_true', default=False, help="True if add bias, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
