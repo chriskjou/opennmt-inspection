@@ -103,10 +103,10 @@ def get_bounds(correlations, pvals):
 	indices = np.where(below == False)
 	return valid_correlations, indices[0]
 
-	print('p_i:' + str(pvals[max_below]))
-	print('i:' + str(max_below + 1))
-	print(below)
-	print(correlations)
+	# print('p_i:' + str(pvals[max_below]))
+	# print('i:' + str(max_below + 1))
+	# print(below)
+	# print(correlations)
 
 def fdr_correction(correlations, pvals):
 	return
@@ -129,8 +129,8 @@ def evaluate_performance(correlations, pvals_per_voxel):
 	pvals, num_voxels = get_pval_from_ttest(pvals_per_voxel)
 	# plot_pvals(pvals)
 	avg_correlations = average_correlations(correlations)
-	valid_correlations, indices = get_bounds(avg_correlations, pvals, num_voxels)
-	return valid_correlations, indices
+	valid_correlations, indices = get_bounds(avg_correlations, pvals)
+	return valid_correlations, indices, num_voxels
 
 def get_2d_coordinates(correlations, indices, num_voxels):
 	arr = np.zeros((num_voxels,))
@@ -175,7 +175,7 @@ def main():
 			file_name += "bert"
 		else:
 			file_name += "random"
-			
+
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mat/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
 
@@ -196,8 +196,8 @@ def main():
 	
 	# 3. evaluate significance
 	print("evaluating significance...")
-	valid_correlations, indices = evaluate_performance(correlations, pvals)
-	corrected_coordinates = get_2d_coordinates(valid_correlations, indices)
+	valid_correlations, indices, num_voxels = evaluate_performance(correlations, pvals)
+	corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
 	norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
 	# pickle.dump(corrected_coordinates, open(save_location+"subj{}_valid_correlations_2d_coordinates.p".format(args.subject_number), "wb"))
 	helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
