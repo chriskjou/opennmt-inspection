@@ -9,6 +9,8 @@ from sklearn.model_selection import KFold
 import argparse
 import os
 import helper
+# import scipy.stats as stats
+# import statsmodels.api as sm
 
 def chunkify(lst, num, total):
 	if len(lst) % total == 0:
@@ -192,6 +194,27 @@ def rsa(embed_matrix, spotlights):
 	corr, _ = spearmanr(spotlight_mat, embed_matrix)
 	return corr
 
+def calculate_llh(pred, data, sigmas):
+	length = len(data)
+	nll_total = 0.
+	for i in range(length):
+		nll_total += llh(pred[i], data[i], sigmas)
+	return nll_total
+
+def llh(pred, data, sigmas):
+	length = len(data)
+	ll = 0.
+	for index in range(length):
+		y_hat = pred[index]
+		residual = float(data[index]) - y_hat
+		ll += stats.norm.logpdf(residual, 0, sigmas[index])
+	return ll
+
+def add_bias(df):
+	new_col = np.ones((df.shape[0], 1))
+	df = np.hstack((df, new_col))
+	return df
+
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 	predicted = []
 	if args.brain_to_model:
@@ -209,29 +232,32 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 
-			if not args.add_bias:
+			if args.add_bias:
+				X_train = add_bias(X_train)
+				X_test = add_bias(X_test)
 				p, res, rnk, s = lstsq(X_train, y_train)
 			else:
-				new_col = np.ones((X_train.shape[0], 1))
-				with_bias = np.hstack((X_train, new_col))
-				p_with_bias, res, rnk, s = lstsq(with_bias, y_train)
-				p = p_with_bias[:-1]
+				p, res, rnk, s = lstsq(X_train, y_train)
 
+			# if args.llh:
+			# 	sigma = res.bse
+			# else:
 			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
 			predicted_trials.append(np.dot(from_regress, p))
 			errors.append(residuals)
+
 		predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
 		# print(rnk.shape)
 		return np.mean(errors).astype(np.float32), predicted
 	# print("FROM REGRESS: " + str(from_regress.shape))
 	# print("TO REGRESS: " + str(to_regress.shape))
-	if not args.add_bias:
+
+	if args.add_bias:
+		from_regress = add_bias(from_regress)
 		p, res, rnk, s = lstsq(from_regress, to_regress)
 	else:
-		new_col = np.ones((from_regress.shape[0], 1))
-		with_bias = np.hstack((to_regress, new_col))
-		p_with_bias, res, rnk, s = lstsq(with_bias, to_regress)
-		p = p_with_bias[:-1]
+		p, res, rnk, s = lstsq(from_regress, to_regress)
+
 	# print("P: " + str(p.shape))
 	# print("RES: " + str(res.shape))
 	# print("RNK: " + str(np.array(rnk).shape))
@@ -282,6 +308,7 @@ def main():
 	argparser.add_argument("--memmap",  action='store_true', default=False, help="True if memmep, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
 	argparser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
+	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:

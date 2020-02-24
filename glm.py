@@ -7,15 +7,19 @@ import scipy.stats as stats
 # X_train and X_test already have bias
 
 mod = sm.OLS(y_train, X_train).fit()
-resid = mod.resid
-res = sm.OLS(resid[1:], resid[:-1]).fit()
-rho = res.params
+sigma = res.bse
+
+# glm
+# resid = mod.resid
+# res = sm.OLS(resid[1:], resid[:-1]).fit()
+# rho = res.params
+
 # get predictions
 pred = mod.predict(X_test)
 
 # calculate sigma
-order = toeplitz(np.arange(X_train.shape[0]))
-sigma = rho**order
+# order = toeplitz(np.arange(X_train.shape[0]))
+# sigma = rho**order
 
 # calculate likelihood
 def calculate_llh(pred, data, sigmas):
@@ -31,5 +35,6 @@ def llh(pred, data, sigmas):
 	for index in range(length):
 		y_hat = pred[index]
 		residual = float(data[index]) - y_hat
+		print("VAL:" + str(stats.norm.logpdf(residual, 0, sigmas[index])))
 		ll += stats.norm.logpdf(residual, 0, sigmas[index])
 	return ll
