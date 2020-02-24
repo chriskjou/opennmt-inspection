@@ -15,9 +15,14 @@ def save_script(args):
 	# file name assignments
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
+	if args.rsa:
+		rsa_label = "_rsa"
+	else:
+		rsa_label = ""
+
 	# create subfolder
 	if not args.bert and not args.glove and not args.word2vec:
-		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		folder_name = model_type.format(
 			args.subject_number, 
 			args.language, 
@@ -34,7 +39,7 @@ def save_script(args):
 			)
 		layer_script = "layer{}_".format(args.which_layer)
 	elif args.bert:
-		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_layer{}_{}"
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_layer{}_{}"
 		folder_name = model_type.format(
 			args.subject_number,  
 			args.which_layer, 
@@ -44,7 +49,7 @@ def save_script(args):
 		master_script = ""
 		layer_script = "layer{}_".format(args.which_layer)
 	else:
-		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_{}"
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_{}"
 		folder_name = model_type.format(
 			args.subject_number,
 			args.agg_type
@@ -67,7 +72,7 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_{}{}{}.sh" -H
+  sbatch "{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_{}{}{}{}.sh" -H
 done
 '''.format(
 		plabel,
@@ -83,7 +88,8 @@ done
 		args.total_batches, 
 		master_script,
 		layer_script,
-		args.agg_type
+		args.agg_type,
+		rsa_label
 	)
 )
 
@@ -97,7 +103,7 @@ done
 				args.agg_type, 
 				args.which_layer
 				)
-			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_decoding_{}_of_{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 			job_id = file.format(
 				args.subject_number, 
 				i, 
@@ -113,7 +119,7 @@ done
 				args.which_layer,
 				args.agg_type
 				)
-			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_layer{}_{}"
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_decoding_{}_of_{}_layer{}_{}"
 			job_id = file.format(
 				args.subject_number, 
 				i, 
@@ -123,7 +129,7 @@ done
 			)
 		elif args.glove:
 			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/glove/{0}.p".format(args.agg_type)
-			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_{}"
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_decoding_{}_of_{}_{}"
 			job_id = file.format(
 				args.subject_number, 
 				i, 
@@ -132,7 +138,7 @@ done
 			)
 		elif args.word2vec:
 			embedding_layer_location = "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/{0}.p".format(args.agg_type)
-			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_decoding_{}_of_{}_{}"
+			file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_decoding_{}_of_{}_{}"
 			job_id = file.format(
 				args.subject_number, 
 				i, 
@@ -158,7 +164,8 @@ done
 			w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)
 			bertflag = "" if (bertlabel == "") else "--" + str(bertlabel)
 			eflag = "" if (elabel == "") else "--" + str(elabel)
-			memmap_flag = "" if not args.memmap else "--memmap"
+			memmap_flag = "" if not args.memmap else " --memmap"
+			rsaflag = "" if not args.rsa else " --rsa"
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
@@ -182,7 +189,7 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 --batch_num {5} \
 --total_batches {6} \
 --which_layer {7} \
-{8} {9} {10} {11} {12} {13} {14} {15}
+{8} {9} {10} {11} {12} {13} {14} {15} {16}
 '''.format(
 		job_id, 
 		embedding_layer_location,
@@ -199,7 +206,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		bertflag,
 		pflag,
 		prflag,
-		memmap_flag
+		memmap_flag,
+		rsaflag
 	)
 )
 
@@ -225,6 +233,7 @@ def main():
 	parser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	parser.add_argument("-memmap", "--memmap",  action='store_true', default=False, help="True if memmep, False if not")
+	parser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
