@@ -228,16 +228,15 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 		kf = KFold(n_splits=kfold_split)
 		errors = []
 		predicted_trials = []
+
+		if args.add_bias:
+			from_regress = add_bias(from_regress)
+
 		for train_index, test_index in kf.split(from_regress):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 
-			if args.add_bias:
-				X_train = add_bias(X_train)
-				X_test = add_bias(X_test)
-				p, res, rnk, s = lstsq(X_train, y_train)
-			else:
-				p, res, rnk, s = lstsq(X_train, y_train)
+			p, res, rnk, s = lstsq(X_train, y_train)
 
 			# if args.llh:
 			# 	sigma = res.bse
@@ -252,11 +251,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 	# print("FROM REGRESS: " + str(from_regress.shape))
 	# print("TO REGRESS: " + str(to_regress.shape))
 
-	if args.add_bias:
-		from_regress = add_bias(from_regress)
-		p, res, rnk, s = lstsq(from_regress, to_regress)
-	else:
-		p, res, rnk, s = lstsq(from_regress, to_regress)
+	p, res, rnk, s = lstsq(from_regress, to_regress)
 
 	# print("P: " + str(p.shape))
 	# print("RES: " + str(res.shape))
