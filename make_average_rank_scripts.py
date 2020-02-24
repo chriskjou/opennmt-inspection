@@ -137,11 +137,6 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 )
 
 def main():
-	# if len(sys.argv) != 3:
-	# 	print("usage: python make_scripts.py -language -num_layers -brnn/rnn -which_layer -agg_type -subject_number -num_batches")
-	# 	# example: python make_scripts.pe
-	# 	exit()
-
 	# usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subject_number -num_batches"
 	parser = argparse.ArgumentParser("make scripts for Odyssey cluster")
 	parser.add_argument("-total_batches", "--total_batches", help="Total number of batches to run", type=int, default=100)

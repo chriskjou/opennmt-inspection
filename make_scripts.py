@@ -32,9 +32,9 @@ def save_script(args):
 			args.num_layers, 
 			args.model_type
 			)
-		layer_script = "layer{}-".format(args.which_layer)
+		layer_script = "layer{}_".format(args.which_layer)
 	elif args.bert:
-		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_layer{}-{}"
+		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_layer{}_{}"
 		folder_name = model_type.format(
 			args.subject_number,  
 			args.which_layer, 
@@ -42,7 +42,7 @@ def save_script(args):
 		)
 		print(folder_name)
 		master_script = ""
-		layer_script = "layer{}-".format(args.which_layer)
+		layer_script = "layer{}_".format(args.which_layer)
 	else:
 		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_{}"
 		folder_name = model_type.format(

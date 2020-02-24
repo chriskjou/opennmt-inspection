@@ -4,7 +4,7 @@
 #SBATCH --mem 3000 								# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
-#SBATCH -o ../../../outpt_fdr_test.txt 		# File that STDOUT writes to
+#SBATCH -o ../../../outpt_fdr_test.txt 			# File that STDOUT writes to
 #SBATCH -e ../../../err_fdr_test.txt			# File that STDERR writes to
 #SBATCH --mail-type=ALL 
 #SBATCH --mail-user=ckjou@college.harvard.edu
