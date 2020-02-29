@@ -156,26 +156,42 @@ def main():
 	# else:
 	# 	file_path = "../3d-brain/"
 
-	specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"	
-	file_name = specific_file.format(
-		args.subject_number, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.which_layer, 
-		args.agg_type
-	)
+	if args.bert or args.word2vec or args.glove:
+		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}"
+		file_name = specific_file.format(
+			args.subject_number,
+			args.agg_type,
+			args.which_layer
+		)
+	else:
+		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file_name = specific_file.format(
+			args.subject_number,
+			args.language,
+			args.num_layers,
+			args.model_type,
+			args.which_layer,
+			args.agg_type
+		)
 	print("transform coordinates...")
 	# vals = get_concatenated_residuals(args, "../rmses/concatenated-", file_name)
 	if args.rmse:
-		vals = pickle.load( open( "../rmses/concatenated-" + file_name + ".p", "rb" ) )
+		if args.local:
+			file_path = "../rmses/concatenated-"
+		else:
+			file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
+		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
 		rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_namec, metric="rmse")
 	if args.ranking:
-		vals = pickle.load( open( "../final_rankings/" + file_name + ".p", "rb" ) )
-		final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
-		final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
-		df = get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
-		plot_atlas(args, df, "../visualizations/test", zoom=True)
+		if args.local:
+			file_path = "../final_rankings/"
+		else:
+			file_path = "/n/shieber_lab/Lab/users/cjou/final_rankings/"
+		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
+		# final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
+		# final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
+		# df = get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
+		# plot_atlas(args, df, "../visualizations/test", zoom=True)
 		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="ranking")
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)

@@ -89,7 +89,7 @@ def calculate_average_rank(args, file_name):
 		del spotlight_activations
 		del spotlight_predictions
 
-	to_save_file = "/n/shieber_lab/Lab/users/cjou/final_rankings/np_sum_" + file_name + ".p"
+	to_save_file = "/n/shieber_lab/Lab/users/cjou/final_rankings/" + file_name + ".p"
 	pickle.dump(final_rankings, open(to_save_file, "wb"))
 	return 
 

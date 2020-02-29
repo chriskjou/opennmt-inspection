@@ -122,12 +122,13 @@ def generate_options(args):
 def transform_coordinates(rmses, volmask, save_path="", metric=""):
 	i,j,k = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
-	modified_rmses = np.zeros((i,j,k))
+	metrics = np.zeros((i,j,k))
 	for pt in tqdm(range(len(nonzero_pts))):
 		x,y,z = nonzero_pts[pt]
-		modified_rmses[int(x)][int(y)][int(z)] = rmses[pt]
-	scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + ".mat", dict(metric = modified_rmses))
-	scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + "-log.mat", dict(metric = np.log(modified_rmses)))
+		metrics[int(x)][int(y)][int(z)] = rmses[pt]
+	scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + ".mat", dict(metric = metrics))
+	if metric == "rmses":
+		scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + "-log.mat", dict(metric = np.log(metrics)))
 	# pickle.dump( modified_rmses, open(save_path + "-3dtransform-" + str(metric) + ".p", "wb" ) )
 	# pickle.dump( np.log(modified_rmses), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
 	return modified_rmses
