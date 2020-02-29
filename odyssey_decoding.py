@@ -50,6 +50,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	print("getting activations for all sentences...")
 	res_per_spotlight = []
 	predictions = []
+	llhs = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	true_spotlights = []
@@ -137,8 +138,9 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.rsa: 
 			res = rsa(nn_matrix, np.array(spotlights))
 		else: 
-			res, pred = linear_model(embed_matrix, spotlights, args, kfold_split)
+			res, pred, llh = linear_model(embed_matrix, spotlights, args, kfold_split)
 			predictions.append(pred)
+			llhs.append(llh)
 
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
@@ -167,7 +169,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.model_to_brain:
 			del true_spotlights_memmap
 
-	return res_per_spotlight, predictions, true_spotlights #boolean_masks
+	return res_per_spotlight, predictions, true_spotlights, llhs #boolean_masks
 
 def standardize(X): 
 	return np.nan_to_num((X - np.mean(X, axis=0)) / np.std(X, axis=0))
@@ -185,12 +187,6 @@ def calculate_dist_matrix(matrix_embeddings):
 
 def rsa(embed_matrix, spotlights): 
 	spotlight_mat = calculate_dist_matrix(spotlights)
-	# random_noise = np.random.normal(size=embed_matrix.shape)
-	# r_corr_e, _ = spearmanr(embed_matrix, random_noise)
-	# r_corr_s, _ = spearmanr(spotlight_mat, random_noise)
-	# print(f"RANDOM NOISES: {r_corr_e}, {r_corr_s}")
-	# print(embed_matrix, spotlight_mat)
-	# exit()
 	corr, _ = spearmanr(spotlight_mat, embed_matrix)
 	return corr
 
@@ -228,6 +224,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 		kf = KFold(n_splits=kfold_split)
 		errors = []
 		predicted_trials = []
+		llhs = []
 
 		if args.add_bias:
 			from_regress = add_bias(from_regress)
@@ -236,34 +233,35 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 
-			p, res, rnk, s = lstsq(X_train, y_train)
-
-			# if args.llh:
-			# 	sigma = res.bse
-			# else:
-			residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
-			predicted_trials.append(np.dot(from_regress, p))
-			errors.append(residuals)
+			if args.llh:
+				mod = sm.OLS(y_train, X_train).fit()
+				sigma = mod.bse
+				pred = mod.predict(X_test)
+				llh = calculate_llh(pred, y_test, sigma)
+				print("SIGMA SHAPE:" + str(sigma.shape))
+				print("Y TEST SHAPE: " + str(y_test.shape))
+				print("PRED SHAPE: " + str(pred.shape))
+				llhs.append(llh)
+			else:
+				p, res, rnk, s = lstsq(X_train, y_train)
+				residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
+				predicted_trials.append(np.dot(from_regress, p))
+				errors.append(residuals)
 
 		predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
-		# print(rnk.shape)
-		return np.mean(errors).astype(np.float32), predicted
-	# print("FROM REGRESS: " + str(from_regress.shape))
-	# print("TO REGRESS: " + str(to_regress.shape))
+		return np.mean(errors).astype(np.float32), predicted, np.mean(llhs).astype(np.float32)
 
-	p, res, rnk, s = lstsq(from_regress, to_regress)
-
-	# print("P: " + str(p.shape))
-	# print("RES: " + str(res.shape))
-	# print("RNK: " + str(np.array(rnk).shape))
-	# print("S: " + str(s.shape))
-	# print("COMPUTED: " + str(np.dot(from_regress, p).shape))
-	# print("EQUAL: " + str(np.array_equal(p, np.dot(from_regress, p))))
-	predicted = np.dot(from_regress, p).astype(np.float32)
-	residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2)).astype(np.float32)
-	# print("RESIDUALS: " + str(residuals))
-	# print("PREDICTED: " + str(predicted))
-	return residuals, predicted
+	if args.llh:
+		mod = sm.OLS(y_train, X_train).fit()
+		sigma = mod.bse
+		pred = mod.predict(X_test)
+		llh = calculate_llh(pred, y_test, sigma)
+	else:
+		p, res, rnk, s = lstsq(from_regress, to_regress)
+		predicted = np.dot(from_regress, p).astype(np.float32)
+		residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2)).astype(np.float32)
+	
+	return residuals, predicted, llh
 
 def get_embed_matrix(embedding, num_sentences=240):
 	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
@@ -324,8 +322,6 @@ def main():
 		# else: # args.rand_embed
 			# embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
 
-	# info = sys.argv[2]
-	# title = sys.argv[3]
 	subj_num = args.subject_number
 	num = args.batch_num
 	total_batches = args.total_batches
@@ -357,6 +353,9 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rsa/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/rsa/')
 
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/llh/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
+
 	# create memmap
 	# temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
 	
@@ -368,21 +367,28 @@ def main():
 	memmap_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
 
 	# get residuals and predictions
-	all_residuals, predictions, true_spotlights = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
+	all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
 	# dump
 	if not args.memmap and not args.rsa:
-		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
-		print("RESIDUALS FILE: " + str(altered_file_name))
-		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
-		pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
-		print("PREDICTIONS FILE: " + str(pred_file_name))
-		pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
+		if args.llh:
+			llh_file_name = "/n/shieber_lab/Lab/users/cjou/llh/" + temp_file_name
+			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
+			pickle.dump( llhs, open(spot_file_name+"-llh.p", "wb" ), protocol=-1 )
 
-		spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
-		print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
-		pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
+		else:
+			altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
+			print("RESIDUALS FILE: " + str(altered_file_name))
+			pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
+
+			pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
+			print("PREDICTIONS FILE: " + str(pred_file_name))
+			pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
+
+			spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
+			print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
+			pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
 	if args.rsa:
 		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name)

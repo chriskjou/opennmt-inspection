@@ -185,10 +185,15 @@ def fix_coords_to_absolute_value(coords):
 	norm_coords = [c if c==0 else c+1 for c in coords]
 	return norm_coords
 
+def get_all_subject_masks(directory, subject_number):
+	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subject_number) + "/volmask.p", "rb" ) )
+	space_to_index_dict, index_to_space_dict = get_spotlights(volmask)
+	directory = 
+	return
+
 def main():
-	argparser = argparse.ArgumentParser(description="FDR significance thresholding for single subject")
+	argparser = argparse.ArgumentParser(description="FDR significance thresholding for group analysis")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
-	argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("-random", "--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
 	argparser.add_argument("-rand_embed", "--rand_embed",  action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-glove", "--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
@@ -198,14 +203,13 @@ def main():
 	argparser.add_argument("-permutation", "--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
-	argparser.add_argument("-single_subject", "--single_subject", help="if single subject analysis", action='store_true', default=False)
 	argparser.add_argument("-group_level", "--group_level", help="if group level analysis", action='store_true', default=False)
 	argparser.add_argument("-searchlight", "--searchlight", help="if searchlight", action='store_true', default=False)
 	argparser.add_argument("-fdr", "--fdr", help="if apply FDR", action='store_true', default=False)
 	args = argparser.parse_args()
 
 	### check conditions
-	if not args.single_subject and not args.group_level:
+	if not args.single_subject or not args.group_level:
 		print("select analysis type: single subject or group level")
 		exit()
 
@@ -237,8 +241,6 @@ def main():
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
 
 	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
-	space_to_index_dict, index_to_space_dict = get_spotlights(volmask)
 
 	# 1. z-score
 	print("z-scoring activations and embeddings...")

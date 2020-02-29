@@ -8,8 +8,8 @@ import helper
 def concatenate_all(specific_file, args, type_concat):
 	final_residuals = []
 	for i in range(args.total_batches):
-		# file_path = "/n/shieber_lab/Lab/users/cjou/residuals/"
-		file_path = "../residuals/"
+		file_path = "/n/shieber_lab/Lab/users/cjou/residuals_od32/"
+		# file_path = "../residuals/"
 		# specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(glabel) + str(w2vlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(args.which_layer) + "-" + str(args.agg_type)
 		### specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(subject_number) + "-" + str(agg_type)
 		### specific_file = "parallel-english-to-" + str(language) + "-model-" + str(num_layers) + "layer-" + str(model_type) + "-pred-layer" + str(layer) + "-" + str(agg_type)
@@ -89,15 +89,18 @@ def main():
 		# for layer in list(range(1, num_layers+1)):
 		for layer in [args.which_layer]:
 			print("LAYER: " + str(layer))
-			specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-			file_format = specific_file.format(
-				args.subject_number, 
-				args.language, 
-				args.num_layers, 
-				args.model_type, 
-				args.which_layer, 
-				args.agg_type
-			)
+			if not args.word2vec and not args.glove and not args.bert and not args.random:
+				specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+				file_format = specific_file.format(
+					args.subject_number, 
+					args.language, 
+					args.num_layers, 
+					args.model_type, 
+					args.which_layer, 
+					args.agg_type
+				)
+			else:
+				file_format = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}".format(args.subject_number, args.agg_type, args.which_layer)
 
 			final_residuals = concatenate_all(file_format, args, 'residuals')
 			# final_predictions = concatenate_all(plabel, prlabel, rlabel, elabel, glabel, w2vlabel, bertlabel, args, direction, validate, 'predictions')
@@ -105,8 +108,8 @@ def main():
 			# RMSES
 			# specific_file = "parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(layer) + "-" + str(args.agg_type)
 			
-			# file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
-			file_path = "../rmses/concatenated-"
+			file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
+			# file_path = "../rmses/concatenated-"
 			file_name = file_path + str(file_format) + ".p"
 			pickle.dump( final_residuals, open( file_name, "wb" ) )
 

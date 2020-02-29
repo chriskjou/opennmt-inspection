@@ -23,9 +23,9 @@ def calculate_rank(true_distance, distance_matrix):
 	ranks = []
 	for sent_index in range(num_sentences):
 		distances = distance_matrix[sent_index]
-		print("ALL DISTANCES: " + str(distances))
+		# print("ALL DISTANCES: " + str(distances))
 		true_sent_distance = true_distance[sent_index]
-		print("TRUE DISTANCE: " + str(true_sent_distance))
+		# print("TRUE DISTANCE: " + str(true_sent_distance))
 		rank = np.sum(distances < true_sent_distance)
 		ranks.append(rank)
 
@@ -38,13 +38,13 @@ def get_file_name(args, specific_file, i, true_activations=False):
 			file_path = "../predictions_od32/"
 		else:
 			file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
-		print("FILE NAME: " + file_path+ file_name + "-decoding-predictions.p")
+		# print("FILE NAME: " + file_path+ file_name + "-decoding-predictions.p")
 		return file_path + file_name + "-decoding-predictions.p"
 	if args.local:
 		file_path = "../true_spotlights_od32/"
 	else:
 		file_path = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/"
-	print("FILE NAME: " + file_path + file_name + "-true-spotlights.p")
+	# print("FILE NAME: " + file_path + file_name + "-true-spotlights.p")
 	return file_path + file_name + "-true-spotlights.p"
 
 def calculate_average_rank(args, file_name):
@@ -52,7 +52,7 @@ def calculate_average_rank(args, file_name):
 	final_rankings = []
 
 	for i in tqdm(range(args.total_batches)):
-		print("batch num: " + str(i))
+		# print("batch num: " + str(i))
 		spotlight_activations_file_name = get_file_name(args, file_name, i, true_activations=True)
 		spotlight_predictions_file_name = get_file_name(args, file_name, i)
 		spotlight_activations = pickle.load(open(spotlight_activations_file_name, "rb"))
@@ -61,8 +61,8 @@ def calculate_average_rank(args, file_name):
 		num_voxels = len(spotlight_activations)
 		num_voxels_check = len(spotlight_predictions)
 
-		print("number of voxels: " + str(num_voxels))
-		print("number of voxels check:" + str(num_voxels_check))
+		# print("number of voxels: " + str(num_voxels))
+		# print("number of voxels check:" + str(num_voxels_check))
 
 		if num_voxels != num_voxels_check:
 			print("unequal number of voxels")
@@ -95,7 +95,7 @@ def calculate_average_rank(args, file_name):
 
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
-	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
+	# argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", required=True)
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
 	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)

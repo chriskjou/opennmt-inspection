@@ -74,16 +74,29 @@ def main():
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# residual_file = sys.argv[1]
-	file_loc = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+	if not args.word2vec and not args.glove and not args.bert and not args.random:
+		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file_name = specific_file.format(
+			args.subject_number, 
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.which_layer, 
+			args.agg_type
+		)
+	else:
+		file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}".format(args.subject_number, args.agg_type, args.which_layer)
+
+	# file_loc = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "subj{}_parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 	
-	file_name = file_loc.format(
-		args.subject_number, 
-		args.language, 
-		args.num_layers, 
-		args.model_type, 
-		args.which_layer, 
-		args.agg_type
-	)
+	# file_name = file_loc.format(
+	# 	args.subject_number, 
+	# 	args.language, 
+	# 	args.num_layers, 
+	# 	args.model_type, 
+	# 	args.which_layer, 
+	# 	args.agg_type
+	# )
 
 	residual_file = "../rmses/concatenated-" + str(file_name) + ".p"
 

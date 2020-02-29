@@ -7,7 +7,7 @@ import scipy.stats as stats
 # X_train and X_test already have bias
 
 mod = sm.OLS(y_train, X_train).fit()
-sigma = res.bse
+sigma = mod.bse
 
 # glm
 # resid = mod.resid
@@ -35,6 +35,5 @@ def llh(pred, data, sigmas):
 	for index in range(length):
 		y_hat = pred[index]
 		residual = float(data[index]) - y_hat
-		print("VAL:" + str(stats.norm.logpdf(residual, 0, sigmas[index])))
 		ll += stats.norm.logpdf(residual, 0, sigmas[index])
 	return ll
