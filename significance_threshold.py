@@ -185,6 +185,9 @@ def fix_coords_to_absolute_value(coords):
 	norm_coords = [c if c==0 else c+1 for c in coords]
 	return norm_coords
 
+def get_common_space():
+	return
+
 def main():
 	argparser = argparse.ArgumentParser(description="FDR significance thresholding for single subject")
 	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
@@ -202,6 +205,7 @@ def main():
 	argparser.add_argument("-group_level", "--group_level", help="if group level analysis", action='store_true', default=False)
 	argparser.add_argument("-searchlight", "--searchlight", help="if searchlight", action='store_true', default=False)
 	argparser.add_argument("-fdr", "--fdr", help="if apply FDR", action='store_true', default=False)
+	argparser.add_argument("-subjects", "--subjects", help="subject numbers", type=str, default="")
 	args = argparser.parse_args()
 
 	### check conditions
@@ -211,6 +215,10 @@ def main():
 
 	if args.fdr and args.single_subject and not args.searchlight:
 		print("not valid application of FDR to single subject with searchlight")
+		exit()
+
+	if args.group_level and args.subject == "":
+		print("must specify subject numbers in group level analysis")
 		exit()
 
 	### get embeddings
@@ -236,33 +244,55 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mat/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
 
-	save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
-	space_to_index_dict, index_to_space_dict = get_spotlights(volmask)
+	if args.single_subject:
+		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
+		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+		space_to_index_dict, index_to_space_dict, volmask_shape = get_spotlights(volmask)
 
-	# 1. z-score
-	print("z-scoring activations and embeddings...")
-	individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
-	z_activations = z_score(individual_activations)
-	z_embeddings = z_score(embed_matrix)
+		# 1. z-score
+		print("z-scoring activations and embeddings...")
+		individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
+		z_activations = z_score(individual_activations)
+		z_embeddings = z_score(embed_matrix)
 
-	# 2. calculate correlation 
-	print("calculating correlations...")
-	correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
-	# pickle.dump(pvals, open(save_location+"_pvals.p", "wb"))
-	# pickle.dump(correlations, open(save_location+"_correlations.p", "wb"))
-	
-	# 3. evaluate significance
-	print("evaluating significance...")
-	valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict)
-	corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
-	norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
-	# pickle.dump(corrected_coordinates, open(save_location+"subj{}_valid_correlations_2d_coordinates.p".format(args.subject_number), "wb"))
-	helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
-	# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
-	# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
-	print("done.")
+		# 2. calculate correlation 
+		print("calculating correlations...")
+		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
+		# pickle.dump(pvals, open(save_location+"_pvals.p", "wb"))
+		# pickle.dump(correlations, open(save_location+"_correlations.p", "wb"))
+		
+		# 3. evaluate significance
+		print("evaluating significance...")
+		valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict, volmask_shape)
+		corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
+		norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
+		# pickle.dump(corrected_coordinates, open(save_location+"subj{}_valid_correlations_2d_coordinates.p".format(args.subject_number), "wb"))
+		helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
+		# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
+		# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
+		print("done.")
 
+	if args.group_level:
+		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]   
+		load_common_space(subject_numbers)
+
+		# 1. z-score
+		print("z-scoring activations and embeddings...")
+		individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
+		z_activations = z_score(individual_activations)
+		z_embeddings = z_score(embed_matrix)
+
+		# 2. calculate correlation 
+		print("calculating correlations...")
+		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
+		
+		# 3. evaluate significance
+		print("evaluating significance...")
+		valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict, volmask_shape)
+		corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
+		norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
+		helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
+		print("done.")
 	return
 
 if __name__ == "__main__":

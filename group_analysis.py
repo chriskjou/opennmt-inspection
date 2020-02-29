@@ -185,6 +185,9 @@ def fix_coords_to_absolute_value(coords):
 	norm_coords = [c if c==0 else c+1 for c in coords]
 	return norm_coords
 
+def align_subject_masks():
+	return
+	
 def get_all_subject_masks(directory, subject_number):
 	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subject_number) + "/volmask.p", "rb" ) )
 	space_to_index_dict, index_to_space_dict = get_spotlights(volmask)
