@@ -153,7 +153,7 @@ def get_correlations_in_spotlight(correlations, space_to_index_dict, index_to_sp
 							correlations_in_spotlight.setdefault(voxel, []).append(correlations[pt2])
 	return correlations_in_spotlight
 
-def evaluate_performance(args, correlations, pvals_per_voxel, space_to_index_dict, index_to_space_dict):
+def evaluate_performance(args, correlations, pvals_per_voxel, space_to_index_dict, index_to_space_dict, volmask_shape):
 	### get pvals
 	if args.searchlight:
 		correlations_in_spotlight = get_correlations_in_spotlight(correlations, space_to_index_dict, index_to_space_dict, volmask_shape)
@@ -185,8 +185,16 @@ def fix_coords_to_absolute_value(coords):
 	norm_coords = [c if c==0 else c+1 for c in coords]
 	return norm_coords
 
-def get_common_space():
-	return
+def get_volmask(subj_num):
+	volmask = pickle.load(open(f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subj_num) + "/volmask.p", "rb"))
+	return volmask
+
+def load_common_space(subject_numbers):
+	subject_volmasks = get_volmask(subject_numbers[0])
+	for subj_num in subject_numbers[1:]:
+		volmask = get_volmask(subj_num)
+		subject_volmasks = subject_volmasks & volmask
+	return subject_volmasks
 
 def main():
 	argparser = argparse.ArgumentParser(description="FDR significance thresholding for single subject")
@@ -258,29 +266,28 @@ def main():
 		# 2. calculate correlation 
 		print("calculating correlations...")
 		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
-		# pickle.dump(pvals, open(save_location+"_pvals.p", "wb"))
-		# pickle.dump(correlations, open(save_location+"_correlations.p", "wb"))
 		
 		# 3. evaluate significance
 		print("evaluating significance...")
 		valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict, volmask_shape)
 		corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
 		norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
-		# pickle.dump(corrected_coordinates, open(save_location+"subj{}_valid_correlations_2d_coordinates.p".format(args.subject_number), "wb"))
-		helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
-		# pickle.dump(valid_correlations, open(save_location+"_valid_correlations.p", "wb"))
-		# pickle.dump(indices, open(save_location+"_valid_correlations_indices.p", "wb"))
+		_ = helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
 		print("done.")
 
 	if args.group_level:
+		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_group_analysis"
 		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]   
-		load_common_space(subject_numbers)
+		volmask = load_common_space(subject_numbers)
+		space_to_index_dict, index_to_space_dict, volmask_shape = get_spotlights(volmask)
 
 		# 1. z-score
 		print("z-scoring activations and embeddings...")
-		individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
-		z_activations = z_score(individual_activations)
 		z_embeddings = z_score(embed_matrix)
+		z_activations = []
+		for subj_num in subject_numbers:
+			individual_activations = pickle.load(open("../../examplesGLM/subj" + str(subj_num) + "/individual_activations.p", "rb"))
+			z_activations.append(z_score(individual_activations))
 
 		# 2. calculate correlation 
 		print("calculating correlations...")
@@ -291,7 +298,7 @@ def main():
 		valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict, volmask_shape)
 		corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
 		norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
-		helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
+		_ = helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
 		print("done.")
 	return
 

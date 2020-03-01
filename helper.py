@@ -122,16 +122,16 @@ def generate_options(args):
 def transform_coordinates(rmses, volmask, save_path="", metric=""):
 	i,j,k = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
-	metrics = np.zeros((i,j,k))
+	metric_vals = np.zeros((i,j,k))
 	for pt in tqdm(range(len(nonzero_pts))):
 		x,y,z = nonzero_pts[pt]
-		metrics[int(x)][int(y)][int(z)] = rmses[pt]
-	scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + ".mat", dict(metric = metrics))
+		metric_vals[int(x)][int(y)][int(z)] = rmses[pt]
+	scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + ".mat", dict(metric = metric_vals))
 	if metric == "rmses":
-		scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + "-log.mat", dict(metric = np.log(metrics)))
-	# pickle.dump( modified_rmses, open(save_path + "-3dtransform-" + str(metric) + ".p", "wb" ) )
-	# pickle.dump( np.log(modified_rmses), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
-	return modified_rmses
+		scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + "-log.mat", dict(metric = np.log(metric_vals)))
+	# pickle.dump( metrics, open(save_path + "-3dtransform-" + str(metric) + ".p", "wb" ) )
+	# pickle.dump( np.log(metrics), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
+	return metric_vals
 
 # clean ROI labels for plotting and ranking
 def clean_roi(roi_vals, roi_labels):
