@@ -12,4 +12,4 @@
 module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
-python ../significance_threshold.py --embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/bert/layer2/avg.p --subject_number 1 --which_layer 2 --bert   
+python ../significance_threshold.py --embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/bert/layer2/avg.p --subject_number 1 --which_layer 2 --bert  --single_subject
