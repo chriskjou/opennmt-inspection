@@ -9,6 +9,7 @@ from sklearn.model_selection import KFold
 import argparse
 import os
 import helper
+from scipy.stats import spearmanr 
 # import scipy.stats as stats
 # import statsmodels.api as sm
 
@@ -312,7 +313,7 @@ def main():
 	else:
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(args.which_layer) # aggregation type + which layer
-		embed_matrix = pickle.load( open( embed_loc , "rb" ) )
+		embed_matrix = np.array(pickle.load( open( embed_loc , "rb" ) ))
 		# if args.word2vec:
 			# embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
 		# elif args.glove:

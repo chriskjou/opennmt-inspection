@@ -74,7 +74,7 @@ def save_script(args):
 		rsh.write('''\
 #!/bin/bash
 for i in `seq 0 99`; do
-  sbatch "{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_{}{}{}{}.sh" -H
+  sbatch "{}{}{}{}{}{}{}{}{}{}subj{}_decoding_""$i""_of_{}_{}{}{}.sh" -H
 done
 '''.format(
 		plabel,
@@ -84,14 +84,14 @@ done
 		glabel,
 		w2vlabel,
 		bertlabel,
+		rsa_label,
 		direction,
 		validate,
 		args.subject_number, 
 		args.total_batches, 
 		master_script,
 		layer_script,
-		args.agg_type,
-		rsa_label
+		args.agg_type
 	)
 )
 
