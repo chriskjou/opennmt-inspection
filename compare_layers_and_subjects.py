@@ -24,6 +24,11 @@ def compare_layers(layer1, layer2):
     diff = layer1-layer2
     return diff
 
+def get_file(args, file_name):
+    save_path = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
+    values = scipy.io.loadmat(save_path + "-3dtransform-" + str(metric) + ".mat")
+    return values
+
 def main():
     argparser = argparse.ArgumentParser(description="layer and subject group level comparison")
     argparser.add_argument("-embedding_layer", "--embedding_layer", type=str,
@@ -63,7 +68,7 @@ def main():
                            help="True if calculate ranking, False if not")
     argparser.add_argument("-rmse", "--rmse", action='store_true', default=False,
                            help="True if calculate rmse, False if not")
-    argparser.add_argument("-rsa, "--rsa", action='store_true', default=False,
+    argparser.add_argument("-rsa", "--rsa", action='store_true', default=False,
                            help="True if calculate rmse, False if not")
     args = argparser.parse_args()
 
@@ -71,14 +76,38 @@ def main():
         print("error: please select different layers for layer1 and layer2")
         exit()
 
-    layer1 = get_file(args)
-    layer2 = get_file(args)
+    if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
+        embed_loc = args.embedding_layer
+        # embed_loc = "/Users/christinejou/Documents/research/embeddings/parallel/spanish/2layer-brnn/avg/parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.mat"
+        file_name = embed_loc.split("/")[-1].split(".")[0]
+        embedding = scipy.io.loadmat(embed_loc)
+        embed_matrix = get_embed_matrix(embedding)
+    else:
+        embed_loc = args.embedding_layer
+        file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(
+            args.which_layer)  # aggregation type + which layer
+        embed_matrix = pickle.load(open(embed_loc, "rb"))
+        if args.word2vec:
+            file_name += "word2vec"
+        elif args.glove:
+            file_name += "glove"
+        elif args.bert:
+            file_name += "bert"
+        else:
+            file_name += "random"
+
+    layer1 = get_file(args, file_name)
+    layer2 = get_file(args, file_name)
 
     diff = compare_layers(layer1, layer2)
+    print("DIFF")
+    print(diff)
     pval = calculate_pval(layer1, layer2)
+    print("pval")
+    print(pval)
 
-    save_file(args, diff, "difference_" + a)
-    save_file(args, pval, "pval_" + )
+    # save_file(args, diff, "difference_" + a)
+    # save_file(args, pval, "pval_" + )
     print("done.")
     return
 
