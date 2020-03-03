@@ -25,16 +25,62 @@ def compare_layers(layer1, layer2):
     return diff
 
 def get_file(args, file_name):
-    save_path = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
-    values = scipy.io.loadmat(save_path + "-3dtransform-" + str(metric) + ".mat")
-    return values
+    if args.ranking:
+        metric = "ranking"
+    elif args.rmse:
+        metric = "rmse"
+    elif args.llh:
+        metric = "llh"
+    elif args.fdr:
+        metric = "fdr"
+    else:
+        print("error: check for valid method of correlation")
+    save_path = "../mat/" + str(file_name) + "-3dtransform-" + str(metric)
+    print("LOADING FILE: " + str(save_path) + ".mat")
+    values = scipy.io.loadmat(save_path + ".mat")
+    return values["metric"]
+
+def generate_file_name(args, which_layer):
+    direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
+
+    if args.bert or args.word2vec or args.glove:
+        specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(
+            bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}"
+        file_name = specific_file.format(
+            args.subject_number,
+            args.agg_type,
+            which_layer
+        )
+    else:
+        specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(
+            bertlabel) + str(direction) + str(
+            validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+        file_name = specific_file.format(
+            args.subject_number,
+            args.language,
+            args.num_layers,
+            args.model_type,
+            which_layer,
+            args.agg_type
+        )
+    return file_name
 
 def main():
     argparser = argparse.ArgumentParser(description="layer and subject group level comparison")
-    argparser.add_argument("-embedding_layer", "--embedding_layer", type=str,
-                           help="Location of NN embedding (for a layer)", required=True)
     argparser.add_argument("-subject_number", "--subject_number", type=int, default=1,
                            help="subject number (fMRI data) for decoding")
+    argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation",
+                           action='store_true', default=False)
+    argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model",
+                           action='store_true', default=False)
+    argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain",
+                           action='store_true', default=False)
+    argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str,
+                           default='avg')
+    argparser.add_argument("-language", "--language",
+                           help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str,
+                           default='spanish')
+    argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
     argparser.add_argument("-random", "--random", action='store_true', default=False,
                            help="True if initialize random brain activations, False if not")
     argparser.add_argument("-rand_embed", "--rand_embed", action='store_true', default=False,
@@ -76,32 +122,18 @@ def main():
         print("error: please select different layers for layer1 and layer2")
         exit()
 
-    if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
-        embed_loc = args.embedding_layer
-        # embed_loc = "/Users/christinejou/Documents/research/embeddings/parallel/spanish/2layer-brnn/avg/parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.mat"
-        file_name = embed_loc.split("/")[-1].split(".")[0]
-        embedding = scipy.io.loadmat(embed_loc)
-        embed_matrix = get_embed_matrix(embedding)
-    else:
-        embed_loc = args.embedding_layer
-        file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(
-            args.which_layer)  # aggregation type + which layer
-        embed_matrix = pickle.load(open(embed_loc, "rb"))
-        if args.word2vec:
-            file_name += "word2vec"
-        elif args.glove:
-            file_name += "glove"
-        elif args.bert:
-            file_name += "bert"
-        else:
-            file_name += "random"
+    print("generating file names...")
+    layer1_file_name = generate_file_name(args, args.layer1)
+    layer2_file_name = generate_file_name(args, args.layer2)
 
-    layer1 = get_file(args, file_name)
-    layer2 = get_file(args, file_name)
+    print("retrieving file contents...")
+    layer1 = get_file(args, layer1_file_name)
+    layer2 = get_file(args, layer2_file_name)
 
+    print("evaluating layers...")
     diff = compare_layers(layer1, layer2)
     print("DIFF")
-    print(diff)
+    print(np.sum(diff))
     pval = calculate_pval(layer1, layer2)
     print("pval")
     print(pval)

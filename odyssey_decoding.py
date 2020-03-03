@@ -392,7 +392,7 @@ def main():
 			pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
 	if args.rsa:
-		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name)
+		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
 		pickle.dump( all_residuals, open(file_name, "wb" ) )
 	print("done.")
 
