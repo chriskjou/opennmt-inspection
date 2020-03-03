@@ -16,7 +16,9 @@ def save_script(args):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	if args.rsa:
-		rsa_label = "_rsa"
+		rsa_label = "_rsa_"
+		direction = ""
+		validate = ""
 	else:
 		rsa_label = ""
 
@@ -244,10 +246,10 @@ def main():
 	# nbatches = 100
 	
 	# check conditions
-	if args.brain_to_model and args.model_to_brain:
+	if (args.brain_to_model and args.model_to_brain) and not args.rsa:
 		print("select only one flag for brain_to_model or model_to_brain")
 		exit()
-	if not args.brain_to_model and not args.model_to_brain:
+	if (not args.brain_to_model and not args.model_to_brain) and not args.rsa:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
 	if args.word2vec and args.glove and args.bert and args.rand_embed:
