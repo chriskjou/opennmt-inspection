@@ -10,6 +10,7 @@ import argparse
 import os
 import helper
 from scipy.stats import spearmanr
+from sklearn.linear_model import Ridge
 # import scipy.stats as stats
 # import statsmodels.api as sm
 
@@ -42,7 +43,7 @@ def get_voxel_number(args, CHUNK_SIZE, i):
 def get_dimensions(data):
 	return int(data[0])+1, int(data[1]), int(data[2])
 
-def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args, radius=5, kfold_split=5):
+def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args, radius=5, kfold_split=5, alpha=1):
 	global temp_file_name
 	global memmap_file_name
 
@@ -139,7 +140,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.rsa: 
 			res = rsa(nn_matrix, np.array(spotlights))
 		else: 
-			res, pred, llh = linear_model(embed_matrix, spotlights, args, kfold_split)
+			res, pred, llh = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
 			predictions.append(pred)
 			llhs.append(llh)
 
@@ -212,7 +213,7 @@ def add_bias(df):
 	df = np.hstack((df, new_col))
 	return df
 
-def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
+def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	predicted = []
 	if args.brain_to_model:
 		from_regress = np.array(spotlight_activations)
@@ -224,7 +225,9 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 	if args.cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
-		predicted_trials = []
+		# predicted_trials = []
+		predicted_trials = np.zeros((to_regress.shape[0], ))
+		# print("PREDICTED TRIALS: " + str(predicted_trials.shape))
 		llhs = []
 
 		if args.add_bias:
@@ -246,11 +249,21 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split):
 			else:
 				p, res, rnk, s = lstsq(X_train, y_train)
 				residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
-				predicted_trials.append(np.dot(from_regress, p))
+				# predicted_trials.append(np.dot(from_regress, p)) # fix this
+				y_hat_test = np.dot(X_test, p)
+				# print("SHAPE OF Y HAT TEST: " + str(y_hat_test.shape))
+				# print("SHAPE OF TEST INDEX: " + str(test_index))
+				# insert the predicted trials at correct position y_hat_that
+				np.put(predicted_trials, test_index, y_hat_test)
 				errors.append(residuals)
 
-		predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
-		return np.mean(errors).astype(np.float32), predicted, np.mean(llhs).astype(np.float32)
+				# with ridge regression
+				# ridgereg = Ridge(alpha=alpha,normalize=True)
+				# ridgereg.fit(X_train, y_train)
+				# y_pred = ridgereg.predict(X_test)
+
+		# predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
+		return np.mean(errors).astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
 
 	if args.llh:
 		mod = sm.OLS(y_train, X_train).fit()

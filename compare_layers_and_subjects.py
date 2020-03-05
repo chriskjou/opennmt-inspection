@@ -14,7 +14,10 @@ import math
 import statsmodels.stats.multitest as smm
 import matplotlib.pyplot as plt
 import helper
-plt.switch_backend('agg')
+import pandas as pd
+# plt.switch_backend('agg')
+import seaborn as sns
+# %matplotlib inline
 
 def calculate_pval(layer1, layer2):
     pval = stats.ttest_rel(layer1, layer2)
@@ -134,9 +137,38 @@ def main():
     diff = compare_layers(layer1, layer2)
     print("DIFF")
     print(np.sum(diff))
-    pval = calculate_pval(layer1, layer2)
-    print("pval")
-    print(pval)
+
+    # generate heatmap
+    heatmap_differences = np.zeros((12, 12))
+    for l1 in list(range(1, 13)):
+        for l2 in list(range(l1, 13)):
+            print("generating file names...")
+            layer1_file_name = generate_file_name(args, l1)
+            layer2_file_name = generate_file_name(args, l2)
+
+            print("retrieving file contents...")
+            layer1 = get_file(args, layer1_file_name)
+            layer2 = get_file(args, layer2_file_name)
+
+            diff = compare_layers(layer1, layer2)
+            heatmap_differences[l1-1][l2-1] = np.sum(np.abs(diff))
+            heatmap_differences[l2-1][l1-1] = np.sum(np.abs(diff))
+
+    print(heatmap_differences.shape)
+    print(heatmap_differences)
+
+    Index = ['layer' + str(i) for i in range(1, 13)]
+    df = pd.DataFrame(heatmap_differences, index=Index, columns=Index)
+    # plt.pcolor(df)
+    # plt.yticks(np.arange(0.5, len(df.index), 1), df.index)
+    # plt.xticks(np.arange(0.5, len(df.columns), 1), df.columns)
+    # plt.show()
+    sns.heatmap(df, annot=True)
+    plt.show()
+
+    # pval = calculate_pval(layer1, layer2)
+    # print("pval")
+    # print(pval)
 
     # save_file(args, diff, "difference_" + a)
     # save_file(args, pval, "pval_" + )
