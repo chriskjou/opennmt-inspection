@@ -45,7 +45,6 @@ def get_dimensions(data):
 
 def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args, radius=5, kfold_split=5, alpha=1):
 	global temp_file_name
-	global memmap_file_name
 
 	ACTIVATION_SHAPE = (240, 515)
 
@@ -61,44 +60,6 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 	# iterate over spotlight
 	print("for each spotlight...")
-
-	if args.memmap:
-		predictions_memmap_read = np.memmap("/n/shieber_lab/Lab/users/cjou/predictions_memmap/" + memmap_file_name + ".dat", mode='r', dtype='float32')
-		dim1, dim2, dim3 = get_dimensions(predictions_memmap_read)
-		del predictions_memmap_read
-		predictions_memmap = np.memmap("/n/shieber_lab/Lab/users/cjou/predictions_memmap/" + memmap_file_name + ".dat", dtype='float32', mode='r+', shape=(dim1, dim2, dim3))
-
-		if args.model_to_brain:
-			true_spotlights_memmap_read = np.memmap("/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/" + memmap_file_name + ".dat", mode='r', dtype='float32')
-			dim1, dim2, dim3 = get_dimensions(true_spotlights_memmap_read)
-			del true_spotlights_memmap_read
-			true_spotlights_memmap = np.memmap("/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/" + memmap_file_name + ".dat", dtype='float32', mode='r+', shape=(dim1, dim2, dim3))
-
-		if args.brain_to_model:
-			target_size = embed_matrix.shape
-		else:
-			target_size = ACTIVATION_SHAPE
-
-	# 	# create
-	# 	print("SHAPE: ")
-	# 	print(str(CHUNK_SIZE) + " " + str(embed_matrix.shape[0]) + " " + str(embed_matrix.shape[1]))
-	# 	predictions_memmap = np.memmap("/n/shieber_lab/Lab/users/cjou/predictions_memmap/" + temp_file_name + ".dat", dtype='float32', mode='w+', shape=(CHUNK_SIZE+1, target_size[0], target_size[1]))
-	# 	# add size to predictions and true_spotlights 
-	# 	pred_size = np.zeros((1, target_size[0], target_size[1]))
-	# 	pred_size[0][0][0] = CHUNK_SIZE
-	# 	pred_size[0][0][1] = target_size[0]
-	# 	pred_size[0][0][2] = target_size[1]
-	# 	predictions_memmap[0] = pred_size
-	# 	# del predictions_memmap
-
-	# 	if args.model_to_brain:
-	# 		true_spotlights_memmap = np.memmap("/n/shieber_lab/Lab/users/cjou/true_spotlights_memmap/" + temp_file_name + ".dat", dtype='float32', mode='w+', shape=(CHUNK_SIZE+1, target_size[0], target_size[1]))
-	# 		true_size = np.zeros((1, target_size[0], target_size[1]))
-	# 		true_size[0][0][0] = CHUNK_SIZE
-	# 		true_size[0][0][1] = target_size[0]
-	# 		true_size[0][0][2] = target_size[1]
-	# 		true_spotlights_memmap[0] = true_size
-	# del true_spotlights_memmap
 
 	index=0
 	nn_matrix = calculate_dist_matrix(embed_matrix) if args.rsa else None 
@@ -148,28 +109,8 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		res_per_spotlight.append(res)
 
 		index+=1
-		# pad remaining
-		if args.memmap:
-			pred_pad = pad_along_axis(np.array(pred), target_size[1], axis=1)
-			index_of_voxel = get_voxel_number(args, CHUNK_SIZE, index)
-			print("INDEX OF VOXEL:" + str(index_of_voxel))
-			# add to memmap files
-			# predictions_memmap = np.load("/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name + ".dat", mmap_mode='w')
-			predictions_memmap[index_of_voxel] = pred_pad
-
-			# res_pad = pad_along_axis(res, target_size, axis=1)
-			if args.model_to_brain:
-				true_spotlight_pad = pad_along_axis(np.array(spotlights), target_size[1], axis=1)
-				print(true_spotlight_pad.shape)
-				# true_spotlights_memmap = np.load("/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name + ".dat", mmap_mode='w')
-				true_spotlights_memmap[index_of_voxel] = true_spotlight_pad
-			print(pred_pad.shape)
 		
 		## DECODING ABOVE
-	if args.memmap:
-		del predictions_memmap
-		if args.model_to_brain:
-			del true_spotlights_memmap
 
 	return res_per_spotlight, predictions, true_spotlights, llhs #boolean_masks
 
@@ -298,7 +239,6 @@ def normalize_voxels(activations):
 
 def main():
 	global temp_file_name
-	global memmap_file_name
 
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
@@ -319,7 +259,6 @@ def main():
 	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
-	argparser.add_argument("--memmap",  action='store_true', default=False, help="True if memmep, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
 	argparser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
@@ -377,22 +316,16 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/llh/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
 
-	# create memmap
-	# temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
-	
-	# if args.batch_num == 0:
-	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/predictions_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
-	# 	create_memmap_files(args, "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/", temp_file_name, activations.shape[1], embed_matrix.shape[0], embed_matrix.shape[1])
-	
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
-	memmap_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
-
 	# get residuals and predictions
 	all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
 	# dump
-	if not args.memmap and not args.rsa:
-
+	if args.rsa:
+		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
+		pickle.dump( all_residuals, open(file_name, "wb" ) )
+	
+	else:
 		if args.llh:
 			llh_file_name = "/n/shieber_lab/Lab/users/cjou/llh/" + temp_file_name
 			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
@@ -411,9 +344,6 @@ def main():
 			print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
 			pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
-	if args.rsa:
-		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
-		pickle.dump( all_residuals, open(file_name, "wb" ) )
 	print("done.")
 
 	return
