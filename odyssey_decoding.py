@@ -250,48 +250,37 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 
-			if args.llh:
-				mod = sm.OLS(y_train, X_train).fit()
-				sigma = mod.bse
-				pred = mod.predict(X_test)
-				llh = calculate_llh(pred, y_test, sigma)
-				print("SIGMA SHAPE:" + str(sigma.shape))
-				print("Y TEST SHAPE: " + str(y_test.shape))
-				print("PRED SHAPE: " + str(pred.shape))
-				llhs.append(llh)
-			else:
-				# p, res, rnk, s = lstsq(X_train, y_train)
-				# residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
-				# predicted_trials.append(np.dot(from_regress, p)) # fix this
-				# y_hat_test = np.dot(X_test, p)
-				# print("SHAPE OF Y HAT TEST: " + str(y_hat_test.shape))
-				# print("SHAPE OF TEST INDEX: " + str(test_index))
-				# insert the predicted trials at correct position y_hat_that
+			# with ridge regression
+			clf = Ridge(alpha=alpha, normalize=True)
+			clf.fit(X_train, y_train)
+			y_hat_test = clf.predict(X_test)
+			predicted_trials = place_into_test_data(predicted_trials, test_index, y_hat_test)
 
-				# with ridge regression
-				clf = Ridge(alpha=alpha, normalize=True)
-				clf.fit(X_train, y_train)
-				y_hat_test = clf.predict(X_test)
-				predicted_trials = place_into_test_data(predicted_trials, test_index, y_hat_test)
-				# print("PREDICTED TRIALS LENGTH: " + str(len(predicted_trials)))
-				# np.put(predicted_trials, test_index, y_hat_test)
-				# residuals = np.sqrt(np.sum(y_test - y_hat_test))
-				# errors.append(residuals)
+			if args.llh:
+				n = X_train.shape[0]
+				k = X_train.shape[1]
+				VCV = np.true_divide(1,n-k)*np.dot(np.dot(predicted_trials.T,predicted_trials),np.linalg.inv(np.dot(X_train.T,X_train)))
+				print("VCV SHAPE:" + str(VCV.shape))
+				sigmas = np.diagonal(VCV)
+				print("SIGMA SHAPE:" + str(sigmas.shape))
+				print("PREDICTED SHAPE: " + str(predicted_trials.shape))
+				print("Y SHAPE: " + str(y_train.shape))
+				llh = calculate_llh(predicted_trials, y_test, sigmas)
+				llhs.append(llh)
 
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		# predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
-		# return np.mean(errors).astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(llh)
+
+	clf = Ridge(alpha=alpha, normalize=True)
+	clf.fit(from_regress, to_regress)
+	y_hat_test = clf.predict(from_regress)
 
 	if args.llh:
-		mod = sm.OLS(y_train, X_train).fit()
-		sigma = mod.bse
-		pred = mod.predict(X_test)
-		llh = calculate_llh(pred, y_test, sigma)
-	else:
-		p, res, rnk, s = lstsq(from_regress, to_regress)
-		predicted = np.dot(from_regress, p).astype(np.float32)
-		residuals = np.sqrt(np.sum((to_regress - np.dot(from_regress, p))**2)).astype(np.float32)
+		n = from_regress.shape[0]
+		k = from_regress.shape[1]
+		VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
+		sigmas = np.diagonal(VCV)
+		llh = calculate_llh(y_hat_test, to_regress, sigmas)
 	
 	return residuals, predicted, llh
 
@@ -407,7 +396,7 @@ def main():
 		if args.llh:
 			llh_file_name = "/n/shieber_lab/Lab/users/cjou/llh/" + temp_file_name
 			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
-			pickle.dump( llhs, open(spot_file_name+"-llh.p", "wb" ), protocol=-1 )
+			pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
 
 		else:
 			altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
