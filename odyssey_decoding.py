@@ -10,7 +10,7 @@ import argparse
 import os
 import helper
 from scipy.stats import spearmanr
-from sklearn.linear_model import Ridge
+from sklearn.linear_model import Ridge, BayesianRidge
 # import scipy.stats as stats
 # import statsmodels.api as sm
 
@@ -213,6 +213,18 @@ def add_bias(df):
 	df = np.hstack((df, new_col))
 	return df
 
+def place_into_test_data(predicted_trials, test_index, y_hat_test):
+	num_tests = len(test_index)
+	for index in range(num_tests):
+		which_test_index = test_index[index]
+		which_test_value = y_hat_test[index]
+		before_predictions = predicted_trials[:which_test_index]
+		after_predictions = predicted_trials[which_test_index+1:]
+		before_predictions.append(which_test_value)
+		before_predictions.extend(after_predictions)
+		predicted_trials = before_predictions
+	return predicted_trials
+
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	predicted = []
 	if args.brain_to_model:
@@ -226,7 +238,8 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		kf = KFold(n_splits=kfold_split)
 		errors = []
 		# predicted_trials = []
-		predicted_trials = np.zeros((to_regress.shape[0], ))
+		predicted_trials = [0] * to_regress.shape[0]
+		# predicted_trials = np.zeros((to_regress.shape[0], ))
 		# print("PREDICTED TRIALS: " + str(predicted_trials.shape))
 		llhs = []
 
@@ -247,23 +260,28 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				print("PRED SHAPE: " + str(pred.shape))
 				llhs.append(llh)
 			else:
-				p, res, rnk, s = lstsq(X_train, y_train)
-				residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
+				# p, res, rnk, s = lstsq(X_train, y_train)
+				# residuals = np.sqrt(np.sum((y_test - np.dot(X_test, p))**2)).astype(np.float32)
 				# predicted_trials.append(np.dot(from_regress, p)) # fix this
-				y_hat_test = np.dot(X_test, p)
+				# y_hat_test = np.dot(X_test, p)
 				# print("SHAPE OF Y HAT TEST: " + str(y_hat_test.shape))
 				# print("SHAPE OF TEST INDEX: " + str(test_index))
 				# insert the predicted trials at correct position y_hat_that
-				np.put(predicted_trials, test_index, y_hat_test)
-				errors.append(residuals)
 
 				# with ridge regression
-				# ridgereg = Ridge(alpha=alpha,normalize=True)
-				# ridgereg.fit(X_train, y_train)
-				# y_pred = ridgereg.predict(X_test)
+				clf = Ridge(alpha=alpha, normalize=True)
+				clf.fit(X_train, y_train)
+				y_hat_test = clf.predict(X_test)
+				predicted_trials = place_into_test_data(predicted_trials, test_index, y_hat_test)
+				# print("PREDICTED TRIALS LENGTH: " + str(len(predicted_trials)))
+				# np.put(predicted_trials, test_index, y_hat_test)
+				# residuals = np.sqrt(np.sum(y_test - y_hat_test))
+				# errors.append(residuals)
 
+		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
 		# predicted = np.mean(predicted_trials, axis=0).astype(np.float32)
-		return np.mean(errors).astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
+		# return np.mean(errors).astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
 
 	if args.llh:
 		mod = sm.OLS(y_train, X_train).fit()

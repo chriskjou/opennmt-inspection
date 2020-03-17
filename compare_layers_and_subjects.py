@@ -30,15 +30,19 @@ def compare_layers(layer1, layer2):
 def get_file(args, file_name):
     if args.ranking:
         metric = "ranking"
+        path = "../mat/"
     elif args.rmse:
         metric = "rmse"
+        path = "../3d-brain/"
     elif args.llh:
         metric = "llh"
+        path = ""
     elif args.fdr:
         metric = "fdr"
+        path = "../fdr/"
     else:
         print("error: check for valid method of correlation")
-    save_path = "../mat/" + str(file_name) + "-3dtransform-" + str(metric)
+    save_path = path + str(file_name) + "-3dtransform-" + str(metric)
     print("LOADING FILE: " + str(save_path) + ".mat")
     values = scipy.io.loadmat(save_path + ".mat")
     return values["metric"]
@@ -163,7 +167,7 @@ def main():
     # plt.yticks(np.arange(0.5, len(df.index), 1), df.index)
     # plt.xticks(np.arange(0.5, len(df.columns), 1), df.columns)
     # plt.show()
-    sns.heatmap(df, annot=True)
+    sns.heatmap(df)
     plt.show()
 
     # pval = calculate_pval(layer1, layer2)

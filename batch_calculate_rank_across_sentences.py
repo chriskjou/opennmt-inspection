@@ -71,7 +71,10 @@ def calculate_average_rank(args, file_name):
 		for j in range(num_voxels):
 			if not np.array_equal(np.array(spotlight_predictions[j]).shape, np.array(spotlight_activations[j]).shape):
 				print("not same size")
+				print(np.array(spotlight_predictions[j]).shape)
+				print(np.array(spotlight_activations[j]).shape)
 				exit()
+				# final_rankings.append(0)
 			# print("shape: " + str(np.array(spotlight_predictions[j]).shape))
 			# print(str(np.array(spotlight_predictions[j])))
 			# print(str(np.array(spotlight_activations[j])))
