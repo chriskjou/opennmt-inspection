@@ -215,7 +215,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				llhs.append(llh)
 
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(llh)
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
 
 	clf = Ridge(alpha=alpha, normalize=True)
 	clf.fit(from_regress, to_regress)

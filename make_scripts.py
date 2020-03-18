@@ -172,8 +172,8 @@ done
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
 #SBATCH -p seas_dgx1 							# partition (queue)
-#SBATCH --mem 6000 								# memory pool for all cores
-#SBATCH -t 0-5:00 								# time (D-HH:MM)
+#SBATCH --mem 6500 								# memory pool for all cores
+#SBATCH -t 0-8:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
 #SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
