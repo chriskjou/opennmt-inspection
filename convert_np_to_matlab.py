@@ -181,7 +181,7 @@ def main():
 		else:
 			file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
 		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_namec, metric="rmse")
+		rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="rmse")
 	if args.ranking:
 		if args.local:
 			file_path = "../final_rankings/"
@@ -193,6 +193,13 @@ def main():
 		# df = get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
 		# plot_atlas(args, df, "../visualizations/test", zoom=True)
 		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="ranking")
+	if args.llh:
+		if args.local:
+			file_path = "../llhs/"
+		else:
+			file_path = "/n/shieber_lab/Lab/users/cjou/llh/"
+		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
+		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="llh")
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)
 	print('done.')

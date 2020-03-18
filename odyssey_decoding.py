@@ -11,7 +11,7 @@ import os
 import helper
 from scipy.stats import spearmanr
 from sklearn.linear_model import Ridge, BayesianRidge
-# import scipy.stats as stats
+import scipy.stats as stats
 # import statsmodels.api as sm
 
 def chunkify(lst, num, total):
@@ -200,12 +200,17 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 			if args.llh:
 				n = X_train.shape[0]
 				k = X_train.shape[1]
-				VCV = np.true_divide(1,n-k)*np.dot(np.dot(predicted_trials.T,predicted_trials),np.linalg.inv(np.dot(X_train.T,X_train)))
-				print("VCV SHAPE:" + str(VCV.shape))
+				predicted_X_train = clf.predict(X_train)
+				sigma_train = np.sum((predicted_X_train - y_train)**2)
+				# print("X_train SHAPE: " + str(X_train.shape))
+				# print("predicted_X_train SHAPE:" + str(np.array(predicted_X_train).shape))
+				# print("sigma_train SHAPE: " + str(sigma_train.shape))
+				VCV = np.true_divide(sigma_train,n-k)*np.linalg.inv(np.dot(X_train.T,X_train))
+				# print("VCV SHAPE:" + str(VCV.shape))
 				sigmas = np.diagonal(VCV)
-				print("SIGMA SHAPE:" + str(sigmas.shape))
-				print("PREDICTED SHAPE: " + str(predicted_trials.shape))
-				print("Y SHAPE: " + str(y_train.shape))
+				# print("SIGMA SHAPE:" + str(sigmas.shape))
+				# print("PREDICTED SHAPE: " + str(np.array(predicted_trials).shape))
+				# print("Y SHAPE: " + str(y_train.shape))
 				llh = calculate_llh(predicted_trials, y_test, sigmas)
 				llhs.append(llh)
 
@@ -260,7 +265,7 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
+	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
 	args = argparser.parse_args()
 
