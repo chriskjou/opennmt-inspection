@@ -87,7 +87,7 @@ def main():
     argparser.add_argument("-language", "--language",
                            help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str,
                            default='spanish')
-    argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
+    argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, required=True)
     argparser.add_argument("-random", "--random", action='store_true', default=False,
                            help="True if initialize random brain activations, False if not")
     argparser.add_argument("-rand_embed", "--rand_embed", action='store_true', default=False,
@@ -129,6 +129,16 @@ def main():
         print("error: please select different layers for layer1 and layer2")
         exit()
 
+    if args.num_layers != 12 and args.bert:
+        print("error: please ensure bert has 12 layers")
+        exit()
+
+    if args.num_layers != 12 and (args.word2vec or args.random or args.permutation or args.glove):
+        print("error: please ensure baseline has 1 layer")
+        exit()
+
+    print("NUMBER OF LAYERS: " + str(args.num_layers))
+
     print("generating file names...")
     layer1_file_name = generate_file_name(args, args.layer1)
     layer2_file_name = generate_file_name(args, args.layer2)
@@ -143,9 +153,9 @@ def main():
     print(np.sum(diff))
 
     # generate heatmap
-    heatmap_differences = np.zeros((12, 12))
-    for l1 in list(range(1, 13)):
-        for l2 in list(range(l1, 13)):
+    heatmap_differences = np.zeros((args.num_layers, args.num_layers))
+    for l1 in list(range(1, args.num_layers + 1)):
+        for l2 in list(range(l1, args.num_layers + 1)):
             print("generating file names...")
             layer1_file_name = generate_file_name(args, l1)
             layer2_file_name = generate_file_name(args, l2)
@@ -161,7 +171,7 @@ def main():
     print(heatmap_differences.shape)
     print(heatmap_differences)
 
-    Index = ['layer' + str(i) for i in range(1, 13)]
+    Index = ['layer' + str(i) for i in range(1, args.num_layers + 1)]
     df = pd.DataFrame(heatmap_differences, index=Index, columns=Index)
     # plt.pcolor(df)
     # plt.yticks(np.arange(0.5, len(df.index), 1), df.index)
