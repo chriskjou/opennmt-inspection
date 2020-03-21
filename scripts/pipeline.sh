@@ -12,7 +12,7 @@ merge_rmse_ID =$(sbatch --parsable --dependency=afterok:${decoding_ID} ../get_re
 echo $merge_rmse_ID
 
 ### RANK
-rank_ID = $(sbatch --parsable ../calculate_average_rank_test.sh)
+rank_ID = $(sbatch --parsable ../batch_calculate_across_sentences_test.sh)
 echo $rank_ID
 
 # -> merge rank
