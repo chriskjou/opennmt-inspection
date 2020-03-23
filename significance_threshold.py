@@ -13,6 +13,7 @@ import random
 import math
 import statsmodels.stats.multitest as smm
 import matplotlib.pyplot as plt
+from sklearn.linear_model import Ridge
 import helper
 plt.switch_backend('agg')
 
@@ -34,6 +35,11 @@ def generate_indices(index, session, num_scanner_runs=3):
 def check_for_nan_infinity(y, index):
 	indx = np.argwhere(~np.isnan(y[:,index]) & np.isfinite(y[:,index]))
 	return np.reshape(indx, (len(indx), ))
+
+def add_bias(df):
+	new_col = np.ones((df.shape[0], 1))
+	df = np.hstack((df, new_col))
+	return df
 
 def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, num_scanner_runs=3, split_scanner_runs=False):
 	num_sentences = embeddings.shape[0]
@@ -72,9 +78,12 @@ def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, 
 
 	return correlations, pvals
 
-def fit_to_GLM(args, X_train, X_test, y_train, y_test):
-	p, res, rnk, s = lstsq(X_train, y_train)
-	predicted = np.dot(X_test, p)
+def fit_to_GLM(args, X_train, X_test, y_train, y_test, alpha=1):
+	clf = Ridge(alpha=alpha, normalize=True)
+	clf.fit(X_train, y_train)
+	predicted = clf.predict(X_test)
+	# p, res, rnk, s = lstsq(X_train, y_train)
+	# predicted = np.dot(X_test, p)
 	corr, pval = pearsonr(y_test, predicted)
 	return corr, pval
 
@@ -132,9 +141,9 @@ def get_spotlights(volmask):
 	return space_to_index_dict, index_to_space_dict, volmask_shape
 
 def get_correlations_in_spotlight(correlations, space_to_index_dict, index_to_space_dict, volmask_shape, radius=1):
-	num_voxels = len(spotlight_dict)
+	num_voxels = len(space_to_index_dict)
 
-	correlations_in_spotlight = []
+	correlations_in_spotlight = {}
 	a,b,c = volmask_shape
 	for voxel in tqdm(range(num_voxels)):
 		curr_voxel_in_space = index_to_space_dict[voxel]
@@ -150,7 +159,7 @@ def get_correlations_in_spotlight(correlations, space_to_index_dict, index_to_sp
 					if 0 <= xp and 0 <= yp and 0 <= zp and xp < a and yp < b and zp < c:
 						dist = math.sqrt(i ** 2 + j ** 2 + k ** 2)
 						if pt2 in space_to_index_dict and dist <= radius:
-							correlations_in_spotlight.setdefault(voxel, []).append(correlations[pt2])
+							correlations_in_spotlight.setdefault(voxel, []).append(correlations[space_to_index_dict[pt2]])
 	return correlations_in_spotlight
 
 def evaluate_performance(args, correlations, pvals_per_voxel, space_to_index_dict, index_to_space_dict, volmask_shape):
@@ -253,7 +262,12 @@ def main():
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
 
 	if args.single_subject:
-		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
+		if args.searchlight:
+			search = "_searchlight"
+		else:
+			search = ""
+
+		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number) + str(search)
 		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
 		space_to_index_dict, index_to_space_dict, volmask_shape = get_spotlights(volmask)
 
@@ -265,6 +279,8 @@ def main():
 
 		# 2. calculate correlation 
 		print("calculating correlations...")
+		z_activations = add_bias(z_activations)
+		z_embeddings = add_bias(z_embeddings)
 		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
 		
 		# 3. evaluate significance
@@ -272,7 +288,7 @@ def main():
 		valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict, volmask_shape)
 		corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
 		norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
-		_ = helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
+		_ = helper.transform_coordinates(norm_coords, volmask, save_location, "fdr", pvals=pvals)
 		print("done.")
 
 	if args.group_level:
@@ -291,6 +307,8 @@ def main():
 
 		# 2. calculate correlation 
 		print("calculating correlations...")
+		z_activations = add_bias(z_activations)
+		z_embeddings = add_bias(z_embeddings)
 		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
 		
 		# 3. evaluate significance

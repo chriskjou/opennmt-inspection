@@ -154,19 +154,37 @@ def add_bias(df):
 	df = np.hstack((df, new_col))
 	return df
 
+# np_to_list = [val.tolist() if (isinstance(val, np.ndarray) or isinstance(val, list)) and val != 0 else [0] for val in values]
+	
 def place_into_test_data(predicted_trials, test_index, y_hat_test):
+	values = predicted_trials.copy()
 	num_tests = len(test_index)
 	for index in range(num_tests):
 		which_test_index = test_index[index]
 		which_test_value = y_hat_test[index]
-		before_predictions = predicted_trials[:which_test_index]
-		after_predictions = predicted_trials[which_test_index+1:]
+		before_predictions = values[:which_test_index]
+		after_predictions = values[which_test_index+1:]
 		before_predictions.append(which_test_value)
 		before_predictions.extend(after_predictions)
-		predicted_trials = before_predictions
-	return predicted_trials
+		values = before_predictions
+	np_to_list = []
+	for val in values:
+		if isinstance(val, np.ndarray):
+			if np.array(val).shape != (1,1):
+				np_to_list.append(val.tolist())
+			else:
+				np_to_list.append([0])
+		elif (isinstance(val, list) and val != [0]):
+			np_to_list.append(val)
+		else:
+			np_to_list.append([0])
+	specific_fold = [val for val in np_to_list if val != [0]]
+	indices = [idx for idx in range(len(np_to_list)) if np_to_list[idx] != [0]]
+	return np_to_list, specific_fold
 
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
+	global predicted_trials
+
 	predicted = []
 	if args.brain_to_model:
 		from_regress = np.array(spotlight_activations)
@@ -178,10 +196,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	if args.cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
-		# predicted_trials = []
-		predicted_trials = [0] * to_regress.shape[0]
-		# predicted_trials = np.zeros((to_regress.shape[0], ))
-		# print("PREDICTED TRIALS: " + str(predicted_trials.shape))
+		predicted_trials = [[0]] * to_regress.shape[0]
 		llhs = []
 
 		if args.add_bias:
@@ -195,25 +210,18 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 			clf = Ridge(alpha=alpha, normalize=True)
 			clf.fit(X_train, y_train)
 			y_hat_test = clf.predict(X_test)
-			predicted_trials = place_into_test_data(predicted_trials, test_index, y_hat_test)
+			predicted_trials, specific_fold = place_into_test_data(predicted_trials, test_index, y_hat_test)
 
 			if args.llh:
 				n = X_train.shape[0]
 				k = X_train.shape[1]
 				predicted_X_train = clf.predict(X_train)
 				sigma_train = np.sum((predicted_X_train - y_train)**2)
-				# print("X_train SHAPE: " + str(X_train.shape))
-				# print("predicted_X_train SHAPE:" + str(np.array(predicted_X_train).shape))
-				# print("sigma_train SHAPE: " + str(sigma_train.shape))
 				VCV = np.true_divide(sigma_train,n-k)*np.linalg.inv(np.dot(X_train.T,X_train))
-				# print("VCV SHAPE:" + str(VCV.shape))
 				sigmas = np.diagonal(VCV)
-				# print("SIGMA SHAPE:" + str(sigmas.shape))
-				# print("PREDICTED SHAPE: " + str(np.array(predicted_trials).shape))
-				# print("Y SHAPE: " + str(y_train.shape))
-				llh = calculate_llh(predicted_trials, y_test, sigmas)
+				llh = calculate_llh(specific_fold, y_test, sigmas)
 				llhs.append(llh)
-
+		
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
 		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
 

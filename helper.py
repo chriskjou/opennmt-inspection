@@ -119,7 +119,7 @@ def generate_options(args):
 	return get_residuals_and_make_scripts, options
 
 # transform coordinates for SPM plotting
-def transform_coordinates(rmses, volmask, save_path="", metric=""):
+def transform_coordinates(rmses, volmask, save_path="", metric="", pvals=[]):
 	i,j,k = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	metric_vals = np.zeros((i,j,k))
@@ -129,6 +129,8 @@ def transform_coordinates(rmses, volmask, save_path="", metric=""):
 	scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + ".mat", dict(metric = metric_vals))
 	if metric == "rmses":
 		scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + "-log.mat", dict(metric = np.log(metric_vals)))
+	if metric == "fdr":
+		scipy.io.savemat(save_path + "-3dtransform-" + str(metric) + "-pvals.mat", dict(metric = pvals))
 	# pickle.dump( metrics, open(save_path + "-3dtransform-" + str(metric) + ".p", "wb" ) )
 	# pickle.dump( np.log(metrics), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
 	return metric_vals
