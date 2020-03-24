@@ -220,7 +220,7 @@ def main():
 	argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("-single_subject", "--single_subject", help="if single subject analysis", action='store_true', default=False)
 	argparser.add_argument("-group_level", "--group_level", help="if group level analysis", action='store_true', default=False)
-	argparser.add_argument("-searchlight", "--searchlight", help="if searchlight", action='store_true', default=False)
+	argparser.add_argument("-searchlight", "--searchlight", help="if searchlight", action='store_true', default=True)
 	argparser.add_argument("-fdr", "--fdr", help="if apply FDR", action='store_true', default=False)
 	argparser.add_argument("-subjects", "--subjects", help="subject numbers", type=str, default="")
 	args = argparser.parse_args()

@@ -113,6 +113,7 @@ def main():
 	argparser.add_argument("-ranking", "--ranking",  action='store_true', default=False, help="True if ranking, False if not")
 	argparser.add_argument("-fdr", "--fdr",  action='store_true', default=False, help="True if fdr, False if not")
 	argparser.add_argument("-llh", "--llh",  action='store_true', default=False, help="True if llh, False if not")
+	argparser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -122,8 +123,8 @@ def main():
 	if not args.brain_to_model and not args.model_to_brain:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
-	if not args.rmse and not args.ranking and not args.fdr and not args.llh:
-		print("select at least flag for rmse, ranking, fdr, llh")
+	if not args.rmse and not args.ranking and not args.fdr and not args.llh and not args.rsa:
+		print("select at least flag for rmse, ranking, fdr, llh, rsa")
 		exit()
 
 	print("getting volmask...")
@@ -199,7 +200,15 @@ def main():
 		else:
 			file_path = "/n/shieber_lab/Lab/users/cjou/llh/"
 		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="llh")
+		llh_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="llh")
+
+	if args.rsa:
+		if args.local:
+			file_path = "../rsa/concatenated-"
+		else:
+			file_path = "/n/shieber_lab/Lab/users/cjou/rsa/concatenated-"
+		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
+		rsa_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="rsa")
 	# print("saving matlab file...")
 	# save_to_mat(args, rmses_3d, file_name)
 	print('done.')

@@ -20,6 +20,9 @@ def concatenate_all(specific_file, args, type_concat):
 			file_path = "../predictions/"
 			# file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
 			file_name += "-decoding-predictions"
+		if type_concat == 'rsa':
+			file_path = "../rsa/"
+			# file_path = "/n/shieber_lab/Lab/users/cjou/predictions/"
 		# print("FILE NAME: " + str(file_name))
 		print("FILE NAME: " + str( file_path + file_name + ".p"))
 		part = pickle.load( open( file_path + file_name + ".p", "rb" ) )
@@ -45,6 +48,12 @@ def main():
 	argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
 	argparser.add_argument("-permutation",  "--permutation", action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("-permutation_region", "--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
+	argparser.add_argument("-rmse", "--rmse",  action='store_true', default=False, help="True if rmse, False if not")
+	argparser.add_argument("-ranking", "--ranking",  action='store_true', default=False, help="True if ranking, False if not")
+	argparser.add_argument("-fdr", "--fdr",  action='store_true', default=False, help="True if fdr, False if not")
+	argparser.add_argument("-llh", "--llh",  action='store_true', default=False, help="True if llh, False if not")
+	argparser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
+	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local, False if not")
 	args = argparser.parse_args()
 
 	# languages = 'spanish' #['spanish', 'german', 'italian', 'french', 'swedish']
@@ -61,6 +70,20 @@ def main():
 	if not args.brain_to_model and not args.model_to_brain:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
+	if not args.rmse and not args.ranking and not args.fdr and not args.llh and not args.rsa:
+		print("select at least flag for rmse, ranking, fdr, llh, rsa")
+		exit()
+
+	if args.rmse:
+		metric = "rmses"
+	if args.llh:
+		metric = "llh"
+	if args.ranking:
+		metric = "ranking"
+	if args.rsa:
+		metric = "rsa"
+	if args.fdr:
+		metric = "fdr"
 
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
@@ -79,11 +102,11 @@ def main():
 	#total_batches = args.total_batches
 
 	# make final path
-	if not os.path.isdir('/n/shieber_lab/Lab/users/cjou/rmses/'):
-		os.mkdir('/n/shieber_lab/Lab/users/cjou/rmses/')
+	# if not os.path.isdir('/n/shieber_lab/Lab/users/cjou/rmses/'):
+	# 	os.mkdir('/n/shieber_lab/Lab/users/cjou/rmses/')
 
-	if not os.path.isdir('/n/shieber_lab/Lab/users/cjou/final_predictions/'):
-		os.mkdir('/n/shieber_lab/Lab/users/cjou/final_predictions/')
+	# if not os.path.isdir('/n/shieber_lab/Lab/users/cjou/final_predictions/'):
+	# 	os.mkdir('/n/shieber_lab/Lab/users/cjou/final_predictions/')
 
 	for atype in [args.agg_type]:
 		# for layer in list(range(1, num_layers+1)):
@@ -102,13 +125,16 @@ def main():
 			else:
 				file_format = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}".format(args.subject_number, args.agg_type, args.which_layer)
 
-			final_residuals = concatenate_all(file_format, args, 'residuals')
+			final_residuals = concatenate_all(file_format, args, metric)
 			# final_predictions = concatenate_all(plabel, prlabel, rlabel, elabel, glabel, w2vlabel, bertlabel, args, direction, validate, 'predictions')
 			
 			# RMSES
 			# specific_file = "parallel-english-to-" + str(args.language) + "-model-" + str(args.num_layers) + "layer-" + str(args.model_type) + "-pred-layer" + str(layer) + "-" + str(args.agg_type)
 			
-			file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
+			if args.local:
+				file_path = "../" + str(metric) + "/concatenated-"
+			else:
+				file_path = "/n/shieber_lab/Lab/users/cjou/" + str(metric) + "/concatenated-"
 			# file_path = "../rmses/concatenated-"
 			file_name = file_path + str(file_format) + ".p"
 			pickle.dump( final_residuals, open( file_name, "wb" ) )
