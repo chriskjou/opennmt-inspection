@@ -11,22 +11,6 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 
-# def get_concatenated_residuals(args, file_path, file_name):
-# 	if args.log:
-# 		concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-log-rmse.p", "rb"))
-# 		return concatenated_residuals
-# 	concatenated_residuals = pickle.load(open(file_path + file_name + "-transform-rmse.p", "rb"))
-# 	return concatenated_residuals
-
-# def save_to_mat(args, vals, file_name):
-# 	if args.log:
-# 		scipy.io.savemat("../mat/" + file_name + "-log.mat", dict(rmse = vals))
-# 		print("saved file: ../mat/" + file_name + "-log.mat")
-# 		return
-# 	scipy.io.savemat("../mat/" + file_name + ".mat", dict(rmse = vals))
-# 	print("saved file: ../mat/" + file_name + ".mat")
-# 	return
-
 map_dict = {
 	'avg': "Average",
 	'min': "Minimum", 
@@ -88,6 +72,30 @@ def get_rankings_by_brain_region(file_name, values, atlas, roi):
 	pickle.dump(df, open(to_save_file, "wb"))
 	return df
 
+def concatenate_all(specific_file, args, type_concat):
+	final_residuals = []
+	for i in tqdm(range(args.total_batches)):
+
+		file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches)
+		if type_concat == 'rmse':
+			file_path = "/n/shieber_lab/Lab/users/cjou/residuals_od32/"
+		elif type_concat == 'predictions':
+			file_path = "/n/shieber_lab/Lab/users/cjou/predictions_od32/"
+			file_name += "-decoding-predictions"
+		elif type_concat == 'rsa':
+			file_path = "/n/shieber_lab/Lab/users/cjou/rsa/"
+		elif type_concat == 'llh':
+			file_path = "/n/shieber_lab/Lab/users/cjou/llh/"
+		elif type_concat == 'fdr':
+			file_path = "/n/shieber_lab/Lab/users/cjou/fdr/"
+		else:
+			print("ERROR")
+		
+		part = pickle.load( open( file_path + file_name + ".p", "rb" ) )
+		final_residuals.extend(part)
+	print("FILE NAME: " + str( file_path + specific_file))
+	return final_residuals
+
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
@@ -114,6 +122,7 @@ def main():
 	argparser.add_argument("-fdr", "--fdr",  action='store_true', default=False, help="True if fdr, False if not")
 	argparser.add_argument("-llh", "--llh",  action='store_true', default=False, help="True if llh, False if not")
 	argparser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
+	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", default=100)
 	args = argparser.parse_args()
 
 	# check conditions // can remove when making pipeline
@@ -128,7 +137,31 @@ def main():
 		exit()
 
 	print("getting volmask...")
+	
+	if args.rmse:
+		metric_name = "rmse"
+	if args.llh:
+		metric_name = "llh"
+	if args.ranking:
+		metric_name = "ranking"
+	if args.rsa:
+		metric_name = "rsa"
+	if args.fdr:
+		metric_name = "fdr"
+
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
+
+	print("CROSS VALIDATION: " + str(args.cross_validation))
+	print("BRAIN_TO_MODEL: " + str(args.brain_to_model))
+	print("MODEL_TO_BRAIN: " + str(args.model_to_brain))
+	print("GLOVE: " + str(args.glove))
+	print("WORD2VEC: " + str(args.word2vec))
+	print("BERT: " + str(args.bert))
+	print("RANDOM BRAIN: " + str(args.random))
+	print("RANDOM EMBEDDINGS: " + str(args.rand_embed))
+	print("PERMUTATION: " + str(args.permutation))
+	print("PERMUTATION REGION: " + str(args.permutation_region))
+
 	if args.local:
 		volmask = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/volmask.p", "rb" ) )
 		if args.ranking:
@@ -175,42 +208,26 @@ def main():
 			args.agg_type
 		)
 	print("transform coordinates...")
-	# vals = get_concatenated_residuals(args, "../rmses/concatenated-", file_name)
-	if args.rmse:
-		if args.local:
-			file_path = "../rmses/concatenated-"
-		else:
-			file_path = "/n/shieber_lab/Lab/users/cjou/rmses/concatenated-"
-		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		rmses_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="rmse")
-	if args.ranking:
-		if args.local:
-			file_path = "../final_rankings/"
-		else:
-			file_path = "/n/shieber_lab/Lab/users/cjou/final_rankings/"
-		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		# final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
-		# final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
-		# df = get_rankings_by_brain_region(file_name, vals, final_atlas_labels, final_roi_labels)
-		# plot_atlas(args, df, "../visualizations/test", zoom=True)
-		rankings_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="ranking")
-	if args.llh:
-		if args.local:
-			file_path = "../llhs/"
-		else:
-			file_path = "/n/shieber_lab/Lab/users/cjou/llh/"
-		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		llh_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="llh")
 
-	if args.rsa:
-		if args.local:
-			file_path = "../rsa/concatenated-"
-		else:
-			file_path = "/n/shieber_lab/Lab/users/cjou/rsa/concatenated-"
-		vals = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		rsa_3d = helper.transform_coordinates(vals, volmask, save_path="../mat/" + file_name, metric="rsa")
-	# print("saving matlab file...")
-	# save_to_mat(args, rmses_3d, file_name)
+
+	print("LAYER: " + str(args.which_layer))
+	if not args.word2vec and not args.glove and not args.bert and not args.random:
+		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+		file_format = specific_file.format(
+			args.subject_number, 
+			args.language, 
+			args.num_layers, 
+			args.model_type, 
+			args.which_layer, 
+			args.agg_type
+		)
+	else:
+		file_format = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}".format(args.subject_number, args.agg_type, args.which_layer)
+
+	final_values = concatenate_all(file_format, args, metric_name)
+
+	_ = helper.transform_coordinates(final_values, volmask, save_path="../mat/" + file_name, metric=metric_name)
+
 	print('done.')
 
 if __name__ == "__main__":
