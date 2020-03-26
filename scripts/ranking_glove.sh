@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J ranking_glove 					# Job name
-#SBATCH -p seas_dgx1 							# partition (queue)
-#SBATCH --mem 2000 							# memory pool for all cores
+#SBATCH -J ranking_glove 						# Job name
+#SBATCH -p serial_requeue  						# partition (queue)
+#SBATCH --mem 2000 								# memory pool for all cores
 #SBATCH -t 0-2:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
-#SBATCH -o ../../../outpt_ranking_glove.txt 		# File that STDOUT writes to
+#SBATCH -o ../../../outpt_ranking_glove.txt 	# File that STDOUT writes to
 #SBATCH -e ../../../err_ranking_glove.txt		# File that STDERR writes to
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=ckjou@college.harvard.edu

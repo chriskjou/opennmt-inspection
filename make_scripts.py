@@ -168,12 +168,21 @@ done
 			eflag = "" if (elabel == "") else "--" + str(elabel)
 			memmap_flag = "" if not args.memmap else " --memmap"
 			rsaflag = "" if not args.rsa else " --rsa"
+			if args.rsa:
+				mem = "4500"
+				timelimit = "0-3:00"
+			elif args.llh:
+				mem = "8000"
+				timelimit = "0-24:00"
+			else:
+				mem = "9500"
+				timelimit = "0-3:00"
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
-#SBATCH -p seas_dgx1 							# partition (queue)
-#SBATCH --mem 6500 								# memory pool for all cores
-#SBATCH -t 0-8:00 								# time (D-HH:MM)
+#SBATCH -p serial_requeue 						# partition (queue)
+#SBATCH --mem {17} 								# memory pool for all cores
+#SBATCH -t {18}									# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
 #SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
@@ -209,7 +218,9 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		pflag,
 		prflag,
 		memmap_flag,
-		rsaflag
+		rsaflag,
+		mem,
+		timelimit
 	)
 )
 
@@ -236,6 +247,7 @@ def main():
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	parser.add_argument("-memmap", "--memmap",  action='store_true', default=False, help="True if memmep, False if not")
 	parser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
+	parser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']

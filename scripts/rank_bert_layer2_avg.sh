@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH -J rank_bert_layer2_avg 				# Job name
-#SBATCH -p seas_dgx1 							# partition (queue)
+#SBATCH -p serial_requeue  						# partition (queue)
 #SBATCH --mem 2000 								# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location

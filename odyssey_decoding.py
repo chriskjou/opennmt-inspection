@@ -202,7 +202,11 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		if args.add_bias:
 			from_regress = add_bias(from_regress)
 
+		if args.permutation:
+				np.random.shuffle(from_regress)
+
 		for train_index, test_index in kf.split(from_regress):
+
 			X_train, X_test = from_regress[train_index], from_regress[test_index]
 			y_train, y_test = to_regress[train_index], to_regress[test_index]
 
@@ -273,7 +277,7 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
+	argparser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
 	args = argparser.parse_args()
 
