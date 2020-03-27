@@ -221,6 +221,8 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				k = X_train.shape[1]
 				predicted_X_train = clf.predict(X_train)
 				sigma_train = np.sum((predicted_X_train - y_train)**2)
+				# VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
+				# VCV = np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
 				VCV = np.true_divide(sigma_train,n-k)*np.linalg.inv(np.dot(X_train.T,X_train))
 				sigmas = np.diagonal(VCV)
 				llh = calculate_llh(specific_fold, y_test, sigmas)
@@ -236,7 +238,8 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	if args.llh:
 		n = from_regress.shape[0]
 		k = from_regress.shape[1]
-		VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
+		# VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
+		VCV = np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
 		sigmas = np.diagonal(VCV)
 		llh = calculate_llh(y_hat_test, to_regress, sigmas)
 	

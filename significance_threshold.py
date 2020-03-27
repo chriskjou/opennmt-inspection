@@ -203,12 +203,17 @@ def load_common_space(subject_numbers):
 	for subj_num in subject_numbers[1:]:
 		volmask = get_volmask(subj_num)
 		subject_volmasks = subject_volmasks & volmask
+		del volmask
 	return subject_volmasks
+
+def ttest_voxels(voxels):
+	return stats.ttest_1samp(voxels, 0.0)
 
 def main():
 	argparser = argparse.ArgumentParser(description="FDR significance thresholding for single subject")
-	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)", required=True)
+	argparser.add_argument("-embedding_layer", "--embedding_layer", type=str, help="Location of NN embedding (for a layer)")
 	argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
+	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	argparser.add_argument("-random", "--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
 	argparser.add_argument("-rand_embed", "--rand_embed",  action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("-glove", "--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
@@ -234,11 +239,13 @@ def main():
 		print("not valid application of FDR to single subject with searchlight")
 		exit()
 
-	if args.group_level and args.subject == "":
+	if args.group_level and args.subjects == "":
 		print("must specify subject numbers in group level analysis")
 		exit()
 
-	### get embeddings
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mat/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
+
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
 		embed_loc = args.embedding_layer
 		# embed_loc = "/Users/christinejou/Documents/research/embeddings/parallel/spanish/2layer-brnn/avg/parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.mat"
@@ -258,10 +265,9 @@ def main():
 		else:
 			file_name += "random"
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mat/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
 
 	if args.single_subject:
+
 		if args.searchlight:
 			search = "_searchlight"
 		else:
@@ -292,31 +298,34 @@ def main():
 		print("done.")
 
 	if args.group_level:
+
 		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_group_analysis"
-		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]   
+		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]  
+
+		print("loading brain common space...") 
 		volmask = load_common_space(subject_numbers)
 		space_to_index_dict, index_to_space_dict, volmask_shape = get_spotlights(volmask)
 
-		# 1. z-score
-		print("z-scoring activations and embeddings...")
-		z_embeddings = z_score(embed_matrix)
-		z_activations = []
-		for subj_num in subject_numbers:
-			individual_activations = pickle.load(open("../../examplesGLM/subj" + str(subj_num) + "/individual_activations.p", "rb"))
-			z_activations.append(z_score(individual_activations))
+		# 1. get all data
+		print("get all data...")
+		fdr_corr_list = []
+		for subj_num in tqdm(subject_numbers):
+			print("adding subject: " + str(subj_num))
+			file_name = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(args.agg_type) + "_layer" + str(args.which_layer) + "bert_subj" + str(args.subject_number) + "_searchlight-3dtransform-fdr"
+			fdr_corr = scipy.io.loadmat(file_name + ".mat")
+			fdr_corr_vals = fdr_corr["metric"]
+			common_corr = fdr_corr_vals[volmask.astype(bool)].tolist()
+			fdr_corr_list.append(common_corr)
 
-		# 2. calculate correlation 
+		# 2. average correlations and pvalues
 		print("calculating correlations...")
-		z_activations = add_bias(z_activations)
-		z_embeddings = add_bias(z_embeddings)
-		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
-		
-		# 3. evaluate significance
-		print("evaluating significance...")
-		valid_correlations, indices, num_voxels = evaluate_performance(args, correlations, pvals, space_to_index_dict, index_to_space_dict, volmask_shape)
-		corrected_coordinates = get_2d_coordinates(valid_correlations, indices, num_voxels)
-		norm_coords = fix_coords_to_absolute_value(corrected_coordinates)
-		_ = helper.transform_coordinates(norm_coords, volmask, save_location, "fdr")
+		avg_corrs = np.mean(np.array(fdr_corr_list), axis=0)
+		ttest_pval = np.apply_along_axis(ttest_voxels, 0, np.array(fdr_corr_list))
+
+		# 3. save files
+		print("saving files...")
+		scipy.io.savemat(save_location + "-3dtransform-corr.mat", dict(metric = avg_corrs))
+		scipy.io.savemat(save_location + "-3dtransform-pvals.mat", dict(metric = ttest_pval))
 		print("done.")
 	return
 
