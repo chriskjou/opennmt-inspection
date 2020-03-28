@@ -92,8 +92,8 @@ def calculate_average_rank(args, file_name):
 		del spotlight_activations
 		del spotlight_predictions
 
-	to_save_file = "/n/shieber_lab/Lab/users/cjou/final_rankings/" + file_name + ".p"
-	scipy.io.savemat("/n/shieber_lab/Lab/users/cjou/final_rankings/" + file_name + "-3dtransform-corr.mat", dict(metric = final_rankings))
+	to_save_file = "../mat/" + file_name + ".p"
+	scipy.io.savemat("../mat/" + file_name + "-3dtransform-ranking.mat", dict(metric = final_rankings))
 	pickle.dump(final_rankings, open(to_save_file, "wb"))
 	return 
 

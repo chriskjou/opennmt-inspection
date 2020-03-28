@@ -159,10 +159,12 @@ def main():
 	argparser.add_argument("-subjects", "--subjects", help="subject numbers", type=str, default="")
 	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local False if not")
 	argparser.add_argument("-brain_map", "--brain_map",  action='store_true', default=False, help="True if for 3d brain map if not")
+	argparser.add_argument("-sentences", "--sentences",  help="sentence numbers", type=str, default="")
 	args = argparser.parse_args()
 
 	if args.brain_map:
 		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]  
+		sentence_numbers = [int(subj_num) for subj_num in args.sentences.split(",")]  
 
 		print("finding common brain space...")
 		volmask = helper.load_common_space(subject_numbers, local=args.local)
@@ -177,6 +179,9 @@ def main():
 				file_name = "/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subj_num) + "/modified_activations.p"
 			print("FILE NAME: " + str(file_name))
 			activations = pickle.load(open(file_name, "rb"))
+			if len(sentence_numbers) > 0 and subj_num == 1:
+				for sent_num in sentence_numbers:
+					scipy.io.savemat("../mat/subj" + str(subj_num) + "_initial_activations_sentence" + str(sent_num) + ".mat", dict(metric = np.array(activations)[sent_num-1]))
 			avg_acts_per_subject = np.mean(np.array(activations), axis=0)
 			scipy.io.savemat("../mat/subj" + str(subj_num) + "_initial_activations.mat", dict(metric = avg_acts_per_subject))
 			common_act = np.ma.array(avg_acts_per_subject, mask=volmask)

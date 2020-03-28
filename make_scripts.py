@@ -174,6 +174,9 @@ done
 			elif args.llh:
 				mem = "8000"
 				timelimit = "0-24:00"
+			elif args.brain_to_model:
+				mem = "15000"
+				timelimit = "0-10:00"
 			else:
 				mem = "12000"
 				timelimit = "0-10:00"
