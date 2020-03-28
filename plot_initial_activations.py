@@ -9,6 +9,8 @@ import argparse
 import os
 from tqdm import tqdm
 import math
+import helper
+import scipy.io
 
 def clean_roi(roi_vals, roi_labels):
 	roi_vals = roi_vals.reshape((len(roi_vals), ))
@@ -153,81 +155,76 @@ def create_per_sentence(activations, args, at_labels, final_roi_labels):
 def main():
 
 	argparser = argparse.ArgumentParser(description="plot initial activations by location")
-	# argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
-	# argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
-	# argparser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
-	# argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
-	# argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	argparser.add_argument("-subject_number", "--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
-	# argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
-	# argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
-	# argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
-	# argparser.add_argument("-random",  "--random", action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("-subjects", "--subjects", help="subject numbers", type=str, default="")
+	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local False if not")
+	argparser.add_argument("-brain_map", "--brain_map",  action='store_true', default=False, help="True if for 3d brain map if not")
 	args = argparser.parse_args()
 
-	# get residuals
-	# check conditions // can remove when making pipeline
-	# if args.brain_to_model and args.model_to_brain:
-	# 	print("select only one flag for brain_to_model or model_to_brain")
-	# 	exit()
-	# if not args.brain_to_model and not args.model_to_brain:
-	# 	print("select at least flag for brain_to_model or model_to_brain")
-	# 	exit()
+	if args.brain_map:
+		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]  
 
-	# if args.brain_to_model:
-	# 	direction = "brain2model_"
-	# else:
-	# 	direction = "model2brain_"
+		print("finding common brain space...")
+		volmask = helper.load_common_space(subject_numbers, local=args.local)
 
-	# if args.cross_validation:
-	# 	validate = "cv_"
-	# else:
-	# 	validate = "nocv_"
-	# if args.random:
-	# 	rlabel = "random"
-	# else:
-	# 	rlabel = ""
+		print("getting all activations...")
+		activations_list = []
+		for subj_num in tqdm(subject_numbers):
+			print("adding subject: " + str(subj_num))
+			if args.local:
+				file_name = "../examplesGLM/subj" + str(subj_num) + "/modified_activations.p"
+			else:
+				file_name = "/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subj_num) + "/modified_activations.p"
+			print("FILE NAME: " + str(file_name))
+			activations = pickle.load(open(file_name, "rb"))
+			avg_acts_per_subject = np.mean(np.array(activations), axis=0)
+			scipy.io.savemat("../mat/subj" + str(subj_num) + "_initial_activations.mat", dict(metric = avg_acts_per_subject))
+			common_act = np.ma.array(avg_acts_per_subject, mask=volmask)
+			activations_list.append(common_act)
 
+		print("saving average activations...")
+		across_brain = np.mean(np.array(activations_list), axis=0)
+		scipy.io.savemat("../mat/common_space_initial_activations.mat", dict(metric = across_brain))
 
-	# residual_file = sys.argv[1]
-	activations = pickle.load( open( "activations.p", "rb" ) )
-	# activations = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/activations.p", "rb" ) )
+	else:
+		# get atlas and roi
+		if args.local:
+			activations = pickle.load( open( "activations.p", "rb" ) )
+			atlas_vals = pickle.load( open( "atlas_vals.p", "rb" ) )
+			atlas_labels = pickle.load( open( "atlas_labels.p", "rb" ) )
+			roi_vals = pickle.load( open( "roi_vals.p", "rb" ) )
+			roi_labels = pickle.load( open( "roi_labels.p", "rb" ) )
+		else:
+			activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
+			atlas_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
+			atlas_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
+			roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
+			roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
-	# get atlas and roi
-	atlas_vals = pickle.load( open( "atlas_vals.p", "rb" ) )
-	atlas_labels = pickle.load( open( "atlas_labels.p", "rb" ) )
-	roi_vals = pickle.load( open( "roi_vals.p", "rb" ) )
-	roi_labels = pickle.load( open( "roi_labels.p", "rb" ) )
+		print("INITIAL:")
+		print(len(atlas_vals))
+		print(len(atlas_labels))
+		print(len(roi_vals))
+		print(len(roi_labels))
 
-	# atlas_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
-	# atlas_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
-	# roi_vals = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
-	# roi_labels = pickle.load( open( f"/n/scratchlfs/shieber_lab/users/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+		final_roi_labels = clean_roi(roi_vals, roi_labels)
+		at_labels = clean_atlas(atlas_vals, atlas_labels)
 
-	print("INITIAL:")
-	print(len(atlas_vals))
-	print(len(atlas_labels))
-	print(len(roi_vals))
-	print(len(roi_labels))
+		print("CLEANING")
+		print(len(final_roi_labels))
+		print(len(at_labels))
 
-	final_roi_labels = clean_roi(roi_vals, roi_labels)
-	at_labels = clean_atlas(atlas_vals, atlas_labels)
+		if not os.path.exists('../visualizations/'):
+			os.makedirs('../visualizations/')
 
-	print("CLEANING")
-	print(len(final_roi_labels))
-	print(len(at_labels))
+		# make dataframe
+		print(len(list(range(len(activations)))))
+		print(len(activations))
+		print(len(at_labels))
+		print(len(final_roi_labels))
 
-	if not os.path.exists('../visualizations/'):
-		os.makedirs('../visualizations/')
-
-	# make dataframe
-	print(len(list(range(len(activations)))))
-	print(len(activations))
-	print(len(at_labels))
-	print(len(final_roi_labels))
-
-	create_per_brain_region(activations, args, at_labels, final_roi_labels)
-	# create_per_sentence(activations, args, at_labels, final_roi_labels)
+		create_per_brain_region(activations, args, at_labels, final_roi_labels)
+		create_per_sentence(activations, args, at_labels, final_roi_labels)
 
 	print("done.")
 

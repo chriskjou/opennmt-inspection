@@ -194,18 +194,6 @@ def fix_coords_to_absolute_value(coords):
 	norm_coords = [c if c==0 else c+1 for c in coords]
 	return norm_coords
 
-def get_volmask(subj_num):
-	volmask = pickle.load(open(f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subj_num) + "/volmask.p", "rb"))
-	return volmask
-
-def load_common_space(subject_numbers):
-	subject_volmasks = get_volmask(subject_numbers[0])
-	for subj_num in subject_numbers[1:]:
-		volmask = get_volmask(subj_num)
-		subject_volmasks = subject_volmasks & volmask
-		del volmask
-	return subject_volmasks
-
 def ttest_voxels(voxels):
 	return stats.ttest_1samp(voxels, 0.0)
 
@@ -303,8 +291,11 @@ def main():
 		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]  
 
 		print("loading brain common space...") 
-		volmask = load_common_space(subject_numbers)
+		volmask = helper.load_common_space(subject_numbers)
+		print("VOLMASK SHAPE: " + str(volmask.shape))
 		space_to_index_dict, index_to_space_dict, volmask_shape = get_spotlights(volmask)
+
+		print("returned shape: " + str(volmask_shape))
 
 		# 1. get all data
 		print("get all data...")
@@ -314,7 +305,7 @@ def main():
 			file_name = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(args.agg_type) + "_layer" + str(args.which_layer) + "bert_subj" + str(args.subject_number) + "_searchlight-3dtransform-fdr"
 			fdr_corr = scipy.io.loadmat(file_name + ".mat")
 			fdr_corr_vals = fdr_corr["metric"]
-			common_corr = fdr_corr_vals[volmask.astype(bool)].tolist()
+			common_corr = np.ma.array(fdr_corr_vals, mask=volmask)
 			fdr_corr_list.append(common_corr)
 
 		# 2. average correlations and pvalues

@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 import scipy.io
+import pickle
 
 def validate_arguments(args):
 	if args.language not in languages:
@@ -134,6 +135,22 @@ def transform_coordinates(rmses, volmask, save_path="", metric="", pvals=[]):
 	# pickle.dump( metrics, open(save_path + "-3dtransform-" + str(metric) + ".p", "wb" ) )
 	# pickle.dump( np.log(metrics), open(save_path + "-3dtransform-log-" + str(metric) + ".p", "wb" ) )
 	return metric_vals
+
+# get common brain space
+def get_volmask(subj_num, local=False):
+	if local:
+		volmask = pickle.load(open("../examplesGLM/subj" + str(subj_num) + "/volmask.p", "rb"))
+	else:
+		volmask = pickle.load(open(f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(subj_num) + "/volmask.p", "rb"))
+	return volmask
+
+def load_common_space(subject_numbers, local=False):
+	subject_volmasks = get_volmask(subject_numbers[0], local)
+	for subj_num in subject_numbers[1:]:
+		volmask = get_volmask(subj_num, local)
+		subject_volmasks = subject_volmasks & volmask
+		del volmask
+	return subject_volmasks
 
 # clean ROI labels for plotting and ranking
 def clean_roi(roi_vals, roi_labels):
