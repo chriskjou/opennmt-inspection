@@ -119,6 +119,15 @@ def generate_options(args):
 
 	return get_residuals_and_make_scripts, options
 
+def transform_coordinates(rmses, volmask, layer, save_path="", metric="", pvals=[]):
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	metric_vals = np.zeros((i,j,k))
+	for pt in tqdm(range(len(nonzero_pts))):
+		x,y,z = nonzero_pts[pt]
+		metric_vals[int(x)][int(y)][int(z)] = rmses[0][pt]
+	scipy.io.savemat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-ranking.mat", dict(metric = metric_vals))
+
 # transform coordinates for SPM plotting
 def transform_coordinates(rmses, volmask, save_path="", metric="", pvals=[]):
 	i,j,k = volmask.shape

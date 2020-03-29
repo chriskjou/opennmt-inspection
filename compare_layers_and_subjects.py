@@ -29,6 +29,8 @@ def calculate_ttest(values):
 	return prob
 
 def compare_layers(layer1, layer2):
+	print(layer1.shape)
+	print(layer2.shape)
 	diff = layer1-layer2
 	return diff
 
@@ -38,7 +40,7 @@ def get_file(args, file_name):
 		path = "../mat/"
 	elif args.rmse:
 		metric = "rmse"
-		path = "../3d-brain/"
+		path = "../mat/"
 	elif args.llh:
 		metric = "llh"
 		path = ""
@@ -47,6 +49,7 @@ def get_file(args, file_name):
 		path = "../fdr/"
 	else:
 		print("error: check for valid method of correlation")
+		path = ""
 	save_path = path + str(file_name) + "-3dtransform-" + str(metric)
 
 	print("LOADING FILE: " + str(save_path) + ".mat")
@@ -161,16 +164,16 @@ def main():
 
 	args = argparser.parse_args()
 
-	if args.layer1 == args.layer2:
-		print("error: please select different layers for layer1 and layer2")
-		exit()
-
 	if args.num_layers != 12 and args.bert:
 		print("error: please ensure bert has 12 layers")
 		exit()
 
-	if args.num_layers != 12 and (args.word2vec or args.random or args.permutation or args.glove):
+	if args.num_layers != 1 and (args.word2vec or args.random or args.permutation or args.glove):
 		print("error: please ensure baseline has 1 layer")
+		exit()
+
+	if not args.fdr and not args.llh and not args.ranking and not args.rmse:
+		print("error: select at least 1 metric of correlation")
 		exit()
 
 	print("NUMBER OF LAYERS: " + str(args.num_layers))

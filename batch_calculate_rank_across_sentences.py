@@ -93,7 +93,9 @@ def calculate_average_rank(args, file_name):
 		del spotlight_predictions
 
 	to_save_file = "../mat/" + file_name + ".p"
-	scipy.io.savemat("../mat/" + file_name + "-3dtransform-ranking.mat", dict(metric = final_rankings))
+	save_location = "../mat/" + file_name + "-3dtransform-ranking.mat"
+	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+	_ = helper.transform_coordinates(final_rankings, volmask, save_location, "ranking")
 	pickle.dump(final_rankings, open(to_save_file, "wb"))
 	return 
 
