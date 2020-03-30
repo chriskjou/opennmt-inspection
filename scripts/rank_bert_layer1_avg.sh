@@ -12,4 +12,4 @@
 module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
-python ../batch_calculate_rank_across_sentences.py --which_layer 1 --cross_validation --bert --brain_to_model --total_batches 100
+python ../batch_calculate_rank_across_sentences.py --which_layer 1 --cross_validation --bert --model_to_brain --total_batches 100

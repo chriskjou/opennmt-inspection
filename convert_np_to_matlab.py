@@ -88,6 +88,8 @@ def concatenate_all(specific_file, args, type_concat):
 			file_path = "/n/shieber_lab/Lab/users/cjou/llh/"
 		elif type_concat == 'fdr':
 			file_path = "/n/shieber_lab/Lab/users/cjou/fdr/"
+		elif type_concat == 'ranking':
+			file_path = "/n/shieber_lab/Lab/users/cjou/final_ranking/"
 		else:
 			print("ERROR")
 		

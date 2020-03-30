@@ -159,8 +159,8 @@ done
 		with open(fname, 'w') as rsh:
 			cvflag = "" if not args.cross_validation else " --cross_validation "
 			dflag = " --brain_to_model " if args.brain_to_model else " --model_to_brain "
-			pflag = "" if (plabel == "") else "--" + str(plabel)
-			prflag = "" if (prlabel == "") else "--" + str(prlabel)
+			pflag = "" if (plabel == "") else "--permutation"
+			prflag = "" if (prlabel == "") else "--permutation_region"
 			rflag = "" if (rlabel == "") else "--" + str(rlabel)
 			gflag = "" if (glabel == "") else "--" + str(glabel)
 			w2vflag = "" if (w2vlabel == "") else "--" + str(w2vlabel)

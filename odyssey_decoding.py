@@ -149,12 +149,19 @@ def llh(pred, data, sigmas):
 		ll += stats.norm.logpdf(residual, 0, sigmas[index])
 	return ll
 
+def find_log_pdf(arr, sigmas):
+	val = stats.norm.logpdf(arr, 0, sigmas)
+	return np.nansum(val)
+
+def vectorize_llh(pred, data, sigmas):
+	residuals = np.subtract(data, pred)
+	llh = np.sum(np.apply_along_axis(find_log_pdf, 1, residuals, sigmas))
+	return llh
+
 def add_bias(df):
 	new_col = np.ones((df.shape[0], 1))
 	df = np.hstack((df, new_col))
 	return df
-
-# np_to_list = [val.tolist() if (isinstance(val, np.ndarray) or isinstance(val, list)) and val != 0 else [0] for val in values]
 	
 def place_into_test_data(predicted_trials, test_index, y_hat_test):
 	values = predicted_trials.copy()
@@ -203,7 +210,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 			from_regress = add_bias(from_regress)
 
 		if args.permutation:
-				np.random.shuffle(from_regress)
+			np.random.shuffle(from_regress)
 
 		for train_index, test_index in kf.split(from_regress):
 
@@ -212,6 +219,8 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 
 			# with ridge regression
 			clf = Ridge(alpha=alpha, normalize=True)
+			# print("X_TRAIN: " + str(X_train.shape))
+			# print("Y_TRAIN: " + str(y_train.shape))
 			clf.fit(X_train, y_train)
 			y_hat_test = clf.predict(X_test)
 			predicted_trials, specific_fold = place_into_test_data(predicted_trials, test_index, y_hat_test)
@@ -220,12 +229,36 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				n = X_train.shape[0]
 				k = X_train.shape[1]
 				predicted_X_train = clf.predict(X_train)
-				sigma_train = np.sum((predicted_X_train - y_train)**2)
+				# print("Y TEST: " + str(y_test.shape))
+				# print("Y HAT TEST: " + str(y_hat_test.shape))
+				# print(y_hat_test[:20])
+				# print(y_test[:20])
+				# print(np.array_equal(y_hat_test, y_test))
+				# print("SPECIFC FOLD: " + str(np.array(specific_fold).shape))
+				# print("PREDICTED_X_TRAIN: " + str(predicted_X_train.shape))
+				# print("Y_TRAIN: " + str(y_train.shape))
+				# print("SHAPE: " + str((predicted_X_train - y_train).shape))
+				# sigma_train = np.sum((predicted_X_train - y_train)**2)
+				# # print("SIGMAS TRAINS: " + str(sigma_train.shape))
+				# sigma_train = np.sum((predicted_X_train - y_train)**2, axis=1)
+				# print("SIGMAS TRAINS: " + str(sigma_train.shape))
+				sigma_train = np.sum((predicted_X_train - y_train)**2, axis=0)
+				# print("SIGMAS TRAINS: " + str(sigma_train.shape))
 				# VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
 				# VCV = np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
-				VCV = np.true_divide(sigma_train,n-k)*np.linalg.inv(np.dot(X_train.T,X_train))
-				sigmas = np.diagonal(VCV)
-				llh = calculate_llh(specific_fold, y_test, sigmas)
+				# VCV = np.true_divide(sigma_train,n-k)*np.linalg.inv(np.dot(X_train.T,X_train))
+				# VCV = sigma_train*np.linalg.inv(np.dot(X_train.T,X_train))
+				# print("INVERSE SHAPE: " + str(np.linalg.inv(np.dot(X_train.T,X_train)).shape))
+				# print("VCV: " + str(VCV.shape))
+				# sigmas = np.diagonal(VCV)
+				# print("DATA: " + str(len(specific_fold)))
+				# print("INSIDE: " + str(len(specific_fold[0])))
+				# print("PRED: " + str(y_test.shape))
+				# print("SIGMAS: " + str(sigmas.shape))
+				llh = vectorize_llh(y_hat_test, y_test, sigma_train)
+				# llh = calculate_llh(specific_fold, y_test, sigmas)
+				# print("LLH: " + str(llh))
+				# sigmas = np.diagonal(VCV)
 				llhs.append(llh)
 		
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
@@ -280,7 +313,7 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
+	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
 	args = argparser.parse_args()
 
@@ -309,9 +342,15 @@ def main():
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# get modified activations
-	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/" + str(plabel) + str(prlabel) + "activations.p", "rb" ) )
+	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/activations.p", "rb" ) )
 	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/" + str(plabel) + str(prlabel) + "modified_activations.p", "rb" ) )
+	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/modified_activations.p", "rb" ) )
+
+	print("PERMUTATION: " + str(args.permutation))
+	print("PERMUTATION REGION: " + str(args.permutation_region))
+
+	print("PLABEL: " + str(plabel))
+	print("PRLABEL:  " + str(prlabel))
 
 	if args.normalize:
 		modified_activations = normalize_voxels(modified_activations)
