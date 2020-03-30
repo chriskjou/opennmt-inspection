@@ -23,9 +23,7 @@ def calculate_rank(true_distance, distance_matrix):
 	ranks = []
 	for sent_index in range(num_sentences):
 		distances = distance_matrix[sent_index]
-		# print("ALL DISTANCES: " + str(distances))
 		true_sent_distance = true_distance[sent_index]
-		# print("TRUE DISTANCE: " + str(true_sent_distance))
 		rank = np.sum(distances < true_sent_distance)
 		ranks.append(rank)
 
@@ -61,9 +59,6 @@ def calculate_average_rank(args, file_name):
 		num_voxels = len(spotlight_activations)
 		num_voxels_check = len(spotlight_predictions)
 
-		# print("number of voxels: " + str(num_voxels))
-		# print("number of voxels check:" + str(num_voxels_check))
-
 		if num_voxels != num_voxels_check:
 			print("unequal number of voxels")
 			exit()
@@ -74,19 +69,9 @@ def calculate_average_rank(args, file_name):
 				print(np.array(spotlight_predictions[j]).shape)
 				print(np.array(spotlight_activations[j]).shape)
 				exit()
-				# final_rankings.append(0)
-			# print("shape: " + str(np.array(spotlight_predictions[j]).shape))
-			# print(str(np.array(spotlight_predictions[j])))
-			# print(str(np.array(spotlight_activations[j])))
 			true_distances = calculate_true_distances(np.array(spotlight_predictions[j]), np.array(spotlight_activations[j]))
-			# print("true distnaces: " + str(true_distances))
-			# print("NUM of true distances: " + str(len(true_distances)))
 			distance_matrix = compute_distance_matrix(np.array(spotlight_predictions[j]), np.array(spotlight_activations[j]))
-			# print("distance_matrix: " + str(distance_matrix))
-			# print("SHAPE matrix: " + str(distance_matrix.shape))
-			# print("possible distances: " + str(len(distances)))
 			rank = calculate_rank(true_distances, distance_matrix)
-			# print("rank: " + str(rank))
 			final_rankings.append(rank)
 
 		del spotlight_activations

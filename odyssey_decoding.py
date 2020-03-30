@@ -133,22 +133,6 @@ def rsa(embed_matrix, spotlights):
 	corr, _ = spearmanr(spotlight_mat, embed_matrix)
 	return corr
 
-def calculate_llh(pred, data, sigmas):
-	length = len(data)
-	nll_total = 0.
-	for i in range(length):
-		nll_total += llh(pred[i], data[i], sigmas)
-	return nll_total
-
-def llh(pred, data, sigmas):
-	length = len(data)
-	ll = 0.
-	for index in range(length):
-		y_hat = pred[index]
-		residual = float(data[index]) - y_hat
-		ll += stats.norm.logpdf(residual, 0, sigmas[index])
-	return ll
-
 def find_log_pdf(arr, sigmas):
 	val = stats.norm.logpdf(arr, 0, sigmas)
 	return np.nansum(val)
@@ -203,7 +187,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	if args.cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
-		predicted_trials = [[0]] * to_regress.shape[0]
+		predicted_trials = np.zeros((to_regress.shape[0], to_regress.shape[1]))
 		llhs = []
 
 		if args.add_bias:
@@ -219,64 +203,20 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 
 			# with ridge regression
 			clf = Ridge(alpha=alpha, normalize=True)
-			# print("X_TRAIN: " + str(X_train.shape))
-			# print("Y_TRAIN: " + str(y_train.shape))
 			clf.fit(X_train, y_train)
 			y_hat_test = clf.predict(X_test)
-			predicted_trials, specific_fold = place_into_test_data(predicted_trials, test_index, y_hat_test)
+			predicted_trials[test_index] = y_hat_test
 
 			if args.llh:
 				n = X_train.shape[0]
 				k = X_train.shape[1]
-				predicted_X_train = clf.predict(X_train)
-				# print("Y TEST: " + str(y_test.shape))
-				# print("Y HAT TEST: " + str(y_hat_test.shape))
-				# print(y_hat_test[:20])
-				# print(y_test[:20])
-				# print(np.array_equal(y_hat_test, y_test))
-				# print("SPECIFC FOLD: " + str(np.array(specific_fold).shape))
-				# print("PREDICTED_X_TRAIN: " + str(predicted_X_train.shape))
-				# print("Y_TRAIN: " + str(y_train.shape))
-				# print("SHAPE: " + str((predicted_X_train - y_train).shape))
-				# sigma_train = np.sum((predicted_X_train - y_train)**2)
-				# # print("SIGMAS TRAINS: " + str(sigma_train.shape))
-				# sigma_train = np.sum((predicted_X_train - y_train)**2, axis=1)
-				# print("SIGMAS TRAINS: " + str(sigma_train.shape))
-				sigma_train = np.sum((predicted_X_train - y_train)**2, axis=0)
-				# print("SIGMAS TRAINS: " + str(sigma_train.shape))
-				# VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
-				# VCV = np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
-				# VCV = np.true_divide(sigma_train,n-k)*np.linalg.inv(np.dot(X_train.T,X_train))
-				# VCV = sigma_train*np.linalg.inv(np.dot(X_train.T,X_train))
-				# print("INVERSE SHAPE: " + str(np.linalg.inv(np.dot(X_train.T,X_train)).shape))
-				# print("VCV: " + str(VCV.shape))
-				# sigmas = np.diagonal(VCV)
-				# print("DATA: " + str(len(specific_fold)))
-				# print("INSIDE: " + str(len(specific_fold[0])))
-				# print("PRED: " + str(y_test.shape))
-				# print("SIGMAS: " + str(sigmas.shape))
+				y_hat_train = clf.predict(X_train)
+				sigma_train = np.sum((y_hat_train - y_train)**2, axis=0)
 				llh = vectorize_llh(y_hat_test, y_test, sigma_train)
-				# llh = calculate_llh(specific_fold, y_test, sigmas)
-				# print("LLH: " + str(llh))
-				# sigmas = np.diagonal(VCV)
 				llhs.append(llh)
-		
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
 		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
-
-	clf = Ridge(alpha=alpha, normalize=True)
-	clf.fit(from_regress, to_regress)
-	y_hat_test = clf.predict(from_regress)
-
-	if args.llh:
-		n = from_regress.shape[0]
-		k = from_regress.shape[1]
-		# VCV = np.true_divide(1,n-k)*np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
-		VCV = np.dot(np.dot(errors.T,errors),np.linalg.inv(np.dot(from_regress.T,from_regress)))
-		sigmas = np.diagonal(VCV)
-		llh = calculate_llh(y_hat_test, to_regress, sigmas)
-	
-	return residuals, predicted, llh
+	return
 
 def get_embed_matrix(embedding, num_sentences=240):
 	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
@@ -300,7 +240,7 @@ def main():
 	argparser.add_argument("--brain_to_model", action='store_true', default=False, help="True if regressing brain to model, False if not")
 	argparser.add_argument("--model_to_brain", action='store_true', default=False, help="True if regressing model to brain, False if not")
 	argparser.add_argument("--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
-	argparser.add_argument("--cross_validation", action='store_true', default=False, help="True if add cross validation, False if not")
+	argparser.add_argument("--cross_validation", action='store_true', default=True, help="True if add cross validation, False if not")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
 	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
 	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
