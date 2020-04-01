@@ -330,19 +330,18 @@ def main():
 			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
 			pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
 
-		else:
-			altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
-			print("RESIDUALS FILE: " + str(altered_file_name))
-			pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
+		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
+		print("RESIDUALS FILE: " + str(altered_file_name))
+		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
-			if args.model_to_brain:
-				pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
-				print("PREDICTIONS FILE: " + str(pred_file_name))
-				pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
+		if args.model_to_brain:
+			pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
+			print("PREDICTIONS FILE: " + str(pred_file_name))
+			pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
 
-				spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
-				print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
-				pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
+			spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
+			print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
+			pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
 	print("done.")
 

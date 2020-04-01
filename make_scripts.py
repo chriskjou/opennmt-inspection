@@ -39,7 +39,7 @@ def save_script(args):
 			args.num_layers, 
 			args.model_type
 			)
-		layer_script = "layer{}_".format(args.which_layer)
+		layer_script = "layer{}-".format(args.which_layer)
 	elif args.bert:
 		model_type = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + str(rsa_label) + "subj{}_layer{}_{}"
 		folder_name = model_type.format(
@@ -174,12 +174,16 @@ done
 			elif args.llh:
 				mem = "9000"
 				timelimit = "0-24:00"
-			elif args.brain_to_model:
-				mem = "15000"
-				timelimit = "0-10:00"
+			elif args.bert:
+				if args.brain_to_model:
+					mem = "15000"
+					timelimit = "0-10:00"
+				else:
+					mem = "12000"
+					timelimit = "0-10:00"
 			else:
-				mem = "12000"
-				timelimit = "0-10:00"
+				mem = "5000"
+				timelimit = "0-3:00"
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
