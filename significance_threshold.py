@@ -17,17 +17,6 @@ from sklearn.linear_model import Ridge
 import helper
 plt.switch_backend('agg')
 
-def get_embed_matrix(embedding, num_sentences=240):
-	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
-	in_training_bools = np.array([embedding["sentence" + str(i+1)][0][0] for i in range(num_sentences)])
-	return embed_matrix
-
-def z_score(matrix):
-	mean = np.mean(matrix, axis=0)
-	std = np.std(matrix, axis=0)
-	z_score = (matrix - mean) / std
-	return z_score
-
 def generate_indices(index, session, num_scanner_runs=3):
 	indices = [i * num_scanner_runs + s for i in index for s in session]
 	return np.array(indices)
@@ -35,11 +24,6 @@ def generate_indices(index, session, num_scanner_runs=3):
 def check_for_nan_infinity(y, index):
 	indx = np.argwhere(~np.isnan(y[:,index]) & np.isfinite(y[:,index]))
 	return np.reshape(indx, (len(indx), ))
-
-def add_bias(df):
-	new_col = np.ones((df.shape[0], 1))
-	df = np.hstack((df, new_col))
-	return df
 
 def calculate_pearson_correlation(args, activations, embeddings, kfold_split=5, num_scanner_runs=3, split_scanner_runs=False):
 	num_sentences = embeddings.shape[0]
@@ -239,7 +223,7 @@ def main():
 		# embed_loc = "/Users/christinejou/Documents/research/embeddings/parallel/spanish/2layer-brnn/avg/parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.mat"
 		file_name = embed_loc.split("/")[-1].split(".")[0]
 		embedding = scipy.io.loadmat(embed_loc)
-		embed_matrix = get_embed_matrix(embedding)
+		embed_matrix = helper.get_embed_matrix(embedding)
 	else:
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(args.which_layer) # aggregation type + which layer
@@ -268,13 +252,13 @@ def main():
 		# 1. z-score
 		print("z-scoring activations and embeddings...")
 		individual_activations = pickle.load(open("../../examplesGLM/subj" + str(args.subject_number) + "/individual_activations.p", "rb"))
-		z_activations = z_score(individual_activations)
-		z_embeddings = z_score(embed_matrix)
+		z_activations = helper.z_score(individual_activations)
+		z_embeddings = helper.z_score(embed_matrix)
 
 		# 2. calculate correlation 
 		print("calculating correlations...")
-		z_activations = add_bias(z_activations)
-		z_embeddings = add_bias(z_embeddings)
+		z_activations = helper.add_bias(z_activations)
+		z_embeddings = helper.add_bias(z_embeddings)
 		correlations, pvals = calculate_pearson_correlation(args, z_activations, z_embeddings)
 		
 		# 3. evaluate significance

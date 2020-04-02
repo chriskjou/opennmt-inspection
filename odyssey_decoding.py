@@ -51,6 +51,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	print("getting activations for all sentences...")
 	res_per_spotlight = []
 	predictions = []
+	rankings = []
 	llhs = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
@@ -101,9 +102,10 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.rsa: 
 			res = rsa(nn_matrix, np.array(spotlights))
 		else: 
-			res, pred, llh = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
+			res, pred, llh, rank = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
 			predictions.append(pred)
 			llhs.append(llh)
+			rankings.append(rankg)
 
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
@@ -112,7 +114,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		
 		## DECODING ABOVE
 
-	return res_per_spotlight, predictions, true_spotlights, llhs #boolean_masks
+	return res_per_spotlight, llhs, rankings, #predictions, true_spotlights,  #boolean_masks
 
 def standardize(X): 
 	return np.nan_to_num((X - np.mean(X, axis=0)) / np.std(X, axis=0))
@@ -142,37 +144,6 @@ def vectorize_llh(pred, data, sigmas):
 	llh = np.sum(np.apply_along_axis(find_log_pdf, 1, residuals, sigmas))
 	return llh
 
-def add_bias(df):
-	new_col = np.ones((df.shape[0], 1))
-	df = np.hstack((df, new_col))
-	return df
-	
-def place_into_test_data(predicted_trials, test_index, y_hat_test):
-	values = predicted_trials.copy()
-	num_tests = len(test_index)
-	for index in range(num_tests):
-		which_test_index = test_index[index]
-		which_test_value = y_hat_test[index]
-		before_predictions = values[:which_test_index]
-		after_predictions = values[which_test_index+1:]
-		before_predictions.append(which_test_value)
-		before_predictions.extend(after_predictions)
-		values = before_predictions
-	np_to_list = []
-	for val in values:
-		if isinstance(val, np.ndarray):
-			if np.array(val).shape != (1,1):
-				np_to_list.append(val.tolist())
-			else:
-				np_to_list.append([0])
-		elif (isinstance(val, list) and val != [0]):
-			np_to_list.append(val)
-		else:
-			np_to_list.append([0])
-	specific_fold = [val for val in np_to_list if val != [0]]
-	indices = [idx for idx in range(len(np_to_list)) if np_to_list[idx] != [0]]
-	return np_to_list, specific_fold
-
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	global predicted_trials
 
@@ -189,9 +160,10 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		errors = []
 		predicted_trials = np.zeros((to_regress.shape[0], to_regress.shape[1]))
 		llhs = []
+		rankings = []
 
 		if args.add_bias:
-			from_regress = add_bias(from_regress)
+			from_regress = helper.add_bias(from_regress)
 
 		if args.permutation:
 			np.random.shuffle(from_regress)
@@ -214,21 +186,16 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				sigma_train = np.sum((y_hat_train - y_train)**2, axis=0)
 				llh = vectorize_llh(y_hat_test, y_test, sigma_train)
 				llhs.append(llh)
+
+			if args.ranking and args.model_to_brain:
+				true_distances = helper.calculate_true_distances(y_hat_test, y_test)
+				distance_matrix = helper.compute_distance_matrix(y_hat_test, y_test)
+				rank = helper.calculate_rank(true_distances, distance_matrix)
+				rankings.append(rank)
+
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32)
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), rankings
 	return
-
-def get_embed_matrix(embedding, num_sentences=240):
-	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
-	in_training_bools = np.array([embedding["sentence" + str(i+1)][0][0] for i in range(num_sentences)])
-	return embed_matrix
-
-# normalize voxels across all sentences per participant
-def normalize_voxels(activations):
-	avg = np.mean(activations, axis=0)
-	std = np.std(activations, axis=0)
-	modified_act = (activations - avg)/std
-	return modified_act
 
 def main():
 	global temp_file_name
@@ -254,6 +221,7 @@ def main():
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
 	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
+	argparser.add_argument("--ranking",  action='store_true', default=True, help="True if calculate ranking, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
 	args = argparser.parse_args()
 
@@ -261,7 +229,7 @@ def main():
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0]
 		embedding = scipy.io.loadmat(embed_loc)
-		embed_matrix = get_embed_matrix(embedding)
+		embed_matrix = helper.get_embed_matrix(embedding)
 	else:
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(args.which_layer) # aggregation type + which layer
@@ -293,8 +261,8 @@ def main():
 	print("PRLABEL:  " + str(prlabel))
 
 	if args.normalize:
-		modified_activations = normalize_voxels(modified_activations)
-		embed_matrix = normalize_voxels(embed_matrix)
+		modified_activations = helper.normalize_voxels(modified_activations)
+		embed_matrix = helper.normalize_voxels(embed_matrix)
 
 	if args.random:
 		print("RANDOM ACTIVATIONS")
@@ -317,9 +285,12 @@ def main():
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
 
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
-	# get residuals and predictions
-	all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
+	# get residuals and predictions
+	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
+	
+	all_residuals, llhs, rankings = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
+
 	# dump
 	if args.rsa:
 		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
@@ -335,14 +306,18 @@ def main():
 		print("RESIDUALS FILE: " + str(altered_file_name))
 		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
-		if args.model_to_brain:
-			pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
-			print("PREDICTIONS FILE: " + str(pred_file_name))
-			pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
+		if args.model_to_brain and args.ranking:
+			ranking_file_name = "/n/shieber_lab/Lab/users/cjou/final_rankings/" +  temp_file_name
+			print("RANKING FILE: " + str(ranking_file_name))
+			pickle.dump( all_residuals, open(ranking_file_name + ".p", "wb" ), protocol=-1 )
 
-			spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
-			print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
-			pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
+			# pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
+			# print("PREDICTIONS FILE: " + str(pred_file_name))
+			# pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
+
+			# spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
+			# print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
+			# pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
 	print("done.")
 

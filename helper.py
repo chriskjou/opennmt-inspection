@@ -192,6 +192,25 @@ def calculate_rank(true_distance, distance_matrix):
 
 	return np.mean(ranks)
 
+# get embed matrix
+def get_embed_matrix(embedding, num_sentences=240):
+	embed_matrix = np.array([embedding["sentence" + str(i+1)][0][1:] for i in range(num_sentences)])
+	in_training_bools = np.array([embedding["sentence" + str(i+1)][0][0] for i in range(num_sentences)])
+	return embed_matrix
+
+# z-score
+def z_score(matrix):
+	mean = np.mean(matrix, axis=0)
+	std = np.std(matrix, axis=0)
+	z_score = (matrix - mean) / std
+	return z_score
+
+# add bias
+def add_bias(df):
+	new_col = np.ones((df.shape[0], 1))
+	df = np.hstack((df, new_col))
+	return df
+
 # create bash scripts for RANK and FDR
 def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)
