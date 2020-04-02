@@ -73,6 +73,7 @@ def plot_boxplot(df, args, file_name):
 
 def plot_agg(df, file_name, hue):
 	plt.clf()
+	sns.set(style="darkgrid")
 	plt.figure(figsize=(60, 8))
 	ax = sns.boxplot(x="dimension", y="embeddings", hue=hue, data=df, palette="Set3")
 	ax.set_xticklabels(ax.get_xticklabels(), rotation=45)

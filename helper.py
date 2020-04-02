@@ -2,6 +2,7 @@ import numpy as np
 from tqdm import tqdm
 import scipy.io
 import pickle
+from scipy.spatial import distance
 
 def validate_arguments(args):
 	if args.language not in languages:
@@ -119,15 +120,6 @@ def generate_options(args):
 
 	return get_residuals_and_make_scripts, options
 
-# def transform_coordinates(metric, volmask):
-# 	i,j,k = volmask.shape
-# 	nonzero_pts = np.transpose(np.nonzero(volmask))
-# 	values = []
-# 	for pt in tqdm(range(len(nonzero_pts))):
-# 		x,y,z = nonzero_pts[pt]
-# 		values.append(metric[int(x)][int(y)][int(z)])
-# 	return values
-
 # transform coordinates for SPM plotting
 def transform_coordinates(rmses, volmask, save_path="", metric="", pvals=[]):
 	i,j,k = volmask.shape
@@ -179,6 +171,26 @@ def clean_atlas(atlas_vals, atlas_labels):
 	for val_index in at_vals:
 		at_labels.append(atlas_labels[val_index-1][0][0])
 	return at_labels
+
+# helper function to calculate rank
+def calculate_true_distances(a, b):
+	return np.linalg.norm(a - b, axis=1)
+	# return np.sqrt(np.sum((a-b)**2))
+
+def compute_distance_matrix(a, b):
+	return distance.cdist(a, b, 'euclidean')
+
+def calculate_rank(true_distance, distance_matrix):
+	num_sentences, dim = distance_matrix.shape
+
+	ranks = []
+	for sent_index in range(num_sentences):
+		distances = distance_matrix[sent_index]
+		true_sent_distance = true_distance[sent_index]
+		rank = np.sum(distances < true_sent_distance)
+		ranks.append(rank)
+
+	return np.mean(ranks)
 
 # create bash scripts for RANK and FDR
 def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):

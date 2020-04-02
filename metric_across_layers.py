@@ -39,6 +39,35 @@ def generate_file_name(args, subject_number, which_layer):
 		)
 	return file_name
 
+def convert_matlab_to_np(metric, volmask):
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	values = []
+	for pt in tqdm(range(len(nonzero_pts))):
+		x,y,z = nonzero_pts[pt]
+		values.append(metric[int(x)][int(y)][int(z)])
+	return values
+
+def plot_roi_across_layers(df, metric, file_name):
+	sns.set(style="darkgrid")
+	plt.figure(figsize=(16, 9))
+	g = sns.lineplot(x="layer", y=metric, hue="ROI", data=df)
+	figure = g.get_figure()  
+	box = g.get_position()
+	g.set_position([box.x0, box.y0, box.width * .75, box.height])
+	g.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), ncol=1)
+	figure.savefig(file_name, bbox_inches='tight')
+
+def plot_atlas_across_layers(df, metric, file_name):
+	sns.set(style="darkgrid")
+	plt.figure(figsize=(24, 9))
+	g = sns.lineplot(x="layer", y=metric, hue="atlas", data=df)
+	figure = g.get_figure()  
+	box = g.get_position()
+	g.set_position([box.x0, box.y0, box.width * .85, box.height])
+	g.legend(loc='center right', bbox_to_anchor=(1.6, 0.5), ncol=4)
+	figure.savefig(file_name, bbox_inches='tight')
+
 def main():
 	argparser = argparse.ArgumentParser(description="layer and subject group level comparison")
 	argparser.add_argument("-subject_number", "--subject_number", type=int, default=1,
@@ -149,7 +178,16 @@ def main():
 		if args.local:
 			# values = pickle.load(open("../final_rankings/" + str(file_name) + ".p", "rb"))
 			# content = scipy.io.loadmat("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.mat")
-			values = pickle.load(open("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.p", "rb"))
+			# values = pickle.load(open("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.p", "rb"))
+			if args.ranking:
+				values = pickle.load(open("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-ranking.p", "rb"))
+			if args.rmse:
+				# bertbrain2model_cv_-subj1-avg_layer1-3dtransform-rmse.mat
+				content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-rmse.mat")["metric"]
+				values = convert_matlab_to_np(content, volmask)
+			if args.llh:
+				content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-llh.mat")["metric"]
+				values = convert_matlab_to_np(content, volmask)
 		else:
 			values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
 		metric_info.extend(values)
@@ -159,28 +197,47 @@ def main():
 	print("LAYER INFO: " + str(len(layer_info)))
 	print("METRIC INFO: " + str(len(metric_info)))
 
-	df_dict = {
-		'layer': layer_info,
-		'AR': metric_info,
-		'ROI': roi_info,
-		'atlas': atlas_info
-	}
+	if args.ranking:
+		df_dict = {
+			'layer': layer_info,
+			'AR': metric_info,
+			'ROI': roi_info,
+			'atlas': atlas_info
+		}
 
-	df = pd.DataFrame(df_dict)
+		df = pd.DataFrame(df_dict)
 
-	print("plotting values...")
-	sns.set(style="darkgrid")
-	g = sns.lineplot(x="layer", y="AR", hue="ROI", data=df)
-	figure = g.get_figure()  
-	box = g.get_position()
-	g.set_position([box.x0, box.y0, box.width * .75, box.height])
-	g.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), ncol=1)
-	figure.savefig("../roi_nifti.png")
+		print("plotting values...")
+		plot_roi_across_layers(df, "AR", "../roi_ar_run2.png")
+		plot_atlas_across_layers(df, "AR", "../atlas_ar_run2.png")
 
-	# sns.set(style="darkgrid")
-	# sns_plot = sns.lineplot(x="layer", y="AR", hue="atlas", data=df)
-	# figure = sns_plot.get_figure()  
-	# figure.savefig("../atlas.png")
+	if args.rmse:
+		df_dict = {
+			'layer': layer_info,
+			'RMSE': metric_info,
+			'ROI': roi_info,
+			'atlas': atlas_info
+		}
+
+		df = pd.DataFrame(df_dict)
+
+		print("plotting values...")
+		plot_roi_across_layers(df, "RMSE", "../roi_rmse_run2.png")
+		plot_atlas_across_layers(df, "RMSE", "../atlas_rmse_run2.png")
+
+	if args.llh:
+		df_dict = {
+			'layer': layer_info,
+			'LLH': metric_info,
+			'ROI': roi_info,
+			'atlas': atlas_info
+		}
+
+		df = pd.DataFrame(df_dict)
+
+		print("plotting values...")
+		plot_roi_across_layers(df, "LLH", "../roi_llh_run2.png")
+		plot_atlas_across_layers(df, "LLH", "../atlas_llh_run2.png")
 
 	print("done.")
 	return

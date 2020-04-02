@@ -8,26 +8,6 @@ import math
 import time
 import gc
 import helper
-from scipy.spatial import distance
-
-def calculate_true_distances(a, b):
-	return np.linalg.norm(a - b, axis=1)
-	# return np.sqrt(np.sum((a-b)**2))
-
-def compute_distance_matrix(a, b):
-	return distance.cdist(a, b, 'euclidean')
-
-def calculate_rank(true_distance, distance_matrix):
-	num_sentences, dim = distance_matrix.shape
-
-	ranks = []
-	for sent_index in range(num_sentences):
-		distances = distance_matrix[sent_index]
-		true_sent_distance = true_distance[sent_index]
-		rank = np.sum(distances < true_sent_distance)
-		ranks.append(rank)
-
-	return np.mean(ranks)
 
 def get_file_name(args, specific_file, i, true_activations=False):
 	file_name = specific_file + "_residuals_part" + str(i) + "of" + str(args.total_batches) 
@@ -69,9 +49,9 @@ def calculate_average_rank(args, file_name):
 				print(np.array(spotlight_predictions[j]).shape)
 				print(np.array(spotlight_activations[j]).shape)
 				exit()
-			true_distances = calculate_true_distances(np.array(spotlight_predictions[j]), np.array(spotlight_activations[j]))
-			distance_matrix = compute_distance_matrix(np.array(spotlight_predictions[j]), np.array(spotlight_activations[j]))
-			rank = calculate_rank(true_distances, distance_matrix)
+			true_distances = helper.calculate_true_distances(np.array(spotlight_predictions[j]), np.array(spotlight_activations[j]))
+			distance_matrix = helper.compute_distance_matrix(np.array(spotlight_predictions[j]), np.array(spotlight_activations[j]))
+			rank = helper.calculate_rank(true_distances, distance_matrix)
 			final_rankings.append(rank)
 
 		del spotlight_activations
