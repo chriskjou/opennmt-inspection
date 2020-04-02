@@ -182,8 +182,8 @@ done
 					mem = "12000"
 					timelimit = "0-10:00"
 			else:
-				mem = "5000"
-				timelimit = "0-3:00"
+				mem = "7000"
+				timelimit = "0-5:00"
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
