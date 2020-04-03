@@ -14,19 +14,6 @@ from sklearn.linear_model import Ridge, RidgeCV
 import scipy.stats as stats
 # import statsmodels.api as sm
 
-def chunkify(lst, num, total):
-	if len(lst) % total == 0:
-		chunk_size = len(lst) // total
-	else:
-		chunk_size = len(lst) // total + 1
-
-	start = num * chunk_size
-	if num != total - 1:
-		end = num * chunk_size + chunk_size
-	else:
-		end = len(lst)
-	return lst[start:end]
-
 def pad_along_axis(array, target_length, axis=0):
 	pad_size = target_length - array.shape[axis]
 	axis_nb = len(array.shape)
@@ -37,16 +24,11 @@ def pad_along_axis(array, target_length, axis=0):
 	b = np.pad(array, pad_width=npad, mode='constant', constant_values=0)
 	return b
 
-def get_voxel_number(args, CHUNK_SIZE, i):
-	return args.batch_num * CHUNK_SIZE + i
-
 def get_dimensions(data):
 	return int(data[0])+1, int(data[1]), int(data[2])
 
 def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args, radius=5, kfold_split=5, alpha=1):
 	global temp_file_name
-
-	ACTIVATION_SHAPE = (240, 515)
 
 	print("getting activations for all sentences...")
 	res_per_spotlight = []
@@ -56,47 +38,24 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	true_spotlights = []
-	CHUNK = chunkify(nonzero_pts, args.batch_num, args.total_batches)
-	CHUNK_SIZE = len(CHUNK)
 
 	# iterate over spotlight
 	print("for each spotlight...")
 
 	index=0
 	nn_matrix = calculate_dist_matrix(embed_matrix) if args.rsa else None 
-	for pt in tqdm(CHUNK):
-
-		# SPHERE MASK BELOW
-		sphere_mask = np.zeros((a,b,c))
+	for pt in nonzero_pts:
 		x1,y1,z1 = pt
-		# points_glm.append(pt)
-		for i in range(-radius, radius+1):
-			for j in range(-radius, radius+1):
-				for k in range(-radius, radius+1):
-					xp = x1 + i
-					yp = y1 + j
-					zp = z1 + k
-					pt2 = [xp,yp,zp]
-					if 0 <= xp and 0 <= yp and 0 <= zp and xp < a and yp < b and zp < c:
-						dist = math.sqrt(i ** 2 + j ** 2 + k ** 2)
-						if pt2 in nonzero_pts and dist <= radius:
-							sphere_mask[x1+i][y1+j][z1+k] = 1
-		# SPHERE MASK ABOVE
-
 		spotlights = []
-		spotlight_mask = []
-
 		# iterate over each sentence
 		for sentence_act in modified_activations:
-			spot = sentence_act[sphere_mask.astype(bool)]
+			spot = sentence_act[x1][y1][z1]
 			remove_nan = np.nan_to_num(spot).astype(np.float32)
 			spotlights.append(remove_nan)
-			# spotlight_mask.append(sphere_mask.astype(bool))
 
 		print(np.array(spotlights).shape)
 
 		true_spotlights.append(spotlights)
-		# boolean_masks.append(spotlight_mask)
 
 		## DECODING BELOW
 		if args.rsa: 
@@ -106,15 +65,16 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			predictions.append(pred)
 			llhs.append(llh)
 			rankings.append(rank)
+			print("LLH: " + str(llh))
+			print("RANK: " + str(rank))
 
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		res_per_spotlight.append(res)
 
 		index+=1
-		
 		## DECODING ABOVE
 
-	return res_per_spotlight, llhs, rankings #predictions, true_spotlights,  #boolean_masks
+	return res_per_spotlight, llhs, rankings, #predictions, true_spotlights,  #boolean_masks
 
 def standardize(X): 
 	return np.nan_to_num((X - np.mean(X, axis=0)) / np.std(X, axis=0))
@@ -141,7 +101,7 @@ def find_log_pdf(arr, sigmas):
 
 def vectorize_llh(pred, data, sigmas):
 	residuals = np.subtract(data, pred)
-	llh = np.sum(np.apply_along_axis(find_log_pdf, 1, residuals, sigmas))
+	llh = np.nansum(stats.norm.logpdf(residuals, 0, sigmas))
 	return llh
 
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
@@ -155,10 +115,12 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		from_regress = np.array(embed_matrix)
 		to_regress = np.array(spotlight_activations)
 
+	print("FROM REGRESS: " + str(from_regress.shape))
+	print("TO REGRESS: " + str(to_regress.shape))
 	if args.cross_validation:
 		kf = KFold(n_splits=kfold_split)
 		errors = []
-		predicted_trials = np.zeros((to_regress.shape[0], to_regress.shape[1]))
+		predicted_trials = np.zeros((to_regress.shape[0],))
 		llhs = []
 		rankings = []
 
@@ -194,13 +156,18 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				llhs.append(llh)
 
 			if args.ranking and args.model_to_brain:
-				true_distances = helper.calculate_true_distances(y_hat_test, y_test)
-				distance_matrix = helper.compute_distance_matrix(y_hat_test, y_test)
+				y_hat_test_reshape = y_hat_test.reshape((len(y_hat_test), 1))
+				y_test_reshape = y_test.reshape((len(y_test), 1))
+
+				true_distances = helper.calculate_true_distances(y_hat_test_reshape, y_test_reshape)
+				print("TRUE DISTANCES: " + str(true_distances.shape))
+				distance_matrix = helper.compute_distance_matrix(y_hat_test_reshape, y_test_reshape)
+				print("DISTANCE MATRIX: " + str(distance_matrix.shape))
 				rank = helper.calculate_rank(true_distances, distance_matrix)
 				rank_accuracy = 1 - (rank - 1) * 1.0 / (greatest_possible_rank - 1)
 				rankings.append(rank_accuracy)
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)#, best_alpha
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
 	return
 
 def main():
@@ -215,8 +182,6 @@ def main():
 	argparser.add_argument("--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("--cross_validation", action='store_true', default=True, help="True if add cross validation, False if not")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
-	argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
-	argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
 	argparser.add_argument("--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
 	argparser.add_argument("--rand_embed",  action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
@@ -240,25 +205,13 @@ def main():
 		embed_loc = args.embedding_layer
 		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(args.which_layer) # aggregation type + which layer
 		embed_matrix = np.array(pickle.load( open( embed_loc , "rb" ) ))
-		# if args.word2vec:
-			# embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/word2vec/" + str(file_name) + ".p", "rb" ) )	
-		# elif args.glove:
-			# embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/glove/" + str(file_name) + ".p", "rb" ) )	
-		# elif args.bert:
-			# embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/bert/" + str(file_name) + ".p", "rb" ) )
-		# else: # args.rand_embed
-			# embed_matrix = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/embeddings/rand_embed/rand_embed.p", "rb" ) )	
-
-	subj_num = args.subject_number
-	num = args.batch_num
-	total_batches = args.total_batches
 
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# get modified activations
-	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/activations.p", "rb" ) )
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{subj_num}/modified_activations.p", "rb" ) )
+	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
+	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
+	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/modified_activations.p", "rb" ) )
 
 	print("PERMUTATION: " + str(args.permutation))
 	print("PERMUTATION REGION: " + str(args.permutation_region))
@@ -290,7 +243,7 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/llh/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
 
-	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
+	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_no_spotlight"
 	
 	# get residuals and predictions
 	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)

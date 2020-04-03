@@ -90,11 +90,12 @@ def concatenate_all(specific_file, args, type_concat):
 		elif type_concat == 'fdr':
 			file_path = "/n/shieber_lab/Lab/users/cjou/fdr/"
 		elif type_concat == 'ranking':
-			file_path = "/n/shieber_lab/Lab/users/cjou/final_ranking/"
+			file_path = "/n/shieber_lab/Lab/users/cjou/final_rankings/"
 		else:
 			print("ERROR")
 		
 		part = pickle.load( open( file_path + file_name + ".p", "rb" ) )
+		print("MAX FOR BATCH " + str(i) + ": " + str(np.max(part)))
 		final_residuals.extend(part)
 	print("FILE NAME: " + str( file_path + specific_file))
 	return final_residuals
