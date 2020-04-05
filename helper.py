@@ -153,6 +153,19 @@ def load_common_space(subject_numbers, local=False):
 		del volmask
 	return subject_volmasks
 
+# fix labels
+def compare_labels(labels, volmask, roi=False):
+	if roi:
+		volaal = scipy.io.loadmat("../subj1_vollangloc.mat")["vollangloc"]
+	else:
+		volaal = scipy.io.loadmat("../subj1_volaal.mat")["volaal"]
+	true_labels = convert_matlab_to_np(volaal, volmask)
+
+	get_labels = []
+	for elem in true_labels:
+		get_labels.append(labels[elem-1][0][0])
+	return get_labels
+
 # clean ROI labels for plotting and ranking
 def clean_roi(roi_vals, roi_labels):
 	roi_vals = roi_vals.reshape((len(roi_vals), ))
@@ -187,7 +200,7 @@ def calculate_rank(true_distance, distance_matrix):
 	for sent_index in range(num_sentences):
 		distances = distance_matrix[sent_index]
 		true_sent_distance = true_distance[sent_index]
-		rank = np.sum(distances < true_sent_distance)
+		rank = np.sum(distances < true_sent_distance) + 1
 		ranks.append(rank)
 
 	return np.mean(ranks)

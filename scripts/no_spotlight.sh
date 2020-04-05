@@ -2,7 +2,7 @@
 #SBATCH -J no_spotlight  								# Job name
 #SBATCH -p serial_requeue 						# partition (queue)
 #SBATCH --mem 5000 								# memory pool for all cores
-#SBATCH -t 0-5:00									# time (D-HH:MM)
+#SBATCH -t 0-7:00									# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../../outpt_no_spotlight.txt 			# File that STDOUT writes to
 #SBATCH -e ../../../err_no_spotlight.txt				# File that STDERR writes to

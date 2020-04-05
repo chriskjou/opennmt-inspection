@@ -51,7 +51,7 @@ def convert_matlab_to_np(metric, volmask):
 def plot_roi_across_layers(df, metric, file_name):
 	sns.set(style="darkgrid")
 	plt.figure(figsize=(16, 9))
-	g = sns.lineplot(x="layer", y=metric, hue="ROI", data=df)
+	g = sns.pointplot(x="layer", y=metric, hue="ROI", data=df, plot_kws=dict(alpha=0.3))
 	figure = g.get_figure()  
 	box = g.get_position()
 	g.set_position([box.x0, box.y0, box.width * .75, box.height])
@@ -61,7 +61,7 @@ def plot_roi_across_layers(df, metric, file_name):
 def plot_atlas_across_layers(df, metric, file_name):
 	sns.set(style="darkgrid")
 	plt.figure(figsize=(24, 9))
-	g = sns.lineplot(x="layer", y=metric, hue="atlas", data=df)
+	g = sns.pointplot(x="layer", y=metric, hue="atlas", data=df, plot_kws=dict(alpha=0.3))
 	figure = g.get_figure()  
 	box = g.get_position()
 	g.set_position([box.x0, box.y0, box.width * .85, box.height])
@@ -151,18 +151,34 @@ def main():
 		roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
 		roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
-	num_layers = 12
+	true_roi_labels = compare_labels(roi_labels, volmask, roi=True)
+	true_atlas_labels = compare_labels(atlas_labels, volmask)
 
 	# clean labels
 	final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
-	final_atlas_labels = helper.clean_roi(atlas_vals, atlas_labels)
+	final_atlas_labels = helper.clean_atlas(atlas_vals, atlas_labels)
 	layer_info = []
 	metric_info = []
-	roi_info = final_roi_labels * num_layers
-	atlas_info = final_atlas_labels * num_layers
+	roi_info = true_roi_labels * args.num_layers
+	atlas_info = true_atlas_labels * args.num_layers
 
-	print("ROI INFO: " + str(len(roi_info)))
-	print("ATLAS INFO: " + str(len(atlas_info)))
+	# print("ROI INFO: " + str(len(roi_info)))
+	# print("ATLAS INFO: " + str(len(atlas_info)))
+
+	# total=0
+	# print("ATLAS: " + str(len(final_atlas_labels)))
+	# for i in range(len(true_atlas_labels)):
+	# 	if true_atlas_labels[i] == final_atlas_labels[i]:
+	# 		total+=1
+	# print("TOTAL: " + str(total))
+
+	# total=0
+	# print("ROI: " + str(len(true_roi_labels)))
+	# for i in range(len(true_roi_labels)):
+	# 	if true_roi_labels[i] == final_roi_labels[i]:
+	# 		total+=1
+	# print("TOTAL: " + str(total))
+	# exit()
 
 # for layer in tqdm(range(1, num_layers+1)):
 # 	file_name = "bertmodel2brain_cv_-subj1-avg_layer" + str(layer)
@@ -172,27 +188,55 @@ def main():
 # 	layer_info.extend(layer_vals)
 
 	# get information
-	print("getting metric information per layer...")
-	for layer in tqdm(range(1, num_layers+1)):
-		# file_name = generate_file_name(args, args.subject_number, layer)
-		if args.local:
-			# values = pickle.load(open("../final_rankings/" + str(file_name) + ".p", "rb"))
-			# content = scipy.io.loadmat("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.mat")
-			# values = pickle.load(open("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.p", "rb"))
-			if args.ranking:
-				values = pickle.load(open("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-ranking.p", "rb"))
-			if args.rmse:
-				# bertbrain2model_cv_-subj1-avg_layer1-3dtransform-rmse.mat
-				content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-rmse.mat")["metric"]
+	if args.bert:
+		print("getting metric information per layer...")
+		for layer in tqdm(range(1, args.num_layers+1)):
+			# file_name = generate_file_name(args, args.subject_number, layer)
+			if args.local:
+				# values = pickle.load(open("../final_rankings/" + str(file_name) + ".p", "rb"))
+				# content = scipy.io.loadmat("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.mat")
+				# values = pickle.load(open("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.p", "rb"))
+				if args.ranking:
+					# values = pickle.load(open("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-ranking.p", "rb"))
+					content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-ranking.mat")["metric"]
+				if args.rmse:
+					# bertbrain2model_cv_-subj1-avg_layer1-3dtransform-rmse.mat
+					content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-rmse.mat")["metric"]
+				if args.llh:
+					content = np.abs(scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-llh.mat")["metric"])
+				
 				values = convert_matlab_to_np(content, volmask)
-			if args.llh:
-				content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-llh.mat")["metric"]
+			else:
+				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
+			metric_info.extend(values)
+			layer_vals = len(values) * [layer]
+			layer_info.extend(layer_vals)
+		to_save_file = "bert"
+	else:
+		for layer in tqdm(range(1, args.num_layers+1)):
+			file_name = "model2brain_cv_-subj{}-parallel-english-to-{}-model-{}layer-brnn-pred-layer{}-{}-3dtransform-".format(
+					args.subject_number,
+					args.language,
+					args.num_layers,
+					layer,
+					args.agg_type
+				)
+			print(file_name)
+			if args.local:
+				if args.ranking:
+					content = scipy.io.loadmat("../mat/" + file_name + "ranking.mat")["metric"]
+				if args.rmse:
+					content = scipy.io.loadmat("../mat/" + file_name + "rmse.mat")["metric"]
+				if args.llh:
+					content = np.abs(scipy.io.loadmat("../mat/" + file_name + "llh.mat")["metric"])
+				
 				values = convert_matlab_to_np(content, volmask)
-		else:
-			values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
-		metric_info.extend(values)
-		layer_vals = len(values) * [layer]
-		layer_info.extend(layer_vals)
+			else:
+				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
+			metric_info.extend(values)
+			layer_vals = len(values) * [layer]
+			layer_info.extend(layer_vals)
+			to_save_file = "m2b_cv_subj{}_{}layer_{}".format(args.subject_number, args.num_layers, args.language)
 
 	print("LAYER INFO: " + str(len(layer_info)))
 	print("METRIC INFO: " + str(len(metric_info)))
@@ -208,8 +252,8 @@ def main():
 		df = pd.DataFrame(df_dict)
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "AR", "../roi_ar_run2.png")
-		plot_atlas_across_layers(df, "AR", "../atlas_ar_run2.png")
+		plot_roi_across_layers(df, "AR", "../fixed_roi_ar_" + to_save_file + ".png")
+		plot_atlas_across_layers(df, "AR", "../fixed_atlas_ar_" + to_save_file + ".png")
 
 	if args.rmse:
 		df_dict = {
@@ -222,8 +266,8 @@ def main():
 		df = pd.DataFrame(df_dict)
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "RMSE", "../roi_rmse_run2.png")
-		plot_atlas_across_layers(df, "RMSE", "../atlas_rmse_run2.png")
+		plot_roi_across_layers(df, "RMSE", "../fixed_roi_rmse_" + to_save_file + ".png")
+		plot_atlas_across_layers(df, "RMSE", "../fixed_atlas_rmse_" + to_save_file + ".png")
 
 	if args.llh:
 		df_dict = {
@@ -236,8 +280,8 @@ def main():
 		df = pd.DataFrame(df_dict)
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "LLH", "../roi_llh_run2.png")
-		plot_atlas_across_layers(df, "LLH", "../atlas_llh_run2.png")
+		plot_roi_across_layers(df, "LLH", "../fixed_roi_llh_" + to_save_file + ".png")
+		plot_atlas_across_layers(df, "LLH", "../fixed_atlas_llh_" + to_save_file + ".png")
 
 	print("done.")
 	return

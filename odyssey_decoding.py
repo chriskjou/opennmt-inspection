@@ -108,6 +108,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			rankings.append(rank)
 
 		print("RES for SPOTLIGHT #", index, ": ", res)
+		print("RANK : " + str(rank))
 		res_per_spotlight.append(res)
 
 		index+=1
@@ -168,7 +169,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		if args.permutation:
 			np.random.shuffle(from_regress)
 
-		alphas = np.logspace(-5, 5, 11, endpoint=True) 
+		alphas = np.logspace(-10, 10, 21, endpoint=True) 
 		clf = RidgeCV(alphas=alphas).fit(from_regress, to_regress)
 		best_alpha = clf.alpha_
 		print("BEST ALPHA: " + str(best_alpha))

@@ -86,22 +86,24 @@ def plot_roi(df, args, file_name, zoom=False):
 
 def plot_boxplot_for_atlas(df, args, file_name):
 	all_activations = list(df.activations)
-	g = sns.catplot(x="atlas_labels", y="activations", data=df, height=17.5, aspect=1.5, kind="box")
+	sns.set(style="darkgrid")
+	g = sns.catplot(x="atlas_labels", y="activations", data=df, height=17.5, aspect=1.5, kind="box", color="cornflowerblue")
 	g.set_xticklabels(rotation=90)
 	g.set(ylim=(min(all_activations), max(all_activations)))
-	g.set_axis_labels("activations", "")
-	plt.title("Initial Activations for Subject " + str(args.subject_number) + " in all Brain Regions")
-	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	g.set_axis_labels("", "activations")
+	plt.title("Initial Activations for Subject " + str(args.subject_number) + " in all AAL Brain Regions")
+	plt.savefig("../visualizations/run2-" + str(file_name) + ".png", bbox_inches='tight')
 	return
 
 def plot_boxplot_for_roi(df, args, file_name):
 	all_activations = list(df.activations)
-	g = sns.catplot(x="roi_labels", y="activations", data=df, height=7.5, aspect=1.5, kind="box")
-	g.set_xticklabels(rotation=90)
+	sns.set(style="darkgrid")
+	g = sns.catplot(x="roi_labels", y="activations", data=df, height=7.5, aspect=1.5, kind="box", palette="Set3")
+	g.set_xticklabels(rotation=45)
 	g.set(ylim=(min(all_activations), max(all_activations)))
-	g.set_axis_labels("activations", "")
-	plt.title("Initial Activations for Subject " + str(args.subject_number) + " in all Language Regions")
-	plt.savefig("../visualizations/" + str(file_name) + ".png")
+	g.set_axis_labels("", "activations")
+	plt.title("Initial Activations for Subject " + str(args.subject_number) + " in all Language ROIs")
+	plt.savefig("../visualizations/run2-" + str(file_name) + ".png", bbox_inches='tight')
 	return
 
 def create_per_brain_region(activations, args, at_labels, final_roi_labels):
@@ -119,13 +121,14 @@ def create_per_brain_region(activations, args, at_labels, final_roi_labels):
 	print(labels)
 
 	# create plots
-	# print("creating plots over averaged sentence...")
-	# file_name = "../visualizations/initial-activations-avg-sentence-subj" + str(args.subject_number)
+	print("creating plots over averaged sentence...")
+	file_name = "initial-activations-avg-sentence-subj" + str(args.subject_number)
+	# file_name = "../visualizations/run2-initial-activations-avg-sentence-subj" + str(args.subject_number)
 
-	# plot_roi(df, args, file_name + "-roi")
-	# plot_atlas(df, args, file_name + "-atlas")
-	# plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
-	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	plot_roi(df, args, file_name + "-roi")
+	plot_atlas(df, args, file_name + "-atlas")
+	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
+	plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
 	return avg
 
 def create_per_sentence(activations, args, at_labels, final_roi_labels):
@@ -145,8 +148,8 @@ def create_per_sentence(activations, args, at_labels, final_roi_labels):
 		# print("creating plots over averaged sentence...")
 		file_name = "../visualizations/initial-activations-subj" + str(args.subject_number) + "-sentence" + str(i)
 
-		plot_roi(to_plot, args, file_name + "-roi")
-		plot_atlas(to_plot, args, file_name + "-atlas")
+		# plot_roi(to_plot, args, file_name + "-roi")
+		# plot_atlas(to_plot, args, file_name + "-atlas")
 		plot_boxplot_for_roi(to_plot, args, file_name + "-boxplot-roi")
 		plot_boxplot_for_atlas(to_plot, args, file_name + "-boxplot-atlas")
 
@@ -194,11 +197,11 @@ def main():
 	else:
 		# get atlas and roi
 		if args.local:
-			activations = pickle.load( open( "activations.p", "rb" ) )
-			atlas_vals = pickle.load( open( "atlas_vals.p", "rb" ) )
-			atlas_labels = pickle.load( open( "atlas_labels.p", "rb" ) )
-			roi_vals = pickle.load( open( "roi_vals.p", "rb" ) )
-			roi_labels = pickle.load( open( "roi_labels.p", "rb" ) )
+			activations = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/activations.p", "rb" ) )
+			atlas_vals = pickle.load( open("../examplesGLM/subj" + str(args.subject_number) +  "/atlas_vals.p", "rb" ) )
+			atlas_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/atlas_labels.p", "rb" ) )
+			roi_vals = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) +  "/roi_vals.p", "rb" ) )
+			roi_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/roi_labels.p", "rb" ) )
 		else:
 			activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
 			atlas_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
@@ -229,7 +232,7 @@ def main():
 		print(len(final_roi_labels))
 
 		create_per_brain_region(activations, args, at_labels, final_roi_labels)
-		create_per_sentence(activations, args, at_labels, final_roi_labels)
+		# create_per_sentence(activations, args, at_labels, final_roi_labels)
 
 	print("done.")
 
