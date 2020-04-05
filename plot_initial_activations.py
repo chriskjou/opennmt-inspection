@@ -197,12 +197,14 @@ def main():
 	else:
 		# get atlas and roi
 		if args.local:
+			volmask = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/volmask.p", "rb" ) )
 			activations = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/activations.p", "rb" ) )
 			atlas_vals = pickle.load( open("../examplesGLM/subj" + str(args.subject_number) +  "/atlas_vals.p", "rb" ) )
 			atlas_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/atlas_labels.p", "rb" ) )
 			roi_vals = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) +  "/roi_vals.p", "rb" ) )
 			roi_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/roi_labels.p", "rb" ) )
 		else:
+			volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
 			activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
 			atlas_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
 			atlas_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
@@ -215,12 +217,14 @@ def main():
 		print(len(roi_vals))
 		print(len(roi_labels))
 
-		final_roi_labels = clean_roi(roi_vals, roi_labels)
-		at_labels = clean_atlas(atlas_vals, atlas_labels)
+		final_roi_labels = helper.compare_labels(roi_labels, volmask, roi=True)
+		final_atlas_labels = helper.compare_labels(atlas_labels, volmask)
+		# final_roi_labels = clean_roi(roi_vals, roi_labels)
+		# at_labels = clean_atlas(atlas_vals, atlas_labels)
 
 		print("CLEANING")
 		print(len(final_roi_labels))
-		print(len(at_labels))
+		print(len(final_atlas_labels))
 
 		if not os.path.exists('../visualizations/'):
 			os.makedirs('../visualizations/')
@@ -228,11 +232,11 @@ def main():
 		# make dataframe
 		print(len(list(range(len(activations)))))
 		print(len(activations))
-		print(len(at_labels))
+		print(len(final_atlas_labels))
 		print(len(final_roi_labels))
 
-		create_per_brain_region(activations, args, at_labels, final_roi_labels)
-		# create_per_sentence(activations, args, at_labels, final_roi_labels)
+		create_per_brain_region(activations, args, final_atlas_labels, final_roi_labels)
+		# create_per_sentence(activations, args, final_atlas_labels, final_roi_labels)
 
 	print("done.")
 

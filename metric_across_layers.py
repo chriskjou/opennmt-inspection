@@ -39,15 +39,6 @@ def generate_file_name(args, subject_number, which_layer):
 		)
 	return file_name
 
-def convert_matlab_to_np(metric, volmask):
-	i,j,k = volmask.shape
-	nonzero_pts = np.transpose(np.nonzero(volmask))
-	values = []
-	for pt in tqdm(range(len(nonzero_pts))):
-		x,y,z = nonzero_pts[pt]
-		values.append(metric[int(x)][int(y)][int(z)])
-	return values
-
 def plot_roi_across_layers(df, metric, file_name):
 	sns.set(style="darkgrid")
 	plt.figure(figsize=(16, 9))
@@ -151,8 +142,8 @@ def main():
 		roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
 		roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
-	true_roi_labels = compare_labels(roi_labels, volmask, roi=True)
-	true_atlas_labels = compare_labels(atlas_labels, volmask)
+	true_roi_labels = helper.compare_labels(roi_labels, volmask, roi=True)
+	true_atlas_labels = helper.compare_labels(atlas_labels, volmask)
 
 	# clean labels
 	final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
@@ -205,7 +196,7 @@ def main():
 				if args.llh:
 					content = np.abs(scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-llh.mat")["metric"])
 				
-				values = convert_matlab_to_np(content, volmask)
+				values = helper.convert_matlab_to_np(content, volmask)
 			else:
 				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
 			metric_info.extend(values)
@@ -230,7 +221,7 @@ def main():
 				if args.llh:
 					content = np.abs(scipy.io.loadmat("../mat/" + file_name + "llh.mat")["metric"])
 				
-				values = convert_matlab_to_np(content, volmask)
+				values = helper.convert_matlab_to_np(content, volmask)
 			else:
 				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
 			metric_info.extend(values)

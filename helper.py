@@ -153,6 +153,15 @@ def load_common_space(subject_numbers, local=False):
 		del volmask
 	return subject_volmasks
 
+def convert_matlab_to_np(metric, volmask):
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	values = []
+	for pt in tqdm(range(len(nonzero_pts))):
+		x,y,z = nonzero_pts[pt]
+		values.append(metric[int(x)][int(y)][int(z)])
+	return values
+	
 # fix labels
 def compare_labels(labels, volmask, roi=False):
 	if roi:
