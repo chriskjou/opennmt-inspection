@@ -5,7 +5,7 @@ import numpy as np
 import sys
 import math
 from scipy.linalg import lstsq
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, permutation_test_score
 import argparse
 import os
 import helper
@@ -53,6 +53,8 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	predictions = []
 	rankings = []
 	llhs = []
+	# pvalues = []
+	# alphas = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	true_spotlights = []
@@ -102,10 +104,12 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.rsa: 
 			res = rsa(nn_matrix, np.array(spotlights))
 		else: 
-			res, pred, llh, rank = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
+			res, pred, llh = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
 			predictions.append(pred)
 			llhs.append(llh)
 			rankings.append(rank)
+			# pvalues.append(pval)
+			# alphas.append(alpha)
 
 		print("RES for SPOTLIGHT #", index, ": ", res)
 		print("RANK : " + str(rank))
@@ -162,6 +166,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		predicted_trials = np.zeros((to_regress.shape[0], to_regress.shape[1]))
 		llhs = []
 		rankings = []
+		pvalues = []
 
 		if args.add_bias:
 			from_regress = helper.add_bias(from_regress)
@@ -169,10 +174,16 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		if args.permutation:
 			np.random.shuffle(from_regress)
 
-		alphas = np.logspace(-10, 10, 21, endpoint=True) 
-		clf = RidgeCV(alphas=alphas).fit(from_regress, to_regress)
-		best_alpha = clf.alpha_
-		print("BEST ALPHA: " + str(best_alpha))
+		# alphas = np.logspace(-10, 1, 11, endpoint=False)
+		# clf = RidgeCV(alphas=alphas).fit(from_regress, to_regress)
+		# best_alpha = clf.alpha_
+		# print("BEST ALPHA: " + str(best_alpha))
+		best_alpha = 0
+
+		# if args.significance:
+		# 	clf = Ridge(alpha=best_alpha)
+		# 	score, permutation_scores, pvalue = permutation_test_score(clf, from_regress, to_regress, scoring="neg_mean_squared_error", cv=5, n_permutations=100, n_jobs=1)
+		# 	pvalues.append(pvalue)
 
 		for train_index, test_index in kf.split(from_regress):
 			greatest_possible_rank = len(test_index)
@@ -201,7 +212,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				rank_accuracy = 1 - (rank - 1) * 1.0 / (greatest_possible_rank - 1)
 				rankings.append(rank_accuracy)
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)#, best_alpha
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
 	return
 
 def main():
@@ -230,6 +241,7 @@ def main():
 	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--ranking",  action='store_true', default=True, help="True if calculate ranking, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
+	argparser.add_argument("--significance",  action='store_true', default=False, help="True if calculate significance, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -312,6 +324,10 @@ def main():
 		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
 		print("RESIDUALS FILE: " + str(altered_file_name))
 		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
+
+		# alphas_file_name = "/n/shieber_lab/Lab/users/cjou/alphas/" +  temp_file_name
+		# print("ALPHAS FILE: " + str(alphas_file_name))
+		# pickle.dump( alphas, open(alphas_file_name + ".p", "wb" ), protocol=-1 )
 
 		if args.model_to_brain and args.ranking:
 			ranking_file_name = "/n/shieber_lab/Lab/users/cjou/final_rankings/" +  temp_file_name

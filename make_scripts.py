@@ -176,7 +176,7 @@ done
 				timelimit = "0-24:00"
 			else:
 				mem = "7000"
-				timelimit = "0-5:00"
+				timelimit = "0-7:00"
 			rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
@@ -229,7 +229,7 @@ def main():
 	parser = argparse.ArgumentParser("make scripts for Odyssey cluster")
 	parser.add_argument("-total_batches", "--total_batches", help="Total number of batches to run", type=int, default=100)
 	parser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
-	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
+	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=4)
 	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')

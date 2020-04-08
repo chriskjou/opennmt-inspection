@@ -98,7 +98,7 @@ def plot_boxplot_for_atlas(df, args, file_name):
 def plot_boxplot_for_roi(df, args, file_name):
 	all_activations = list(df.activations)
 	sns.set(style="darkgrid")
-	g = sns.catplot(x="roi_labels", y="activations", data=df, height=7.5, aspect=1.5, kind="box", palette="Set3")
+	g = sns.catplot(x="roi_labels", y="activations", data=df, height=7.5, aspect=1.5, kind="box", color="cornflowerblue")
 	g.set_xticklabels(rotation=45)
 	g.set(ylim=(min(all_activations), max(all_activations)))
 	g.set_axis_labels("", "activations")
@@ -128,7 +128,7 @@ def create_per_brain_region(activations, args, at_labels, final_roi_labels):
 	plot_roi(df, args, file_name + "-roi")
 	plot_atlas(df, args, file_name + "-atlas")
 	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
-	plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
 	return avg
 
 def create_per_sentence(activations, args, at_labels, final_roi_labels):

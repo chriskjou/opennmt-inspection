@@ -128,6 +128,8 @@ def main():
 	print("NUMBER OF LAYERS: " + str(args.num_layers))
 	subjects = [1,2,4,5,7,8,9,10,11]
 
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
+
 	# get subject 
 	if args.local:
 		volmask = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/volmask.p", "rb" ) )
@@ -182,19 +184,25 @@ def main():
 	if args.bert:
 		print("getting metric information per layer...")
 		for layer in tqdm(range(1, args.num_layers+1)):
-			# file_name = generate_file_name(args, args.subject_number, layer)
+			file_name = "bert{}{}-subj{}-{}_layer{}".format(
+					direction,
+					validate,
+					args.subject_number,
+					args.agg_type,
+					layer
+				)
 			if args.local:
 				# values = pickle.load(open("../final_rankings/" + str(file_name) + ".p", "rb"))
 				# content = scipy.io.loadmat("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.mat")
 				# values = pickle.load(open("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.p", "rb"))
 				if args.ranking:
 					# values = pickle.load(open("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-ranking.p", "rb"))
-					content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-ranking.mat")["metric"]
+					content = scipy.io.loadmat("../mat_original/" + str(file_name) + "-3dtransform-ranking.mat")["metric"]
 				if args.rmse:
 					# bertbrain2model_cv_-subj1-avg_layer1-3dtransform-rmse.mat
-					content = scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-rmse.mat")["metric"]
+					content = scipy.io.loadmat("../mat_original/" + str(file_name) + "-3dtransform-rmse.mat")["metric"]
 				if args.llh:
-					content = np.abs(scipy.io.loadmat("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-3dtransform-llh.mat")["metric"])
+					content = np.abs(scipy.io.loadmat("../mat_original/" + str(file_name) + "-3dtransform-llh.mat")["metric"])
 				
 				values = helper.convert_matlab_to_np(content, volmask)
 			else:
@@ -202,10 +210,12 @@ def main():
 			metric_info.extend(values)
 			layer_vals = len(values) * [layer]
 			layer_info.extend(layer_vals)
-		to_save_file = "bert"
-	else:
+		to_save_file = str(plabel) + str(prlabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-bert"
+	elif not args.glove and not args.word2vec:
 		for layer in tqdm(range(1, args.num_layers+1)):
-			file_name = "model2brain_cv_-subj{}-parallel-english-to-{}-model-{}layer-brnn-pred-layer{}-{}-3dtransform-".format(
+			file_name = "{}{}-subj{}-parallel-english-to-{}-model-{}layer-brnn-pred-layer{}-{}-3dtransform-".format(
+					direction,
+					validate,
 					args.subject_number,
 					args.language,
 					args.num_layers,
@@ -215,11 +225,11 @@ def main():
 			print(file_name)
 			if args.local:
 				if args.ranking:
-					content = scipy.io.loadmat("../mat/" + file_name + "ranking.mat")["metric"]
+					content = scipy.io.loadmat("../mat_original/" + file_name + "ranking.mat")["metric"]
 				if args.rmse:
-					content = scipy.io.loadmat("../mat/" + file_name + "rmse.mat")["metric"]
+					content = scipy.io.loadmat("../mat_original/" + file_name + "rmse.mat")["metric"]
 				if args.llh:
-					content = np.abs(scipy.io.loadmat("../mat/" + file_name + "llh.mat")["metric"])
+					content = np.abs(scipy.io.loadmat("../mat_original/" + file_name + "llh.mat")["metric"])
 				
 				values = helper.convert_matlab_to_np(content, volmask)
 			else:
@@ -227,12 +237,14 @@ def main():
 			metric_info.extend(values)
 			layer_vals = len(values) * [layer]
 			layer_info.extend(layer_vals)
-			to_save_file = "m2b_cv_subj{}_{}layer_{}".format(args.subject_number, args.num_layers, args.language)
+			to_save_file = "{}_{}_subj{}_{}layer_{}".format(direction, validate, args.subject_number, args.num_layers, args.language)
+		else: # word2vec, glove
+			pass
 
 	print("LAYER INFO: " + str(len(layer_info)))
 	print("METRIC INFO: " + str(len(metric_info)))
 
-	if args.ranking:
+	if args.ranking and args.model_to_brain:
 		df_dict = {
 			'layer': layer_info,
 			'AR': metric_info,
@@ -241,6 +253,10 @@ def main():
 		}
 
 		df = pd.DataFrame(df_dict)
+
+		df_slice = df.loc[df["layer"] == 1][["atlas", "AR"]]
+		avg_df = df_slice.groupby(['atlas']).mean()
+		print(avg_df.sort_values(by='AR', ascending=False).head())
 
 		print("plotting values...")
 		plot_roi_across_layers(df, "AR", "../fixed_roi_ar_" + to_save_file + ".png")
@@ -256,6 +272,10 @@ def main():
 
 		df = pd.DataFrame(df_dict)
 
+		df_slice = df.loc[df["layer"] == 1][["atlas", "RMSE"]]
+		avg_df = df_slice.groupby(['atlas']).mean()
+		print(avg_df.sort_values(by='RMSE', ascending=True).head())
+
 		print("plotting values...")
 		plot_roi_across_layers(df, "RMSE", "../fixed_roi_rmse_" + to_save_file + ".png")
 		plot_atlas_across_layers(df, "RMSE", "../fixed_atlas_rmse_" + to_save_file + ".png")
@@ -269,6 +289,10 @@ def main():
 		}
 
 		df = pd.DataFrame(df_dict)
+
+		df_slice = df.loc[df["layer"] == 1][["atlas", "LLH"]]
+		avg_df = df_slice.groupby(['atlas']).mean()
+		print(avg_df.sort_values(by='LLH', ascending=True).head())
 
 		print("plotting values...")
 		plot_roi_across_layers(df, "LLH", "../fixed_roi_llh_" + to_save_file + ".png")

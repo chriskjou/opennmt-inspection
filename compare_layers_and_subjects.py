@@ -35,15 +35,13 @@ def compare_layers(layer1, layer2):
 	return diff
 
 def get_file(args, file_name):
+	path = "../mat_original/"
 	if args.ranking:
-		metric = "ranking"
-		path = "../mat/"
+		metric = "ranking"	
 	elif args.rmse:
 		metric = "rmse"
-		path = "../mat/"
 	elif args.llh:
 		metric = "llh"
-		path = ""
 	elif args.fdr:
 		metric = "fdr"
 		path = "../fdr/"
@@ -74,13 +72,12 @@ def generate_file_name(args, subject_number, which_layer):
 		)
 	else:
 		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(
-			bertlabel) + str(direction) + str(
-			validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 		file_name = specific_file.format(
 			subject_number,
 			args.language,
 			args.num_layers,
-			args.model_type,
+			"brnn",
 			which_layer,
 			args.agg_type
 		)
@@ -169,7 +166,7 @@ def main():
 		exit()
 
 	if args.num_layers != 1 and (args.word2vec or args.random or args.permutation or args.glove):
-		print("error: please ensure baseline has 1 layer")
+		print("error: please ensure baseline has 1 layerc")
 		exit()
 
 	if not args.fdr and not args.llh and not args.ranking and not args.rmse:
@@ -178,6 +175,8 @@ def main():
 
 	print("NUMBER OF LAYERS: " + str(args.num_layers))
 	subjects = [1,2,4,5,7,8,9,10,11]
+
+	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 	# print("generating file names...")
 	# layer1_file_name = generate_file_name(args, args.layer1)
 	# layer2_file_name = generate_file_name(args, args.layer2)
@@ -190,6 +189,16 @@ def main():
 	# diff = compare_layers(layer1, layer2)
 	# print("DIFF")
 	# print(np.sum(diff))
+	if args.fdr:
+		metric = "fdr"
+	if args.rmse:
+		metric = "rmse"
+	if args.rsa:
+		metric = "rsa"
+	if args.ranking:
+		metric = "ranking"
+	if args.llh:
+		metric = "llh"
 
 	# generate heatmap
 	if args.single_subject and args.across_layer:
@@ -219,7 +228,24 @@ def main():
 		# plt.xticks(np.arange(0.5, len(df.columns), 1), df.columns)
 		# plt.show()
 		sns.heatmap(df)
-		plt.show()
+		if args.bert:
+			file_name = "bert{}{}subj{}_{}_heatmap".format(
+						direction,
+						validate,
+						args.subject_number,
+						args.agg_type,
+					)
+		else:
+			specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer-{}"
+			file_name = specific_file.format(
+				args.subject_number,
+				args.language,
+				args.num_layers,
+				"brnn",
+				args.agg_type
+			)
+		plt.savefig("../" + str(file_name) + str(metric) + ".png", bbox_inches='tight')
+		# plt.show()
 
 		# pval = calculate_pval(layer1, layer2)
 		# print("pval")
