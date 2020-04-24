@@ -163,16 +163,19 @@ def convert_matlab_to_np(metric, volmask):
 	return values
 	
 # fix labels
-def compare_labels(labels, volmask, roi=False):
+def compare_labels(labels, volmask, subj_num=1, roi=False):
 	if roi:
-		volaal = scipy.io.loadmat("../subj1_vollangloc.mat")["vollangloc"]
+		volaal = scipy.io.loadmat("../subj" + str(subj_num) + "_vollangloc.mat")["vollangloc"]
 	else:
-		volaal = scipy.io.loadmat("../subj1_volaal.mat")["volaal"]
+		volaal = scipy.io.loadmat("../subj" + str(subj_num) + "_volaal.mat")["volaal"]
 	true_labels = convert_matlab_to_np(volaal, volmask)
 
 	get_labels = []
 	for elem in true_labels:
-		get_labels.append(labels[elem-1][0][0])
+		if elem == 0:
+			get_labels.append("other")
+		else:
+			get_labels.append(labels[elem-1][0][0])
 	return get_labels
 
 # clean ROI labels for plotting and ranking

@@ -170,7 +170,7 @@ done
 			rsaflag = "" if not args.rsa else " --rsa"
 			if args.rsa:
 				mem = "4500"
-				timelimit = "0-3:00"
+				timelimit = "0-6:00"
 			elif args.llh:
 				mem = "9000"
 				timelimit = "0-24:00"

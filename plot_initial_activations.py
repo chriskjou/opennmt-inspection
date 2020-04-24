@@ -2,9 +2,9 @@ import numpy as np
 import pickle
 import sys
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
-plt.switch_backend('agg')
+import seaborn as sns
+# plt.switch_backend('agg')
 import argparse
 import os
 from tqdm import tqdm
@@ -96,6 +96,7 @@ def plot_boxplot_for_atlas(df, args, file_name):
 	return
 
 def plot_boxplot_for_roi(df, args, file_name):
+	df = df.sort_values(by=["roi_labels"])
 	all_activations = list(df.activations)
 	sns.set(style="darkgrid")
 	g = sns.catplot(x="roi_labels", y="activations", data=df, height=7.5, aspect=1.5, kind="box", color="cornflowerblue")
@@ -125,10 +126,10 @@ def create_per_brain_region(activations, args, at_labels, final_roi_labels):
 	file_name = "initial-activations-avg-sentence-subj" + str(args.subject_number)
 	# file_name = "../visualizations/run2-initial-activations-avg-sentence-subj" + str(args.subject_number)
 
-	plot_roi(df, args, file_name + "-roi")
-	plot_atlas(df, args, file_name + "-atlas")
+	# plot_roi(df, args, file_name + "-roi")
+	# plot_atlas(df, args, file_name + "-atlas")
 	plot_boxplot_for_roi(df, args, file_name + "-boxplot-roi")
-	# plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
+	plot_boxplot_for_atlas(df, args, file_name + "-boxplot-atlas")
 	return avg
 
 def create_per_sentence(activations, args, at_labels, final_roi_labels):
@@ -146,13 +147,33 @@ def create_per_sentence(activations, args, at_labels, final_roi_labels):
 
 		# create plots
 		# print("creating plots over averaged sentence...")
-		file_name = "../visualizations/initial-activations-subj" + str(args.subject_number) + "-sentence" + str(i)
+		file_name = "initial-activations-subj" + str(args.subject_number) + "-sentence" + str(i)
 
 		# plot_roi(to_plot, args, file_name + "-roi")
 		# plot_atlas(to_plot, args, file_name + "-atlas")
 		plot_boxplot_for_roi(to_plot, args, file_name + "-boxplot-roi")
 		plot_boxplot_for_atlas(to_plot, args, file_name + "-boxplot-atlas")
 
+	return
+
+def plot_voxel_num(df, metric):
+	if metric == "atlas_labels":
+		height = 17.5
+		aspect = 1.5
+		df = df[[metric]].groupby([metric]).size().reset_index(name='num_voxels').sort_values(by=['num_voxels'])
+	else:
+		height = 7.5
+		aspect = 1.5
+		df = df[[metric]].groupby([metric]).size().reset_index(name='num_voxels').sort_values(by=[metric])
+
+	if metric == "roi_labels":
+		df = df.loc[df[metric] != "other"]
+	plt.clf()
+	sns.set(style="darkgrid")
+	g = sns.catplot(x=metric, y="num_voxels", height=height, aspect=aspect, data=df, kind="bar", color="cornflowerblue")
+	g.set_xticklabels(rotation=90)
+	plt.savefig("../"+ str(metric) + "_hist.png", bbox_inches='tight')
+	print("TOTAL: " + str(np.sum(df['num_voxels'])))
 	return
 
 def main():
@@ -162,6 +183,7 @@ def main():
 	argparser.add_argument("-subjects", "--subjects", help="subject numbers", type=str, default="")
 	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local False if not")
 	argparser.add_argument("-brain_map", "--brain_map",  action='store_true', default=False, help="True if for 3d brain map if not")
+	argparser.add_argument("-hist", "--hist",  action='store_true', default=False, help="True if for histogram of voxels if not")
 	argparser.add_argument("-sentences", "--sentences",  help="sentence numbers", type=str, default="")
 	args = argparser.parse_args()
 
@@ -194,6 +216,32 @@ def main():
 		across_brain = np.mean(np.array(activations_list), axis=0)
 		scipy.io.savemat("../mat/common_space_initial_activations.mat", dict(metric = across_brain))
 
+	elif args.hist: 
+		if args.local:
+			volmask = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/volmask.p", "rb" ) )
+			activations = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/activations.p", "rb" ) )
+			atlas_vals = pickle.load( open("../examplesGLM/subj" + str(args.subject_number) +  "/atlas_vals.p", "rb" ) )
+			atlas_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/atlas_labels.p", "rb" ) )
+			roi_vals = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) +  "/roi_vals.p", "rb" ) )
+			roi_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/roi_labels.p", "rb" ) )
+
+		final_roi_labels = helper.compare_labels(roi_labels, volmask, roi=True)
+		final_atlas_labels = helper.compare_labels(atlas_labels, volmask)
+
+		avg = np.nanmean(activations, axis=0)
+
+		df_dict = {'voxel_index': list(range(len(avg))),
+			'activations': avg,
+			'atlas_labels': final_atlas_labels,
+			'roi_labels': final_roi_labels
+		}
+
+		df = pd.DataFrame(df_dict)
+
+		# PLOT ALTAS
+		plot_voxel_num(df, "atlas_labels")
+		# plot_voxel_num(df, "roi_labels")
+		pass
 	else:
 		# get atlas and roi
 		if args.local:

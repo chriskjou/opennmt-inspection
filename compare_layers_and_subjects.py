@@ -35,7 +35,7 @@ def compare_layers(layer1, layer2):
 	return diff
 
 def get_file(args, file_name):
-	path = "../mat_original/"
+	path = "../mat/"
 	if args.ranking:
 		metric = "ranking"	
 	elif args.rmse:

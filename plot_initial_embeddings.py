@@ -74,9 +74,10 @@ def plot_boxplot(df, args, file_name):
 def plot_agg(df, file_name, hue):
 	plt.clf()
 	sns.set(style="darkgrid")
-	plt.figure(figsize=(60, 8))
-	ax = sns.boxplot(x="dimension", y="embeddings", hue=hue, data=df, palette="Set3", showfliers = False)
-	ax.set_xticklabels(ax.get_xticklabels(), rotation=45, size = 5)
+	plt.figure(figsize=(16, 8))
+	# ax = sns.boxplot(x="dimension", y="embeddings", data=df, hue=hue, palette="Set3", showfliers = False)
+	ax = sns.boxplot(x="dimension", y="embeddings", data=df, showfliers = False, color="cornflowerblue")
+	ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
 	# ax = sns.catplot(x="dimension", y="embeddings", hue="agg_type", col="baseline", data=df, kind="box", palette="Set3")
 	# plt.show()
 	plt.savefig(file_name, bbox_inches='tight')
@@ -158,35 +159,43 @@ def main():
 
 		df.head()
 
-		avg_df = df.loc[df["agg_type"] == "avg"]
-		min_df = df.loc[df["agg_type"] == "min"]
-		max_df = df.loc[df["agg_type"] == "max"]
-		last_df = df.loc[df["agg_type"] == "last"]
+		frame1 = df.loc[df["agg_type"] == "avg"].loc[df["dimension"] <= 35]
+		frame2 = df.loc[df["agg_type"] == "avg"].loc[df["dimension"] >= 275]
+		# frame3 = frame1.loc[df["dimension"] <= 12]
+		# frame6 = frame3.loc[df["dimension"] >= 8]
+		frame4 = frame1.loc[df["dimension"] >= 33]
+		frame5 = frame2.loc[df["dimension"] <= 278]
+
+		frames = [frame1, frame2]
+		avg_df = pd.concat(frames)
+		# min_df = df.loc[df["agg_type"] == "min"]
+		# max_df = df.loc[df["agg_type"] == "max"]
+		# last_df = df.loc[df["agg_type"] == "last"]
 
 		plot_agg(avg_df, "../initial_embeddings_avg_baseline.png", "baseline")
-		plot_agg(min_df, "../initial_embeddings_min_baseline.png", "baseline")
-		plot_agg(max_df, "../initial_embeddings_max_baseline.png", "baseline")
-		plot_agg(last_df, "../initial_embeddings_last_baseline.png", "baseline")
+		# plot_agg(min_df, "../initial_embeddings_min_baseline.png", "baseline")
+		# plot_agg(max_df, "../initial_embeddings_max_baseline.png", "baseline")
+		# plot_agg(last_df, "../initial_embeddings_last_baseline.png", "baseline")
 
-		print("ELNGTH ARR: " + str(len(df_arr)))
-		print("LENGTH LABEL: " + str(len(df_label)))
-		print("AGG: " + str(len(df_agg)))
+		# print("ELNGTH ARR: " + str(len(df_arr)))
+		# print("LENGTH LABEL: " + str(len(df_label)))
+		# print("AGG: " + str(len(df_agg)))
 
-		# for all
-		df = pd.DataFrame({
-			"baseline": df_label,
-			"embeddings": df_arr,
-			"agg_type": df_agg
-		})
+		# # for all
+		# df = pd.DataFrame({
+		# 	"baseline": df_label,
+		# 	"embeddings": df_arr,
+		# 	"agg_type": df_agg
+		# })
 
-		df.head()
+		# df.head()
 
-		plt.clf()
-		plt.figure(figsize=(11, 8))
-		# ax = sns.boxplot(x="agg_type", y="embeddings", hue="baseline", data=df, palette="Set3")
-		ax = sns.boxplot(x="baseline", y="embeddings", hue="agg_type", data=df, palette="Set3", showfliers = False)
-		# plt.show()
-		plt.savefig("../initial_embeddings_across_agg_type.png", bbox_inches='tight')
+		# plt.clf()
+		# plt.figure(figsize=(11, 8))
+		# # ax = sns.boxplot(x="agg_type", y="embeddings", hue="baseline", data=df, palette="Set3")
+		# ax = sns.boxplot(x="baseline", y="embeddings", hue="agg_type", data=df, palette="Set3", showfliers = False)
+		# # plt.show()
+		# plt.savefig("../initial_embeddings_across_agg_type.png", bbox_inches='tight')
 	elif args.bert:
 		df_arr = []
 		df_agg = []
@@ -236,35 +245,45 @@ def main():
 		# df.head()
 
 		avg_df = df.loc[df["agg_type"] == "avg"].loc[df["layer"] == 1]
-		min_df = df.loc[df["agg_type"] == "min"].loc[df["layer"] == 1]
-		max_df = df.loc[df["agg_type"] == "max"].loc[df["layer"] == 1]
-		last_df = df.loc[df["agg_type"] == "last"].loc[df["layer"] == 1]
+		# plot_agg(avg_df, "../initial_embeddings_bert_avg_baseline.png", "agg_type")
 
-		plot_agg(avg_df, "../initial_embeddings_bert_avg_baseline.png", "agg_type")
-		plot_agg(min_df, "../initial_embeddings_bert_min_baseline.png", "agg_type")
-		plot_agg(max_df, "../initial_embeddings_bert_max_baseline.png", "agg_type")
-		plot_agg(last_df, "../initial_embeddings_bert_last_baseline.png", "agg_type")
+		frame1 = avg_df.loc[avg_df["agg_type"] == "avg"].loc[avg_df["dimension"] <= 750]
+		frame2 = frame1.loc[frame1["dimension"] >= 720]
+		# frame3 = avg_df.loc[avg_df["agg_type"] == "avg"].loc[avg_df["dimension"] >= 743]
+		frame4 = avg_df.loc[avg_df["agg_type"] == "avg"].loc[avg_df["dimension"] >= 250]
+		frame5 = frame4.loc[frame4["dimension"] <= 280]
 
-		print("ELNGTH ARR: " + str(len(df_arr)))
-		print("LENGTH LAYER: " + str(len(df_layers)))
-		print("AGG: " + str(len(df_agg)))
+		frames = [frame2, frame5]
+		avg_df2 = pd.concat(frames)
+		# min_df = df.loc[df["agg_type"] == "min"].loc[df["layer"] == 1]
+		# max_df = df.loc[df["agg_type"] == "max"].loc[df["layer"] == 1]
+		# last_df = df.loc[df["agg_type"] == "last"].loc[df["layer"] == 1]
 
-		# for all
-		df = pd.DataFrame({
-			"layer": df_layers,
-			"embeddings": df_arr,
-			"agg_type": df_agg
-		})
+		plot_agg(avg_df2, "../initial_embeddings_bert_avg_baseline.png", "agg_type")
+		# plot_agg(min_df, "../initial_embeddings_bert_min_baseline.png", "agg_type")
+		# plot_agg(max_df, "../initial_embeddings_bert_max_baseline.png", "agg_type")
+		# plot_agg(last_df, "../initial_embeddings_bert_last_baseline.png", "agg_type")
 
-		df.head()
+		# print("ELNGTH ARR: " + str(len(df_arr)))
+		# print("LENGTH LAYER: " + str(len(df_layers)))
+		# print("AGG: " + str(len(df_agg)))
 
-		plt.clf()
-		plt.figure(figsize=(40, 10))
-		# ax = sns.boxplot(x="agg_type", y="embeddings", hue="baseline", data=df, palette="Set3")
-		ax = sns.boxplot(x="layer", y="embeddings", hue="agg_type", data=df, palette="Set3", showfliers = False)
-		# plt.show()
-		plt.legend(loc='lower left')
-		plt.savefig("../initial_embeddings_bert_across_agg_type.png", bbox_inches='tight')
+		# # for all
+		# df = pd.DataFrame({
+		# 	"layer": df_layers,
+		# 	"embeddings": df_arr,
+		# 	"agg_type": df_agg
+		# })
+
+		# df.head()
+
+		# plt.clf()
+		# plt.figure(figsize=(40, 10))
+		# # ax = sns.boxplot(x="agg_type", y="embeddings", hue="baseline", data=df, palette="Set3")
+		# ax = sns.boxplot(x="layer", y="embeddings", hue="agg_type", data=df, palette="Set3", showfliers = False)
+		# # plt.show()
+		# plt.legend(loc='lower left')
+		# plt.savefig("../initial_embeddings_bert_across_agg_type.png", bbox_inches='tight')
 		pass
 	elif args.opennmt:
 		df_arr = []

@@ -8,7 +8,7 @@ import os
 import helper
 
 def get_file(args, file_name):
-	path = "../mat_original/"
+	path = "../mat/"
 	if args.ranking:
 		metric = "ranking"	
 	elif args.rmse:
@@ -220,7 +220,7 @@ def main():
 
 		print("BEST LAYER")
 		total = 0 
-		for layer in range(1, num_layers +1):
+		for layer in range(1, args.num_layers +1):
 			print("LAYER" + str(layer))
 			print(np.sum(best_layer == layer))
 			total += np.sum(best_layer == layer)
@@ -234,7 +234,7 @@ def main():
 		for layer_num in tqdm(list(range(1, args.num_layers + 1))):
 			per_subject = []
 			for subj_num in subjects:
-				layer_file_name = generate_file_name(args, args.subject_number, layer_num)
+				layer_file_name = generate_file_name(args, subj_num, layer_num)
 
 				# print("retrieving file contents...")
 				layer, _ = get_file(args, layer_file_name)

@@ -6,6 +6,10 @@ import sys
 import argparse
 import os
 import helper
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+# plt.switch_backend('agg')
 
 def get_file(batch_num, total_batches):
 	file_name = "batch{}of{}_bor_pxp.mat".format(batch_num, total_batches)
@@ -36,6 +40,39 @@ def main():
 	bors, pxps = concatenate_files()
 	print("BORS SHAPE: " + str(bors.shape))
 	print("PXPS SHAPE: " + str(pxps.shape))
+	print("BORS: " + str(bors))
+	
+	# plt.clf()
+	# sns.set(style="darkgrid")
+	# plt.figure(figsize=(16, 9))
+	# _ = plt.hist(bors, bins='auto')
+	# plt.ylabel("count")
+	# plt.xlabel("BOR")
+	# plt.savefig("../bors_hist.png", bbox_inches='tight')
+
+	# print(np.sum(bors <= threshold))
+	# print(np.sum(bors > threshold))
+	# print(np.min(bors))
+
+	# total = 0
+	# all_pxps = []
+	# for coord_index in tqdm(range(len(voxel_coordinates))):
+	# 	x,y,z = voxel_coordinates[coord_index]
+	# 	get_pxp = np.max(pxps[coord_index])
+	# 	if get_pxp > .9:
+	# 		total+=1
+	# 	all_pxps.append(get_pxp)
+
+	# plt.clf()
+	# sns.set(style="darkgrid")
+	# plt.figure(figsize=(16, 9))
+	# _ = plt.hist(all_pxps, bins='auto')
+	# # plt.xlim(0,1)
+	# plt.ylabel("count")
+	# plt.xlabel("maximum PXP per voxel")
+	# plt.savefig("../pxp_values_hist.png", bbox_inches='tight')
+	# print("TOTAL: " + str(total))
+	# exit()
 
 	a,b,c = common_space.shape
 	mapped_space = np.zeros((a,b,c))
@@ -52,6 +89,24 @@ def main():
 				all_layer_space[layer][x][y][z] = pxps[coord_index][layer]
 
 	print("MAPPED SPACE: " + str(mapped_space.shape))
+	total_voxels = []
+	for layer in range(1, num_layers+1):
+		total = np.sum(mapped_space == layer)
+		total_voxels.append(total)
+
+	df = pd.DataFrame(
+		{
+			'layer': list(range(1, num_layers + 1 )),
+			'num_voxels': total_voxels
+		})
+
+	# print(df.head())
+	# sns.set(style="darkgrid")
+	# plt.figure(figsize=(16, 9))
+	# g = sns.catplot(x="layer", y="num_voxels", kind = "bar", color="cornflowerblue", data=df)
+	# plt.savefig("../best_voxel_hist.png", bbox_inches='tight')
+	# plt.show()
+	
 	scipy.io.savemat("../significant_bert_best_llh_by_voxel.mat", dict(metric = mapped_space))
 
 	for layer in range(num_layers):

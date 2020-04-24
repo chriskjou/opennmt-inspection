@@ -121,7 +121,7 @@ def main():
 		print("error: please ensure baseline has 1 layer")
 		exit()
 
-	if not args.fdr and not args.llh and not args.ranking and not args.rmse:
+	if not args.fdr and not args.llh and not args.ranking and not args.rmse and not args.rsa:
 		print("error: select at least 1 metric of correlation")
 		exit()
 
@@ -144,8 +144,8 @@ def main():
 		roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
 		roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
 
-	true_roi_labels = helper.compare_labels(roi_labels, volmask, roi=True)
-	true_atlas_labels = helper.compare_labels(atlas_labels, volmask)
+	true_roi_labels = helper.compare_labels(roi_labels, volmask, subj_num=args.subject_number, roi=True)
+	true_atlas_labels = helper.compare_labels(atlas_labels, volmask, subj_num=args.subject_number)
 
 	# clean labels
 	final_roi_labels = helper.clean_roi(roi_vals, roi_labels)
@@ -197,13 +197,14 @@ def main():
 				# values = pickle.load(open("../final_rankings/layer" + str(layer) + "_ranking_backwards_nifti.p", "rb"))
 				if args.ranking:
 					# values = pickle.load(open("../mat/bertmodel2brain_cv_-subj1-avg_layer" + str(layer) + "-ranking.p", "rb"))
-					content = scipy.io.loadmat("../mat_original/" + str(file_name) + "-3dtransform-ranking.mat")["metric"]
+					content = scipy.io.loadmat("../mat/" + str(file_name) + "-3dtransform-ranking.mat")["metric"]
 				if args.rmse:
 					# bertbrain2model_cv_-subj1-avg_layer1-3dtransform-rmse.mat
-					content = scipy.io.loadmat("../mat_original/" + str(file_name) + "-3dtransform-rmse.mat")["metric"]
+					content = scipy.io.loadmat("../mat/" + str(file_name) + "-3dtransform-rmse.mat")["metric"]
 				if args.llh:
-					content = np.abs(scipy.io.loadmat("../mat_original/" + str(file_name) + "-3dtransform-llh.mat")["metric"])
-				
+					content = np.abs(scipy.io.loadmat("../mat/" + str(file_name) + "-3dtransform-llh.mat")["metric"])
+				if args.rsa:
+					content = scipy.io.loadmat("../mat/" + str(file_name) + "-3dtransform-rsa.mat")["metric"]
 				values = helper.convert_matlab_to_np(content, volmask)
 			else:
 				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
@@ -225,11 +226,11 @@ def main():
 			print(file_name)
 			if args.local:
 				if args.ranking:
-					content = scipy.io.loadmat("../mat_original/" + file_name + "ranking.mat")["metric"]
+					content = scipy.io.loadmat("../mat/" + file_name + "ranking.mat")["metric"]
 				if args.rmse:
-					content = scipy.io.loadmat("../mat_original/" + file_name + "rmse.mat")["metric"]
+					content = scipy.io.loadmat("../mat/" + file_name + "rmse.mat")["metric"]
 				if args.llh:
-					content = np.abs(scipy.io.loadmat("../mat_original/" + file_name + "llh.mat")["metric"])
+					content = np.abs(scipy.io.loadmat("../mat/" + file_name + "llh.mat")["metric"])
 				
 				values = helper.convert_matlab_to_np(content, volmask)
 			else:
@@ -297,6 +298,32 @@ def main():
 		print("plotting values...")
 		plot_roi_across_layers(df, "LLH", "../fixed_roi_llh_" + to_save_file + ".png")
 		plot_atlas_across_layers(df, "LLH", "../fixed_atlas_llh_" + to_save_file + ".png")
+
+	if args.rsa:
+		df_dict = {
+			'layer': layer_info,
+			'correlation_coefficient': metric_info,
+			'ROI': roi_info,
+			'atlas': atlas_info
+		}
+
+		df = pd.DataFrame(df_dict)
+
+		print("ATLAS...")
+		df_slice = df.loc[df["layer"] == 1][["atlas", "correlation_coefficient"]]
+		avg_df = df_slice.groupby(['atlas']).mean()
+		print(avg_df.sort_values(by='correlation_coefficient', ascending=True).head())
+		print(avg_df.sort_values(by='correlation_coefficient', ascending=False).head())
+
+		print("ROI...")
+		df_slice = df.loc[df["layer"] == 1][["ROI", "correlation_coefficient"]]
+		avg_df = df_slice.groupby(['ROI']).mean()
+		print(avg_df.sort_values(by='correlation_coefficient', ascending=True).head())
+		print(avg_df.sort_values(by='correlation_coefficient', ascending=False).head())
+
+		print("plotting values...")
+		plot_roi_across_layers(df, "correlation_coefficient", "../fixed_roi_rsa_" + to_save_file + ".png")
+		plot_atlas_across_layers(df, "correlation_coefficient", "../fixed_atlas_rsa_" + to_save_file + ".png")
 
 	print("done.")
 	return

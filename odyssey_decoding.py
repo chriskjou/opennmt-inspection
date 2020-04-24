@@ -104,7 +104,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.rsa: 
 			res = rsa(nn_matrix, np.array(spotlights))
 		else: 
-			res, pred, llh = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
+			res, pred, llh, rank = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
 			predictions.append(pred)
 			llhs.append(llh)
 			rankings.append(rank)
@@ -112,7 +112,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			# alphas.append(alpha)
 
 		print("RES for SPOTLIGHT #", index, ": ", res)
-		print("RANK : " + str(rank))
+		# print("RANK : " + str(rank))
 		res_per_spotlight.append(res)
 
 		index+=1

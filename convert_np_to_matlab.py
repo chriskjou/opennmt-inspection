@@ -95,7 +95,7 @@ def concatenate_all(specific_file, args, type_concat):
 			print("ERROR")
 		
 		part = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		print("MAX FOR BATCH " + str(i) + ": " + str(np.max(part)))
+		# print("MAX FOR BATCH " + str(i) + ": " + str(np.max(part)))
 		final_residuals.extend(part)
 	print("FILE NAME: " + str( file_path + specific_file))
 	return final_residuals
@@ -136,22 +136,22 @@ def main():
 	if not args.brain_to_model and not args.model_to_brain:
 		print("select at least flag for brain_to_model or model_to_brain")
 		exit()
-	if not args.rmse and not args.ranking and not args.fdr and not args.llh and not args.rsa:
-		print("select at least flag for rmse, ranking, fdr, llh, rsa")
-		exit()
+	# if not args.rmse and not args.ranking and not args.fdr and not args.llh and not args.rsa:
+	# 	print("select at least flag for rmse, ranking, fdr, llh, rsa")
+	# 	exit()
 
 	print("getting volmask...")
 	
-	if args.rmse:
-		metric_name = "rmse"
-	if args.llh:
-		metric_name = "llh"
-	if args.ranking:
-		metric_name = "ranking"
-	if args.rsa:
-		metric_name = "rsa"
-	if args.fdr:
-		metric_name = "fdr"
+	# if args.rmse:
+	# 	metric_name = "rmse"
+	# if args.llh:
+	# 	metric_name = "llh"
+	# if args.ranking:
+	# 	metric_name = "ranking"
+	# if args.rsa:
+	# 	metric_name = "rsa"
+	# if args.fdr:
+	# 	metric_name = "fdr"
 
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
@@ -194,43 +194,51 @@ def main():
 	# else:
 	# 	file_path = "../3d-brain/"
 
-	if args.bert or args.word2vec or args.glove:
-		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}"
-		file_name = specific_file.format(
-			args.subject_number,
-			args.agg_type,
-			args.which_layer
-		)
+	if args.brain_to_model:
+		metrics = ["rmse", "llh"]
+	elif args.rsa:
+		metrics = ["rsa"]
 	else:
-		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-		file_name = specific_file.format(
-			args.subject_number,
-			args.language,
-			args.num_layers,
-			args.model_type,
-			args.which_layer,
-			args.agg_type
-		)
-	print("transform coordinates...")
+		metrics = ["ranking", "rmse", "llh"]
+	for layer in [args.which_layer]:
+		print("LAYER: " + str(layer))
+		for metric in metrics:
+			print("METRIC: " + str(metric))
+			if args.bert or args.word2vec or args.glove:
+				specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}"
+				file_name = specific_file.format(
+					args.subject_number,
+					args.agg_type,
+					layer
+				)
+			else:
+				specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+				file_name = specific_file.format(
+					args.subject_number,
+					args.language,
+					args.num_layers,
+					args.model_type,
+					layer,
+					args.agg_type
+				)
+			print("transform coordinates...")
 
+			if not args.word2vec and not args.glove and not args.bert and not args.random:
+				specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+				file_format = specific_file.format(
+					args.subject_number, 
+					args.language, 
+					args.num_layers, 
+					args.model_type, 
+					layer, 
+					args.agg_type
+				)
+			else:
+				file_format = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}".format(args.subject_number, args.agg_type, layer)
 
-	print("LAYER: " + str(args.which_layer))
-	if not args.word2vec and not args.glove and not args.bert and not args.random:
-		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-		file_format = specific_file.format(
-			args.subject_number, 
-			args.language, 
-			args.num_layers, 
-			args.model_type, 
-			args.which_layer, 
-			args.agg_type
-		)
-	else:
-		file_format = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-{}_layer{}".format(args.subject_number, args.agg_type, args.which_layer)
+			final_values = concatenate_all(file_format, args, metric)
 
-	final_values = concatenate_all(file_format, args, metric_name)
-
-	_ = helper.transform_coordinates(final_values, volmask, save_path="../mat/" + file_name, metric=metric_name)
+			_ = helper.transform_coordinates(final_values, volmask, save_path="../mat/" + file_name, metric=metric)
 
 	print('done.')
 
