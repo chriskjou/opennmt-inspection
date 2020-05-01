@@ -122,7 +122,7 @@ def main():
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
 	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--ranking",  action='store_true', default=True, help="True if calculate ranking, False if not")
-	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
+	argparser.add_argument("--mixed_effects",  action='store_true', default=True, help="True if calculate mixed effects, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -177,30 +177,22 @@ def main():
 	# get residuals and predictions
 	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
-	if args.mixed_effects:
-		val = mixed_effects_analysis(args, embed_matrix)
-	else:
-		all_residuals, llhs, rankings = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
+	rmses = mixed_effects_analysis(args, embed_matrix)
 
 	# dump
-	if args.rsa:
-		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
-		pickle.dump( all_residuals, open(file_name, "wb" ) )
-	
-	else:
-		if args.llh:
-			llh_file_name = "/n/shieber_lab/Lab/users/cjou/llh/" + temp_file_name
-			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
-			pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
+	if args.llh:
+		llh_file_name = "/n/shieber_lab/Lab/users/cjou/llh/" + temp_file_name
+		print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
+		pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
 
-		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
-		print("RESIDUALS FILE: " + str(altered_file_name))
-		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
+	altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
+	print("RESIDUALS FILE: " + str(altered_file_name))
+	pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
-		if args.model_to_brain and args.ranking:
-			ranking_file_name = "/n/shieber_lab/Lab/users/cjou/final_rankings/" +  temp_file_name
-			print("RANKING FILE: " + str(ranking_file_name))
-			pickle.dump( rankings, open(ranking_file_name + ".p", "wb" ), protocol=-1 )
+	if args.model_to_brain and args.ranking:
+		ranking_file_name = "/n/shieber_lab/Lab/users/cjou/final_rankings/" +  temp_file_name
+		print("RANKING FILE: " + str(ranking_file_name))
+		pickle.dump( rankings, open(ranking_file_name + ".p", "wb" ), protocol=-1 )
 
 	print("done.")
 
