@@ -235,8 +235,6 @@ def main():
 			per_subject = []
 			for subj_num in subjects:
 				layer_file_name = generate_file_name(args, subj_num, layer_num)
-
-				# print("retrieving file contents...")
 				layer, _ = get_file(args, layer_file_name)
 				voxel_values = layer[np.nonzero(common_space)]
 				# print("LENGTH: " + str(len(voxel_values)))

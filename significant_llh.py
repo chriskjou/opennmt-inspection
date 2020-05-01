@@ -83,10 +83,11 @@ def main():
 	print("creating maps...")
 	for coord_index in tqdm(range(len(voxel_coordinates))):
 		x,y,z = voxel_coordinates[coord_index]
-		if bors[coord_index] >= threshold:
-			mapped_space[x][y][z] = np.argmax(pxps[coord_index]) + 1
-			for layer in range(num_layers):
-				all_layer_space[layer][x][y][z] = pxps[coord_index][layer]
+		# if bors[coord_index] >= threshold:
+		print(pxps[coord_index])
+		mapped_space[x][y][z] = np.argmax(pxps[coord_index]) + 1
+		for layer in range(num_layers):
+			all_layer_space[layer][x][y][z] = pxps[coord_index][layer]
 
 	print("MAPPED SPACE: " + str(mapped_space.shape))
 	total_voxels = []

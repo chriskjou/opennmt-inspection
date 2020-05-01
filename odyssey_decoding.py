@@ -111,7 +111,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 			# pvalues.append(pval)
 			# alphas.append(alpha)
 
-		print("RES for SPOTLIGHT #", index, ": ", res)
+		# print("RES for SPOTLIGHT #", index, ": ", res)
 		# print("RANK : " + str(rank))
 		res_per_spotlight.append(res)
 
@@ -142,11 +142,13 @@ def rsa(embed_matrix, spotlights):
 
 def find_log_pdf(arr, sigmas):
 	val = stats.norm.logpdf(arr, 0, sigmas)
+	# return np.ma.masked_invalid(val).sum()
 	return np.nansum(val)
 
 def vectorize_llh(pred, data, sigmas):
 	residuals = np.subtract(data, pred)
 	llh = np.sum(np.apply_along_axis(find_log_pdf, 1, residuals, sigmas))
+	# print("LLH: " + str(llh))
 	return llh
 
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
@@ -198,8 +200,6 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 			predicted_trials[test_index] = y_hat_test
 
 			if args.llh:
-				n = X_train.shape[0]
-				k = X_train.shape[1]
 				y_hat_train = clf.predict(X_train)
 				sigma_train = np.sum((y_hat_train - y_train)**2, axis=0)
 				llh = vectorize_llh(y_hat_test, y_test, sigma_train)
@@ -212,7 +212,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				rank_accuracy = 1 - (rank - 1) * 1.0 / (greatest_possible_rank - 1)
 				rankings.append(rank_accuracy)
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float64), np.mean(rankings).astype(np.float32)
 	return
 
 def main():

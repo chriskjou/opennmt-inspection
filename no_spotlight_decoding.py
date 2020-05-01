@@ -12,6 +12,7 @@ import helper
 from scipy.stats import spearmanr
 from sklearn.linear_model import Ridge, RidgeCV
 import scipy.stats as stats
+from sklearn.model_selection import train_test_split
 # import statsmodels.api as sm
 
 def chunkify(lst, num, total):
@@ -185,6 +186,87 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
 	return
 
+def get_modified_activations(activations, volmask):
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	modified_activations = []
+	for sentence_activation in tqdm(activations):
+		one_sentence_act = np.zeros((i,j,k))
+		for pt in range(len(nonzero_pts)):
+			x,y,z = nonzero_pts[pt]
+			one_sentence_act[int(x)][int(y)][int(z)] = sentence_activation[pt]
+		modified_activations.append(one_sentence_act)
+	return modified_activations
+
+def run_per_voxel(df, labels, conditional_labels):
+	training_data, testing_data = train_test_split(df, test_size=0.2)
+
+	md = smf.mixedlm('embedding ~ 1 + ' + str(labels) + ' + (1 + ' + str(conditional_labels) + ' )', training_data, groups=training_data["subject_number"])
+	mdf = md.fit()
+	print(mdf.summary())
+
+	y_hat_test = mdf.predict(testing_data)
+	y_true = testing_data['activations']
+
+	print("CHECK SIZE: ")
+	rmse = np.sqrt(np.sum(np.abs(y_hat_test - y_true)))
+	return rmse
+
+def mixed_effects_analysis(args, embed_matrix):
+	# load common brain space
+	subjects = [1,2,4,5,7,8,9,10,11]
+	common_space = helper.load_common_space(subjects, local=args.local)
+	voxel_coordinates = np.transpose(np.nonzero(common_space))
+	num_voxels = len(voxel_coordinates)
+	print("NUM VOXELS IN SHARED COMMON BRAIN SPACE: " + str(num_voxels))
+
+	# initialize variables
+	all_activations = []
+	subj_number = []
+	voxel_index = []
+
+	# prepare model embeddings 
+	dim_labels = ['dim'+str(i) for i in range(embed_matrix.shape[1])]
+	embed_matrix_pd = pd.DataFrame(embed_matrix, columns=dim_labels)
+	embed_matrix_pd_repeat = pd.concat([embed_matrix_pd]*len(subjects), ignore_index=True)
+	print("LENGTH OF EMBEDDINGS: " + str(len(embed_matrix_pd_repeat)))
+
+	# get labels
+	labels = ""
+	conditional_labels = ""
+	for i in range(embed_matrix.shape[1]):
+		labels += 'dim' + str(i) + ' '
+		conditional_labels += 'dim' + str(i) + ' | subject_number '
+
+	# get data
+	for subj in subjects:
+		activation = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
+		activation_vals = activation[np.nonzero(common_space)]
+		modified_activations = get_modified_activations(activation_vals, common_space)
+		all_activations.append(modified_activations)
+		voxel_index.append(range(num_voxels))
+		subj_number.extend([subj] * num_voxels)
+	
+	# create dataframe
+	data = pd.DataFrame({
+		'subject_number': subj_number,
+		'voxel_index': voxel_index,
+		'activations': all_activations
+		})
+
+	data_slice = data.iloc[data["voxel_index"] == 0]
+	print("DATA SLICE LENGTH: " + str(len(data_slice)))
+
+	# per voxel
+	rmses_per_voxel = []
+	for v in range(num_voxels):
+		data_slice = data.iloc[data["voxel_index"] == v]
+		concat_pd = pd.concat([data_slice, embed_matrix_pd_repeat], axis=1)
+		rmse = run_per_voxel(concat_pd, labels, conditional_labels)
+		rmses_per_voxel.append(rmse)
+		
+	return rmses_per_voxel
+
 def main():
 	global temp_file_name
 
@@ -263,7 +345,10 @@ def main():
 	# get residuals and predictions
 	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
-	all_residuals, llhs, rankings = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
+	if args.mixed_effects:
+		val = mixed_effects_analysis(args, embed_matrix)
+	else:
+		all_residuals, llhs, rankings = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 
 	# dump
 	if args.rsa:

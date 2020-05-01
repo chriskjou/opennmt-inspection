@@ -95,7 +95,8 @@ def concatenate_all(specific_file, args, type_concat):
 			print("ERROR")
 		
 		part = pickle.load( open( file_path + file_name + ".p", "rb" ) )
-		# print("MAX FOR BATCH " + str(i) + ": " + str(np.max(part)))
+		print("MAX FOR BATCH " + str(i) + ": " + str(np.max(part)))
+		print("MIN FOR BATCH " + str(i) + ": " + str(np.min(part)))
 		final_residuals.extend(part)
 	print("FILE NAME: " + str( file_path + specific_file))
 	return final_residuals
