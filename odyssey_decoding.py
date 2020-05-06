@@ -14,19 +14,6 @@ from sklearn.linear_model import Ridge, RidgeCV
 import scipy.stats as stats
 # import statsmodels.api as sm
 
-def chunkify(lst, num, total):
-	if len(lst) % total == 0:
-		chunk_size = len(lst) // total
-	else:
-		chunk_size = len(lst) // total + 1
-
-	start = num * chunk_size
-	if num != total - 1:
-		end = num * chunk_size + chunk_size
-	else:
-		end = len(lst)
-	return lst[start:end]
-
 def pad_along_axis(array, target_length, axis=0):
 	pad_size = target_length - array.shape[axis]
 	axis_nb = len(array.shape)
@@ -58,7 +45,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	true_spotlights = []
-	CHUNK = chunkify(nonzero_pts, args.batch_num, args.total_batches)
+	CHUNK = helper.chunkify(nonzero_pts, args.batch_num, args.total_batches)
 	CHUNK_SIZE = len(CHUNK)
 
 	# iterate over spotlight

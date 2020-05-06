@@ -236,6 +236,19 @@ def add_bias(df):
 	df = np.hstack((df, new_col))
 	return df
 
+def chunkify(lst, num, total):
+	if len(lst) % total == 0:
+		chunk_size = len(lst) // total
+	else:
+		chunk_size = len(lst) // total + 1
+
+	start = num * chunk_size
+	if num != total - 1:
+		end = num * chunk_size + chunk_size
+	else:
+		end = len(lst)
+	return lst[start:end]
+	
 # create bash scripts for RANK and FDR
 def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)
