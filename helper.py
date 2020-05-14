@@ -248,7 +248,40 @@ def chunkify(lst, num, total):
 	else:
 		end = len(lst)
 	return lst[start:end]
-	
+
+def create_neurosynth_rsa_script(args, num_layer):
+	folder_name = "neurosynth_rsa_bert_subj{}".format(args.subject_number)
+	job_id = folder_name + "_layer" + str(num_layer)
+	fname = "../neurosynth_rsa/" + folder_name + "/" + job_id + ".sh"
+	print("FILE_NAME: " + str(fname))
+
+	with open(fname, 'w') as rsh:
+		rsh.write('''\
+#!/bin/bash
+#SBATCH -J {0}  								# Job name
+#SBATCH -p serial_requeue 						# partition (queue)
+#SBATCH --mem 4000 								# memory pool for all cores
+#SBATCH -t 0-1:00 									# time (D-HH:MM)
+#SBATCH --output=/n/home10/cjou/projects 		# file output location
+#SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
+#SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=ckjou@college.harvard.edu
+
+module load Anaconda3/5.0.1-fasrc02
+source activate virtualenv
+
+python ../../projects/neurosynth_rsa.py \
+--embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/bert/layer{1}/avg.p \
+--subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{1}/examplesGLM.mat  \
+--model_to_brain   --cross_validation  --subject_number {2} --which_layer {2}  --rsa   --bert
+'''.format(
+		job_id, 
+		num_layer, 
+		args.subject_number
+	)
+)
+
 # create bash scripts for RANK and FDR
 def create_bash_script(args, fname, file_to_run, memory, time_limit, batch=-1, total_batches=-1, cpu=1):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = generate_labels(args)
