@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J mixed_effects 						# Job name
 #SBATCH -p serial_requeue 						# partition (queue)
-#SBATCH --mem 35000 							# memory pool for all cores
+#SBATCH --mem 50000 							# memory pool for all cores
 #SBATCH -t 0-24:00 								# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../../err_mixed_effects.txt 		# File that STDOUT writes to

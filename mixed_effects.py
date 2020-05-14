@@ -31,32 +31,58 @@ def get_activations(modified_activations):
 def run_per_voxel(df, from_regress, labels):
 	y_predicted_all = np.zeros((df.shape[0],))
 	kf = KFold(n_splits=5, shuffle=True)
+	data = pd.concat([df, from_regress], axis=1)
+	data = data.dropna()
+	indices = list(data.index)
+	# reset valid indices
+	from_regress = from_regress.loc[indices,].reset_index(drop=True)
+	df = df.loc[indices,].reset_index(drop=True)
+
 	for train_index, test_index in kf.split(df):
 
-		training_X = from_regress.loc[train_index,]
-		training_y = df.loc[train_index,]['activations']
-		training_y_groups = df.loc[train_index,]['subject_number']
-		testing_X = from_regress.loc[test_index,]
-		testing_y = df.loc[test_index,]['activations']
-		testing_y_groups = df.loc[test_index,]['subject_number']
+		# training_data = data.loc[train_index,].reset_index(drop=True)
+		# testing_data = data.loc[test_index,].reset_index(drop=True)
+		# training_y_groups = data_labels.loc[train_index,].reset_index(drop=True)
+
+		# print(training_data.shape)
+		# print(training_y_groups.shape)
+
+		# prepare data
+		training_X = from_regress.loc[train_index,].reset_index(drop=True)
+		training_y = df.loc[train_index,]['activations'].reset_index(drop=True)
+		training_y_groups = df.loc[train_index,]['subject_number'].reset_index(drop=True)
+
+		testing_X = from_regress.loc[test_index,].reset_index(drop=True)
+		testing_y = df.loc[test_index,]['activations'].reset_index(drop=True)
+		testing_y_groups = df.loc[test_index,]['subject_number'].reset_index(drop=True)
 
 		md = sm.MixedLM(endog=training_y, exog=training_X, groups=training_y_groups)
 		# func = 'activations ~ ' + str(labels) + '1'
+		# re_form = str(labels)[:-2]
+		# print(re_form)
 		# print(func)
 		# print(training_data.columns.values.tolist())
-		# md = smf.mixedlm(func, training_data, groups=training_data["subject_number"])
+		# md = smf.mixedlm(func, training_data, re_formula=re_form, groups=training_y_groups)
 		mdf = md.fit()
-		# print(mdf.summary())
+		print(mdf.summary())
 
 		# print(testing_y.shape)
-		y_hat_test = mdf.predict(testing_X)
+		y_hat_test = mdf.predict(testing_data)
+		print("PREDICTION")
+		print(y_hat_test[:10])
 		y_predicted_all[test_index] = y_hat_test
 		# print(y_hat_test.shape)
 		# print(np.sqrt(np.sum(np.abs(y_hat_test - testing_y))))
 		# print(asdf)
-
 	y_true = df['activations']
-	rmse = np.sqrt(np.sum(np.abs(y_hat_test - y_true)))
+	print("PREDICTED SHAPE")
+	print(y_predicted_all.shape)
+	print(y_predicted_all[:10])
+	print("TRUE SHAPE")
+	print(y_true.shape)
+	print(y_true[:10])
+	rmse = np.sqrt(np.sum(np.abs(y_predicted_all - y_true)))
+	print("RMSE: " + str(rmse))
 	return rmse.astype(np.float32)
 
 def mixed_effects_analysis(args, embed_matrix):
@@ -131,6 +157,7 @@ def mixed_effects_analysis(args, embed_matrix):
 		# concat_pd = pd.concat([data_slice, embed_matrix_pd_repeat], axis=1)
 		rmse = run_per_voxel(data_slice, embed_matrix_pd_repeat, labels)
 		rmses_per_voxel.append(rmse)
+		print(asdf)
 		
 	return rmses_per_voxel
 
@@ -187,11 +214,13 @@ def main():
 	if args.local: 
 		if not os.path.exists('../mixed_effects/'):
 			os.makedirs('../mixed_effects/')
+		file_path = '../mixed_effects/'
 	else:
 		if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mixed_effects/'):
 			os.makedirs('/n/shieber_lab/Lab/users/cjou/mixed_effects/')
+		file_path = '/n/shieber_lab/Lab/users/cjou/mixed_effects/'
 
-	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-" + str(file_name) + "_mixed_effects"
+	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-" + str(file_name) + "_mixed_effects_batch" + str(args.batch_num) + "of" + str(args.total_batches)
 	
 	# get residuals and predictions
 	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
@@ -204,7 +233,7 @@ def main():
 	# 	print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
 	# 	pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
 
-	altered_file_name = "../mixed_effects/" +  temp_file_name
+	altered_file_name = file_path +  temp_file_name
 	print("RESIDUALS FILE: " + str(altered_file_name))
 	pickle.dump( rmses, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
