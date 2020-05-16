@@ -229,7 +229,7 @@ def main():
 	parser = argparse.ArgumentParser("make scripts for Odyssey cluster")
 	parser.add_argument("-total_batches", "--total_batches", help="Total number of batches to run", type=int, default=100)
 	parser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
-	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=4)
+	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=12)
 	parser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
@@ -251,7 +251,7 @@ def main():
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
-	num_layers = [2, 4]
+	num_layers = [2, 4, 12]
 	model_type = ['brnn', 'rnn']
 	agg_type = ['avg', 'max', 'min', 'last']
 	subject_number = list(range(1,12))
@@ -300,6 +300,9 @@ def main():
 		exit()
 
 	print("generating scripts...")
+	for layer in tqdm(range(1, args.num_layers+1)):
+		args.which_layer = layer
+		save_script(args)
 	# for lang in tqdm(languages):
 	# 	for nlayer in num_layers:
 	# 		for mtype in model_type:
@@ -315,7 +318,7 @@ def main():
 	# 						args.nbatches = 100
 	# 						args.cross_validation = True
 	# 						args.brain_to_model = True
-	save_script(args)
+	# save_script(args)
 	print("done.")
 
 if __name__ == "__main__":

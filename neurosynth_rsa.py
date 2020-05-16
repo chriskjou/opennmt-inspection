@@ -31,12 +31,19 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	# iterate over spotlight
 	print("for language region ...")
 	num_regions = 201
-	labels = scipy.io.loadmat("../neurosynth_labels.mat")["initial"] 
+	num_trials = 100
+	labels = scipy.io.loadmat("../../projects/opennmt-inspection/neurosynth_labels.mat")["initial"] 
 	modified_activations = np.array(modified_activations) # (numsize, dim1, dim2, dim3)
 
 	# reset nan as 0
 	# for sent in modified_activations:
 	# 	sent[np.isnan(sent)] = 0
+	if args.null:
+		true_correlations = pickle.load(open("/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + temp_file_name + ".p"))
+
+	pvalues = []
+	null_corr_means = []
+	null_corr_stds = []
 
 	nn_matrix = calculate_dist_matrix(embed_matrix) if args.rsa else None 
 	for region in tqdm(range(num_regions)):
@@ -47,7 +54,20 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 		## DECODING BELOW
 		if args.rsa: 
-			res = rsa(nn_matrix, spotlights)
+			if args.null:
+				count = 0
+				true_corr_for_region = true_correlations[region]
+				corrs = []
+				for _ in range(num_trials):
+					res = rsa(nn_matrix, spotlights)
+					if res >= true_corr_for_region:
+						count+=1
+					corrs.append(res)
+				pvalues.append(count * 1.0 / num_trials)
+				null_corr_means.append(np.mean(corrs))
+				null_corr_stds.append(np.std(corrs))
+			else:
+				res = rsa(nn_matrix, spotlights)
 		else: 
 			res, pred, llh, rank = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
 			predictions.append(pred)
@@ -59,6 +79,16 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		res_per_spotlight.append(res)
 		
 		## DECODING ABOVE
+
+	if args.null:
+		pval_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + "_pval.p"
+		pickle.dump( pvalues, open(pval_file_name, "wb" ) )
+
+		mean_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + "_mean.p"
+		pickle.dump( pvalues, open(mean_file_name, "wb" ) )
+
+		std_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + "_std.p"
+		pickle.dump( pvalues, open(std_file_name, "wb" ) )
 
 	return res_per_spotlight, llhs, rankings #predictions, true_spotlights,  #boolean_masks
 
@@ -158,15 +188,13 @@ def main():
 
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
-	argparser.add_argument("--rsa", action='store_true', default=False, help="True if RSA is used to generate residual values")
+	argparser.add_argument("--rsa", action='store_true', default=True, help="True if RSA is used to generate residual values")
 	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
 	argparser.add_argument("--brain_to_model", action='store_true', default=False, help="True if regressing brain to model, False if not")
 	argparser.add_argument("--model_to_brain", action='store_true', default=False, help="True if regressing model to brain, False if not")
 	argparser.add_argument("--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("--cross_validation", action='store_true', default=True, help="True if add cross validation, False if not")
 	argparser.add_argument("--subject_number", type=int, default=1, help="subject number (fMRI data) for decoding")
-	# argparser.add_argument("--batch_num", type=int, help="batch number of total (for scripting) (out of --total_batches)", required=True)
-	# argparser.add_argument("--total_batches", type=int, help="total number of batches", required=True)
 	argparser.add_argument("--random",  action='store_true', default=False, help="True if initialize random brain activations, False if not")
 	argparser.add_argument("--rand_embed",  action='store_true', default=False, help="True if initialize random embeddings, False if not")
 	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
@@ -176,10 +204,7 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
-	argparser.add_argument("--ranking",  action='store_true', default=True, help="True if calculate ranking, False if not")
-	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
-	argparser.add_argument("--significance",  action='store_true', default=False, help="True if calculate significance, False if not")
+	argparser.add_argument("--null",  action='store_true', default=True, help="True if calculate significance, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -225,13 +250,14 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/llh/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
 
-	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name)
+	temp_file_name = "bert_" + str(file_name) + "_subj" + str(args.subject_number)
 	all_residuals, llhs, rankings = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 
 	# dump
 	if args.rsa:
-		file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + ".p"
-		pickle.dump( all_residuals, open(file_name, "wb" ) )
+		if not args.null:
+		rsa_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + ".p"
+		pickle.dump( all_residuals, open(rsa_file_name, "wb" ) )
 	
 	else:
 		if args.llh:

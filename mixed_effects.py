@@ -12,6 +12,7 @@ import argparse
 import os
 import helper
 import scipy.stats as stats
+from sklearn.decomposition import PCA
 
 def get_modified_activations(activations, volmask):
 	i,j,k = volmask.shape
@@ -56,7 +57,7 @@ def run_per_voxel(df, from_regress, labels):
 		testing_y = df.loc[test_index,]['activations'].reset_index(drop=True)
 		testing_y_groups = df.loc[test_index,]['subject_number'].reset_index(drop=True)
 
-		md = sm.MixedLM(endog=training_y, exog=training_X, groups=training_y_groups)
+		md = sm.MixedLM(endog=training_y, exog=training_X, groups=training_y_groups, exog_re=training_X)
 		# func = 'activations ~ ' + str(labels) + '1'
 		# re_form = str(labels)[:-2]
 		# print(re_form)
@@ -209,6 +210,11 @@ def main():
 
 	# normalize
 	embed_matrix = helper.z_score(embed_matrix)
+
+	# PCA
+	pca = PCA(0.75)
+	embed_matrix = pca.fit_transform(embed_matrix)
+	print("PCA SHAPE: " + str(embed_matrix.shape))
 
 	# make file path
 	if args.local: 

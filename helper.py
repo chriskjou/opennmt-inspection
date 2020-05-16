@@ -261,7 +261,7 @@ def create_neurosynth_rsa_script(args, num_layer):
 #SBATCH -J {0}  								# Job name
 #SBATCH -p serial_requeue 						# partition (queue)
 #SBATCH --mem 4000 								# memory pool for all cores
-#SBATCH -t 0-1:00 									# time (D-HH:MM)
+#SBATCH -t 0-3:00 									# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
 #SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
@@ -271,10 +271,10 @@ def create_neurosynth_rsa_script(args, num_layer):
 module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
-python ../../projects/neurosynth_rsa.py \
+python ../../projects/opennmt-inspection/neurosynth_rsa.py \
 --embedding_layer /n/shieber_lab/Lab/users/cjou/embeddings/bert/layer{1}/avg.p \
---subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{1}/examplesGLM.mat  \
---model_to_brain   --cross_validation  --subject_number {2} --which_layer {2}  --rsa   --bert
+--subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{2}/examplesGLM.mat  \
+--model_to_brain   --cross_validation  --subject_number {2} --which_layer {1}  --rsa   --bert
 '''.format(
 		job_id, 
 		num_layer, 
