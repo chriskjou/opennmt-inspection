@@ -255,13 +255,17 @@ def create_neurosynth_rsa_script(args, num_layer):
 	fname = "../neurosynth_rsa/" + folder_name + "/" + job_id + ".sh"
 	print("FILE_NAME: " + str(fname))
 
+	if args.null:
+		time_limit = 8
+	else:
+		time_limit = 3
 	with open(fname, 'w') as rsh:
 		rsh.write('''\
 #!/bin/bash
 #SBATCH -J {0}  								# Job name
 #SBATCH -p serial_requeue 						# partition (queue)
 #SBATCH --mem 4000 								# memory pool for all cores
-#SBATCH -t 0-3:00 									# time (D-HH:MM)
+#SBATCH -t 0-{3}:00 									# time (D-HH:MM)
 #SBATCH --output=/n/home10/cjou/projects 		# file output location
 #SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
 #SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
@@ -278,7 +282,8 @@ python ../../projects/opennmt-inspection/neurosynth_rsa.py \
 '''.format(
 		job_id, 
 		num_layer, 
-		args.subject_number
+		args.subject_number,
+		time_limit
 	)
 )
 

@@ -8,6 +8,7 @@ def main():
 	parser = argparse.ArgumentParser("make scripts for Odyssey cluster bert neurosynth rsa")
 	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers", type=int, default=12)
 	parser.add_argument("-subject_number", "--subject_number", help="fMRI subject number ([1:11])", type=int, default=1)
+	parser.add_argument("--null",  action='store_true', default=True, help="True if calculate significance, False if not")
 	args = parser.parse_args()
 
 	print("creating directories...")

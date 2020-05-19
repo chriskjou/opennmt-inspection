@@ -39,7 +39,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	# for sent in modified_activations:
 	# 	sent[np.isnan(sent)] = 0
 	if args.null:
-		true_correlations = pickle.load(open("/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + temp_file_name + ".p"))
+		true_correlations = pickle.load(open("/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + temp_file_name + ".p", "rb"))
 
 	pvalues = []
 	null_corr_means = []
@@ -59,6 +59,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 				true_corr_for_region = true_correlations[region]
 				corrs = []
 				for _ in range(num_trials):
+					np.random.shuffle(spotlights)
 					res = rsa(nn_matrix, spotlights)
 					if res >= true_corr_for_region:
 						count+=1
@@ -85,10 +86,10 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		pickle.dump( pvalues, open(pval_file_name, "wb" ) )
 
 		mean_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + "_mean.p"
-		pickle.dump( pvalues, open(mean_file_name, "wb" ) )
+		pickle.dump( null_corr_means, open(mean_file_name, "wb" ) )
 
 		std_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + "_std.p"
-		pickle.dump( pvalues, open(std_file_name, "wb" ) )
+		pickle.dump( null_corr_stds, open(std_file_name, "wb" ) )
 
 	return res_per_spotlight, llhs, rankings #predictions, true_spotlights,  #boolean_masks
 
@@ -256,8 +257,8 @@ def main():
 	# dump
 	if args.rsa:
 		if not args.null:
-		rsa_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + ".p"
-		pickle.dump( all_residuals, open(rsa_file_name, "wb" ) )
+			rsa_file_name = "/n/shieber_lab/Lab/users/cjou/rsa_neurosynth/" + str(temp_file_name) + ".p"
+			pickle.dump( all_residuals, open(rsa_file_name, "wb" ) )
 	
 	else:
 		if args.llh:

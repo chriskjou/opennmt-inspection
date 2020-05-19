@@ -109,7 +109,7 @@ def main():
 	argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	argparser.add_argument("-subject_number", "--subject_number", help="fMRI subject number ([1:11])", type=int, default=1)
-	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
+	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=True)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 	argparser.add_argument("-glove", "--glove", action='store_true', default=False, help="True if initialize glove embeddings, False if not")
@@ -134,8 +134,8 @@ def main():
 	if args.brain_to_model and args.model_to_brain:
 		print("select only one flag for brain_to_model or model_to_brain")
 		exit()
-	if not args.brain_to_model and not args.model_to_brain:
-		print("select at least flag for brain_to_model or model_to_brain")
+	if (not args.brain_to_model and not args.model_to_brain) or args.rsa:
+		print("select at least flag for brain_to_model or model_to_brain // or rsa")
 		exit()
 	# if not args.rmse and not args.ranking and not args.fdr and not args.llh and not args.rsa:
 	# 	print("select at least flag for rmse, ranking, fdr, llh, rsa")
