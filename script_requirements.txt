@@ -24,7 +24,7 @@ greenlet==0.4.13
 gspread==3.1.0
 h5py==2.7.0
 html5lib==0.999
-httplib2==0.11.3
+httplib2==0.18.0
 ipykernel==4.6.1
 ipython==6.1.0
 ipython-genutils==0.2.0
