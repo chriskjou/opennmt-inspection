@@ -268,7 +268,7 @@ def main():
 
 	if args.normalize:
 		modified_activations = helper.z_score(modified_activations)
-		embed_matrix = helper.z_score(embed_matrix)
+		# embed_matrix = helper.z_score(embed_matrix)
 
 	if args.random:
 		print("RANDOM ACTIVATIONS")

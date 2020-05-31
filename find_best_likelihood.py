@@ -32,7 +32,7 @@ def get_file(args, file_name):
 		pvals = []
 	return values["metric"], pvals
 
-def generate_file_name(args, subject_number, which_layer):
+def generate_file_name(args, subject_number, which_layer, glove=False, word2vec=False, baseline=False):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	if args.bert or args.word2vec or args.glove:
@@ -43,18 +43,25 @@ def generate_file_name(args, subject_number, which_layer):
 			args.agg_type,
 			which_layer
 		)
-	else:
-		specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(
-			bertlabel) + str(direction) + str(
-			validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
-		file_name = specific_file.format(
-			subject_number,
-			args.language,
-			args.num_layers,
-			"brnn",
-			which_layer,
-			args.agg_type
-		)
+	if baseline:
+		if glove:
+			file_name = "glove" + str(direction) + str(validate) + "-subj{}-avg_layer1".format(
+				subject_number
+			)
+		elif word2vec:
+			file_name = "word2vec" + str(direction) + str(validate) + "-subj{}-avg_layer1".format(
+				subject_number
+			)
+		else:
+			specific_file = str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
+			file_name = specific_file.format(
+				subject_number,
+				args.language,
+				4,
+				"brnn",
+				which_layer,
+				args.agg_type
+			)
 	return file_name
 
 def main():
@@ -122,7 +129,7 @@ def main():
 
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	argparser.add_argument("-save_by_voxel",  "--save_by_voxel", action='store_true', default=False, help="True if save by voxel")
-
+	argparser.add_argument("-compare_models",  "--compare_models", action='store_true', default=True, help="True if compare models")
 	args = argparser.parse_args()
 
 	if args.num_layers != 12 and args.bert:
@@ -239,13 +246,41 @@ def main():
 				voxel_values = layer[np.nonzero(common_space)]
 				# print("LENGTH: " + str(len(voxel_values)))
 				per_subject.append(voxel_values)
+			print("PER LAYER: ")
+			print(np.array(per_subject).shape)
 			per_layer.append(0.5 * np.transpose(np.array(per_subject)))
-		
+			print(np.array(per_layer).shape)
+		print("BEFORE BASELINE")
+		print(np.array(per_layer).shape)
+		# add other embeddings
+
+		if args.compare_models:
+			for options in [[True, False], [False, True], [False, False]]:
+				a,b = options
+				if a == False and b == False:
+					nmt_layers = 4
+				else:
+					nmt_layers = 1
+
+				for layer_num in tqdm(list(range(1, nmt_layers + 1))):
+					per_subject = []
+					a, b = options
+					for subj_num in subjects:
+						layer_file_name = generate_file_name(args, subj_num, layer_num, baseline=True, glove=a, word2vec=b)
+						layer, _ = get_file(args, layer_file_name)
+						voxel_values = layer[np.nonzero(common_space)]
+						per_subject.append(voxel_values)
+					per_layer.append(0.5 * np.transpose(np.array(per_subject)))
+
+		print("AFTER BASELINE")
+		print(np.array(per_layer).shape)
+		print("AT THE END: ")
+		print(np.array(per_layer).shape)
 		per_voxel = np.stack( per_layer, axis=-1 )
 		print(per_voxel.shape)
 		print(per_voxel[0].shape)
 		print(per_voxel[0])
-		scipy.io.savemat("../mfit/bert_best_" + str(metric) + "_by_voxel.mat", dict(metric = per_voxel.astype(np.float32)))
+		scipy.io.savemat("../mfit/all_best_" + str(metric) + "_by_voxel.mat", dict(metric = per_voxel.astype(np.float32)))
 
 	print("done.")
 	return

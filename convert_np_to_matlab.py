@@ -104,7 +104,7 @@ def concatenate_all(specific_file, args, type_concat):
 def main():
 	argparser = argparse.ArgumentParser(description="calculate rankings for model-to-brain")
 	argparser.add_argument("-language", "--language", help="Target language ('spanish', 'german', 'italian', 'french', 'swedish')", type=str, default='spanish')
-	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=2)
+	argparser.add_argument("-num_layers", "--num_layers", help="Total number of layers ('2', '4')", type=int, default=12)
 	argparser.add_argument("-model_type", "--model_type", help="Type of model ('brnn', 'rnn')", type=str, default='brnn')
 	argparser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
@@ -134,7 +134,7 @@ def main():
 	if args.brain_to_model and args.model_to_brain:
 		print("select only one flag for brain_to_model or model_to_brain")
 		exit()
-	if (not args.brain_to_model and not args.model_to_brain) or args.rsa:
+	if (not args.brain_to_model and not args.model_to_brain) and not args.rsa:
 		print("select at least flag for brain_to_model or model_to_brain // or rsa")
 		exit()
 	# if not args.rmse and not args.ranking and not args.fdr and not args.llh and not args.rsa:
@@ -201,7 +201,7 @@ def main():
 		metrics = ["rsa"]
 	else:
 		metrics = ["ranking", "rmse", "llh"]
-	for layer in [args.which_layer]:
+	for layer in [4]: #tqdm(range(1, args.num_layers+1)):
 		print("LAYER: " + str(layer))
 		for metric in metrics:
 			print("METRIC: " + str(metric))
@@ -222,8 +222,8 @@ def main():
 					layer,
 					args.agg_type
 				)
-			print("transform coordinates...")
 
+			print("transform coordinates...")
 			if not args.word2vec and not args.glove and not args.bert and not args.random:
 				specific_file = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj{}-parallel-english-to-{}-model-{}layer-{}-pred-layer{}-{}"
 				file_format = specific_file.format(

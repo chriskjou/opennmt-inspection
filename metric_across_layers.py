@@ -9,10 +9,6 @@ import random
 import math
 import helper
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-plt.switch_backend('agg')
-# %matplotlib inline
 
 def generate_file_name(args, subject_number, which_layer):
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
@@ -38,26 +34,6 @@ def generate_file_name(args, subject_number, which_layer):
 			args.agg_type
 		)
 	return file_name
-
-def plot_roi_across_layers(df, metric, file_name):
-	sns.set(style="darkgrid")
-	plt.figure(figsize=(16, 9))
-	g = sns.pointplot(x="layer", y=metric, hue="ROI", data=df, plot_kws=dict(alpha=0.3))
-	figure = g.get_figure()  
-	box = g.get_position()
-	g.set_position([box.x0, box.y0, box.width * .75, box.height])
-	g.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), ncol=1)
-	figure.savefig(file_name, bbox_inches='tight')
-
-def plot_atlas_across_layers(df, metric, file_name):
-	sns.set(style="darkgrid")
-	plt.figure(figsize=(24, 9))
-	g = sns.pointplot(x="layer", y=metric, hue="atlas", data=df, plot_kws=dict(alpha=0.3))
-	figure = g.get_figure()  
-	box = g.get_position()
-	g.set_position([box.x0, box.y0, box.width * .85, box.height])
-	g.legend(loc='center right', bbox_to_anchor=(1.6, 0.5), ncol=4)
-	figure.savefig(file_name, bbox_inches='tight')
 
 def main():
 	argparser = argparse.ArgumentParser(description="layer and subject group level comparison")
@@ -260,8 +236,8 @@ def main():
 		print(avg_df.sort_values(by='AR', ascending=False).head())
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "AR", "../fixed_roi_ar_" + to_save_file + ".png")
-		plot_atlas_across_layers(df, "AR", "../fixed_atlas_ar_" + to_save_file + ".png")
+		helper.plot_roi_across_layers(df, "AR", "../fixed_roi_ar_" + to_save_file + ".png")
+		helper.plot_atlas_across_layers(df, "AR", "../fixed_atlas_ar_" + to_save_file + ".png")
 
 	if args.rmse:
 		df_dict = {
@@ -278,8 +254,8 @@ def main():
 		print(avg_df.sort_values(by='RMSE', ascending=True).head())
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "RMSE", "../fixed_roi_rmse_" + to_save_file + ".png")
-		plot_atlas_across_layers(df, "RMSE", "../fixed_atlas_rmse_" + to_save_file + ".png")
+		helper.plot_roi_across_layers(df, "RMSE", "../fixed_roi_rmse_" + to_save_file + ".png")
+		helper.plot_atlas_across_layers(df, "RMSE", "../fixed_atlas_rmse_" + to_save_file + ".png")
 
 	if args.llh:
 		df_dict = {
@@ -296,8 +272,8 @@ def main():
 		print(avg_df.sort_values(by='LLH', ascending=True).head())
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "LLH", "../fixed_roi_llh_" + to_save_file + ".png")
-		plot_atlas_across_layers(df, "LLH", "../fixed_atlas_llh_" + to_save_file + ".png")
+		helper.plot_roi_across_layers(df, "LLH", "../fixed_roi_llh_" + to_save_file + ".png")
+		helper.plot_atlas_across_layers(df, "LLH", "../fixed_atlas_llh_" + to_save_file + ".png")
 
 	if args.rsa:
 		df_dict = {
@@ -322,8 +298,8 @@ def main():
 		print(avg_df.sort_values(by='correlation_coefficient', ascending=False).head())
 
 		print("plotting values...")
-		plot_roi_across_layers(df, "correlation_coefficient", "../fixed_roi_rsa_" + to_save_file + ".png")
-		plot_atlas_across_layers(df, "correlation_coefficient", "../fixed_atlas_rsa_" + to_save_file + ".png")
+		helper.plot_roi_across_layers(df, "correlation_coefficient", "../fixed_roi_rsa_" + to_save_file + ".png")
+		helper.plot_atlas_across_layers(df, "correlation_coefficient", "../fixed_atlas_rsa_" + to_save_file + ".png")
 
 	print("done.")
 	return

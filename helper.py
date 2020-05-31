@@ -3,6 +3,11 @@ from tqdm import tqdm
 import scipy.io
 import pickle
 from scipy.spatial import distance
+from sklearn.preprocessing import MinMaxScaler
+import matplotlib.pyplot as plt
+import seaborn as sns
+plt.switch_backend('agg')
+# %matplotlib inline
 
 def validate_arguments(args):
 	if args.language not in languages:
@@ -196,6 +201,43 @@ def clean_atlas(atlas_vals, atlas_labels):
 	for val_index in at_vals:
 		at_labels.append(atlas_labels[val_index-1][0][0])
 	return at_labels
+
+# plot across layers
+def plot_roi_across_layers(df, metric, file_name):
+	sns.set(style="darkgrid")
+	plt.figure(figsize=(16, 9))
+	g = sns.pointplot(x="layer", y=metric, hue="ROI", data=df, plot_kws=dict(alpha=0.3))
+	figure = g.get_figure()  
+	box = g.get_position()
+	g.set_position([box.x0, box.y0, box.width * .75, box.height])
+	g.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), ncol=1)
+	figure.savefig(file_name, bbox_inches='tight')
+
+def plot_atlas_across_layers(df, metric, file_name):
+	sns.set(style="darkgrid")
+	plt.figure(figsize=(24, 9))
+	g = sns.pointplot(x="layer", y=metric, hue="atlas", data=df, plot_kws=dict(alpha=0.3))
+	figure = g.get_figure()  
+	box = g.get_position()
+	g.set_position([box.x0, box.y0, box.width * .85, box.height])
+	g.legend(loc='center right', bbox_to_anchor=(1.6, 0.5), ncol=4)
+	figure.savefig(file_name, bbox_inches='tight')
+
+def plot_region_across_layers(df, metric, file_name):
+	values = np.random.rand(12)
+	colorLeft = np.array([112, 224, 112])
+	colorRight = np.array([224, 112, 112])
+	scaled = MinMaxScaler().fit_transform(values.reshape(-1, 1))
+	colors = np.array([a * colorRight + (1 - a) * colorLeft for a in scaled], dtype = np.int64)
+
+	sns.set(style="darkgrid")
+	plt.figure(figsize=(24, 9))
+	g = sns.pointplot(x="layer", y=metric, hue="region", data=df, c=colors)
+	figure = g.get_figure()  
+	box = g.get_position()
+	g.set_position([box.x0, box.y0, box.width * .85, box.height])
+	g.legend(loc='center right', bbox_to_anchor=(1.6, 0.5), ncol=4)
+	figure.savefig(file_name, bbox_inches='tight')
 
 # helper function to calculate rank
 def calculate_true_distances(a, b):
