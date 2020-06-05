@@ -17,8 +17,11 @@ def get_values(args, subj_num):
 						"avg",
 						layer
 					)
-
-		content = scipy.io.loadmat("../mat/" + str(file_name) + "-3dtransform-rsa.mat")["metric"]
+		if args.slope:
+			folder = "mat/"
+		else:
+			folder = "mat_rsa/"
+		content = scipy.io.loadmat("../" + str(folder) + str(file_name) + "-3dtransform-rsa.mat")["metric"]
 		all_corrs.append(content)
 	return np.array(all_corrs)
 
@@ -67,12 +70,41 @@ def calculate_ttest(args, slopes):
 				pvals[i][j][k] = pval
 	return pvals
 
+def calculate_anova(args, all_corrs):
+	dims = all_corrs[0].shape
+	pvals = np.zeros((dims[0], dims[1], dims[2]))
+	num_layers = 12
+	num_subjs = 9
+
+	for i in range(dims[0]):
+		for j in range(dims[1]):
+			for k in range(dims[2]):
+
+				vals_across_subjs_and_layers = []
+				for subj in range(num_subjs):
+					for layer in range(num_layers):
+						vals_across_subjs_and_layers.append(all_corrs[subj][layer][i][j][k])
+				
+				# make dataframe
+				df = pd.DataFrame({
+					'voxel': np.ones(len(vals_across_subjs_and_layers)),
+					'corr'; vals_across_subjs_and_layers,
+					'subject': np.repeat(list(range(1, num_subjs+1)), num_layers),
+					'layer': np.tile(list(range(1, num_layers+1)), num_subjs) 
+				})
+
+				aovrm2way = AnovaRM(df, 'voxel', 'corr', within=['subject', 'layer'])
+				mod = aovrm2way.fit()
+				pval = mod.summary().tables[0]["Pr > F"]["layer:subject"]
+				pvals[i][j][k] = pval
+	return pvals
 
 def main():
 	parser = argparse.ArgumentParser("calculate slope maps")
 	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers", type=int, default=12)
 	parser.add_argument("-slope", "--slope", action='store_true', default=False, help="slope map")
 	parser.add_argument("-argmax", "--argmax", action='store_true', default=False, help="argmax")
+	parser.add_argument("-anova",  "--anova", action='store_true', default=False, help="True if anova")
 	# parser.add_argument("-subject_number", "--subject_number", help="fMRI subject number ([1:11])", type=int, default=1)
 	parser.add_argument("-local",  "--local", action='store_true', default=True, help="True if running locally")
 	args = parser.parse_args()
@@ -87,11 +119,13 @@ def main():
 		exit()
 
 	all_slopes = []
+	all_corrs = []
 	slope_avgs = []
 	print("getting slopes...")
 	for subj_num in tqdm(subjects):
-		all_corrs = get_values(args, subj_num)
-		slopes = calculate_slope(args, all_corrs)
+		corrs = get_values(args, subj_num)
+		slopes = calculate_slope(args, corrs)
+		all_corrs.append(corrs)
 		all_slopes.append(slopes)
 
 	print("for thresholding...")
@@ -104,19 +138,27 @@ def main():
 	print("running t-tests...")
 
 	# 1 sample t-test
-	pvals = calculate_ttest(args, all_slopes)
+	if args.anova:
+		pvals = calculate_anova(args, all_corrs)
+	else:
+		pvals = calculate_ttest(args, all_slopes)
 
 	if args.slope:
 		file_name = "rsa_slope"
 	else:
-		file_name = "rsa_argmax"
+		if args.anova:
+			file_name = "rsa_argmax_anova"
+		else:
+			file_name = "rsa_argmax"
 
 	pickle.dump(slope_avgs, open("../visualize_" + file_name + ".p", "wb"))
 	pickle.dump(pvals, open("../threshold_" + file_name + ".p", "wb"))
 	
 
 	significant = (pvals < 0.1).astype(bool)
-	scipy.io.savemat("../" + str(file_name) + "_across_subjects.mat", dict(metric = slope_avgs * significant))
+	scipy.io.savemat("../" + str(file_name) + "_across_subjects_1.mat", dict(metric = slope_avgs * significant))
+	significant = (pvals < 0.05).astype(bool)
+	scipy.io.savemat("../" + str(file_name) + "_across_subjects_05.mat", dict(metric = slope_avgs * significant))
 
 	print("done.")
 

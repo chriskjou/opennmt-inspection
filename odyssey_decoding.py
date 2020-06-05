@@ -163,11 +163,11 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		if args.permutation:
 			np.random.shuffle(from_regress)
 
-		# alphas = np.logspace(-10, 1, 11, endpoint=False)
-		# clf = RidgeCV(alphas=alphas).fit(from_regress, to_regress)
-		# best_alpha = clf.alpha_
-		# print("BEST ALPHA: " + str(best_alpha))
-		best_alpha = 0
+		alphas = np.logspace(-10, 1, 11, endpoint=False)
+		clf = RidgeCV(alphas=alphas).fit(from_regress, to_regress)
+		best_alpha = clf.alpha_
+		print("BEST ALPHA: " + str(best_alpha))
+		# best_alpha = 0
 
 		# if args.significance:
 		# 	clf = Ridge(alpha=best_alpha)
@@ -221,7 +221,7 @@ def main():
 	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("--word2vec",  action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("--bert",  action='store_true', default=False, help="True if initialize bert embeddings, False if not")
-	argparser.add_argument("--normalize",  action='store_true', default=True, help="True if add normalization across voxels, False if not")
+	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")

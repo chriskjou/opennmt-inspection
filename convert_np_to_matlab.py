@@ -201,7 +201,7 @@ def main():
 		metrics = ["rsa"]
 	else:
 		metrics = ["ranking", "rmse", "llh"]
-	for layer in [4]: #tqdm(range(1, args.num_layers+1)):
+	for layer in tqdm(range(1, args.num_layers+1)):
 		print("LAYER: " + str(layer))
 		for metric in metrics:
 			print("METRIC: " + str(metric))

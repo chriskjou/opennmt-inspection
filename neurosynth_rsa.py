@@ -30,9 +30,14 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 
 	# iterate over spotlight
 	print("for language region ...")
-	num_regions = 201
 	num_trials = 100
-	labels = scipy.io.loadmat("../../projects/opennmt-inspection/neurosynth_labels.mat")["initial"] 
+	if args.neurosynth:
+		num_regions = 201
+		labels = scipy.io.loadmat("../../projects/opennmt-inspection/neurosynth_labels.mat")["initial"]
+	else:
+		num_regions = 8 
+		labels = scipy.io.loadmat("../subj" + str(args.subject_number) + "_vollangloc.mat")["vollangloc"]
+
 	modified_activations = np.array(modified_activations) # (numsize, dim1, dim2, dim3)
 
 	# reset nan as 0
@@ -201,11 +206,12 @@ def main():
 	argparser.add_argument("--glove",  action='store_true', default=False, help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("--word2vec",  action='store_true', default=False, help="True if initialize word2vec embeddings, False if not")
 	argparser.add_argument("--bert",  action='store_true', default=False, help="True if initialize bert embeddings, False if not")
-	argparser.add_argument("--normalize",  action='store_true', default=True, help="True if add normalization across voxels, False if not")
+	argparser.add_argument("--normalize",  action='store_true', default=False, help="True if add normalization across voxels, False if not")
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--null",  action='store_true', default=True, help="True if calculate significance, False if not")
+	argparser.add_argument("--null",  action='store_true', default=True, help="True if adjust for null distribution, False if not")
+	argparser.add_argument("--neurosynth",  action='store_true', default=False, help="True if calculate neurosynth, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:

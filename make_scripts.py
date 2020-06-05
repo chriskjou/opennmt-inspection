@@ -251,7 +251,7 @@ def main():
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
-	num_layers = [2, 4, 12]
+	num_layers = [1, 2, 4, 12]
 	model_type = ['brnn', 'rnn']
 	agg_type = ['avg', 'max', 'min', 'last']
 	subject_number = list(range(1,12))

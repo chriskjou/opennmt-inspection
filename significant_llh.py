@@ -12,7 +12,7 @@ import pandas as pd
 # plt.switch_backend('agg')
 
 def get_file(batch_num, total_batches):
-	file_name = "batch{}of{}_bor_pxp.mat".format(batch_num, total_batches)
+	file_name = "all_batch{}of{}_bor_pxp.mat".format(batch_num, total_batches)
 	file_contents = scipy.io.loadmat("../llh_mat/" + str(file_name))["llh"]
 	bor = file_contents["bor"][0][0][0]
 	pxp = file_contents["pxp"][0][0]
@@ -25,16 +25,18 @@ def concatenate_files(total_batches=100):
 		bor, pxp = get_file(i, total_batches)
 		bors.extend(bor)
 		pxps.extend(pxp)
+	print(np.array(bors.shape))
+	print(pxps.shape)
 	return np.array(bors), np.array(pxps)
 
 def main():
 	subjects = [1,2,4,5,7,8,9,10,11]
-	num_layers = 12
+	num_layers = 18
 	threshold = 0.01
 
 	common_space = helper.load_common_space(subjects, local=True)
 	voxel_coordinates = np.transpose(np.nonzero(common_space))
-	print(voxel_coordinates.shape)
+	# print(voxel_coordinates.shape)
 
 	print("concatenating files...")
 	bors, pxps = concatenate_files()
@@ -48,7 +50,7 @@ def main():
 	# _ = plt.hist(bors, bins='auto')
 	# plt.ylabel("count")
 	# plt.xlabel("BOR")
-	# plt.savefig("../bors_hist.png", bbox_inches='tight')
+	# plt.savefig("../all_bors_hist.png", bbox_inches='tight')
 
 	# print(np.sum(bors <= threshold))
 	# print(np.sum(bors > threshold))
@@ -70,7 +72,7 @@ def main():
 	# # plt.xlim(0,1)
 	# plt.ylabel("count")
 	# plt.xlabel("maximum PXP per voxel")
-	# plt.savefig("../pxp_values_hist.png", bbox_inches='tight')
+	# plt.savefig("../all_pxp_values_hist.png", bbox_inches='tight')
 	# print("TOTAL: " + str(total))
 	# exit()
 
@@ -83,9 +85,20 @@ def main():
 	print("creating maps...")
 	for coord_index in tqdm(range(len(voxel_coordinates))):
 		x,y,z = voxel_coordinates[coord_index]
-		# if bors[coord_index] >= threshold:
+		# if bors[coord_index] < threshold:
+		# 	print(bors[coord_index])
+		# 	print("HERE")
+		# print(pxps[coord_index])
+		# index = np.argmax(pxps[coord_index])
+		print("DFSDF")
 		print(pxps[coord_index])
-		mapped_space[x][y][z] = np.argmax(pxps[coord_index]) + 1
+		print(pxps[coord_index].shape)
+		if np.max(pxps[index]) > 0.9:
+			print(pxps[coord_index])
+			print(pxps[coord_index].shape)
+			mapped_space[x][y][z] = np.argmax(pxps[coord_index]) + 1
+		# 
+		# print(np.max(pxps[index]))
 		for layer in range(num_layers):
 			all_layer_space[layer][x][y][z] = pxps[coord_index][layer]
 
@@ -108,10 +121,10 @@ def main():
 	# plt.savefig("../best_voxel_hist.png", bbox_inches='tight')
 	# plt.show()
 	
-	scipy.io.savemat("../significant_bert_best_llh_by_voxel.mat", dict(metric = mapped_space))
+	scipy.io.savemat("../significant_pval_all_best_llh_by_voxel.mat", dict(metric = mapped_space))
 
-	for layer in range(num_layers):
-		scipy.io.savemat("../significant_bert_best_llh_by_voxel_layer" + str(layer+1) + ".mat", dict(metric = all_layer_space[layer]))
+	# for layer in range(num_layers):
+	# 	scipy.io.savemat("../significant_all_best_llh_by_voxel_layer" + str(layer+1) + ".mat", dict(metric = all_layer_space[layer]))
 
 	print("done.")
 
