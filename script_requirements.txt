@@ -9,7 +9,7 @@ cx-Freeze==5.1.1
 cycler==0.10.0
 decorator==4.1.2
 dj-database-url==0.5.0
-Django==2.0.6
+Django==2.2.13
 django-heroku==0.3.1
 Eel==0.9.7
 entrypoints==0.2.3
