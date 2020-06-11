@@ -6,6 +6,7 @@ import numpy as np
 import helper
 import scipy.io
 from scipy.stats import linregress, ttest_1samp, ttest_ind
+from statsmodels.stats.anova import AnovaRM 
 
 def get_values(args, subj_num):
 	all_corrs = []
@@ -17,10 +18,10 @@ def get_values(args, subj_num):
 						"avg",
 						layer
 					)
-		if args.slope:
+		if not args.local:
 			folder = "mat/"
 		else:
-			folder = "mat_rsa/"
+			folder = "mat_rsa_cos_nonnorm/"
 		content = scipy.io.loadmat("../" + str(folder) + str(file_name) + "-3dtransform-rsa.mat")["metric"]
 		all_corrs.append(content)
 	return np.array(all_corrs)
@@ -71,31 +72,34 @@ def calculate_ttest(args, slopes):
 	return pvals
 
 def calculate_anova(args, all_corrs):
-	dims = all_corrs[0].shape
+	dims = all_corrs[0][0].shape
 	pvals = np.zeros((dims[0], dims[1], dims[2]))
 	num_layers = 12
 	num_subjs = 9
+	print("LEN: " + str(len(all_corrs)))
+	print("DIMS: " + str(all_corrs[0][0].shape))
 
-	for i in range(dims[0]):
+	for i in tqdm(range(dims[0])):
 		for j in range(dims[1]):
 			for k in range(dims[2]):
 
 				vals_across_subjs_and_layers = []
 				for subj in range(num_subjs):
 					for layer in range(num_layers):
+						val = all_corrs[subj][layer][i][j][k]
 						vals_across_subjs_and_layers.append(all_corrs[subj][layer][i][j][k])
 				
 				# make dataframe
 				df = pd.DataFrame({
 					'voxel': np.ones(len(vals_across_subjs_and_layers)),
-					'corr'; vals_across_subjs_and_layers,
+					'corr': vals_across_subjs_and_layers,
 					'subject': np.repeat(list(range(1, num_subjs+1)), num_layers),
 					'layer': np.tile(list(range(1, num_layers+1)), num_subjs) 
 				})
 
 				aovrm2way = AnovaRM(df, 'voxel', 'corr', within=['subject', 'layer'])
 				mod = aovrm2way.fit()
-				pval = mod.summary().tables[0]["Pr > F"]["layer:subject"]
+				pval = mod.summary().tables[0]["Pr > F"]["subject:layer"]
 				pvals[i][j][k] = pval
 	return pvals
 
@@ -144,15 +148,15 @@ def main():
 		pvals = calculate_ttest(args, all_slopes)
 
 	if args.slope:
-		file_name = "rsa_slope"
+		file_name = "cos_rsa_slope"
 	else:
 		if args.anova:
-			file_name = "rsa_argmax_anova"
+			file_name = "cos_rsa_argmax_anova"
 		else:
-			file_name = "rsa_argmax"
+			file_name = "cos_rsa_argmax"
 
-	pickle.dump(slope_avgs, open("../visualize_" + file_name + ".p", "wb"))
-	pickle.dump(pvals, open("../threshold_" + file_name + ".p", "wb"))
+	pickle.dump(slope_avgs, open("../cos_visualize_" + file_name + ".p", "wb"))
+	pickle.dump(pvals, open("../cos_threshold_" + file_name + ".p", "wb"))
 	
 
 	significant = (pvals < 0.1).astype(bool)

@@ -36,7 +36,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		labels = scipy.io.loadmat("../../projects/opennmt-inspection/neurosynth_labels.mat")["initial"]
 	else:
 		num_regions = 8 
-		labels = scipy.io.loadmat("../subj" + str(args.subject_number) + "_vollangloc.mat")["vollangloc"]
+		labels = scipy.io.loadmat("../../projects/subj" + str(args.subject_number) + "_vollangloc.mat")["vollangloc"]
 
 	modified_activations = np.array(modified_activations) # (numsize, dim1, dim2, dim3)
 
@@ -210,7 +210,7 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--null",  action='store_true', default=True, help="True if adjust for null distribution, False if not")
+	argparser.add_argument("--null",  action='store_true', default=False, help="True if adjust for null distribution, False if not")
 	argparser.add_argument("--neurosynth",  action='store_true', default=False, help="True if calculate neurosynth, False if not")
 	args = argparser.parse_args()
 

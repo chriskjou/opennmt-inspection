@@ -19,7 +19,7 @@ def main():
 	corrs = []
 	layer_info = []
 	region_info = []
-	num_regions = 201
+	num_regions = 8
 
 	# get correlations
 	print("getting files...")
@@ -81,7 +81,7 @@ def main():
 	g.set_position([box.x0, box.y0, box.width * .6, box.height])
 	g.legend(loc='center right', bbox_to_anchor=(1.6, 0.5), ncol=6)
 	# g._legend.legendHandles[0].set_alpha(.5)
-	plt.savefig("../test_neurosynth_rsa_bert_subj" + str(args.subject_number) + ".png")
+	plt.savefig("../ev_neurosynth_rsa_bert_subj" + str(args.subject_number) + ".png")
 
 	print(df.head())
 
