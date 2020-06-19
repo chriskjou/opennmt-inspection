@@ -277,7 +277,7 @@ def add_bias(df):
 	new_col = np.ones((df.shape[0], 1))
 	df = np.hstack((df, new_col))
 	return df
-
+	
 def chunkify(lst, num, total):
 	if len(lst) % total == 0:
 		chunk_size = len(lst) // total

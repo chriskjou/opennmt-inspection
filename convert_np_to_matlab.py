@@ -91,6 +91,8 @@ def concatenate_all(specific_file, args, type_concat):
 			file_path = "/n/shieber_lab/Lab/users/cjou/fdr/"
 		elif type_concat == 'ranking':
 			file_path = "/n/shieber_lab/Lab/users/cjou/final_rankings/"
+		elif type_concat == 'alpha':
+			file_path = "/n/shieber_lab/Lab/users/cjou/alphas/"
 		else:
 			print("ERROR")
 		
@@ -127,6 +129,7 @@ def main():
 	argparser.add_argument("-fdr", "--fdr",  action='store_true', default=False, help="True if fdr, False if not")
 	argparser.add_argument("-llh", "--llh",  action='store_true', default=False, help="True if llh, False if not")
 	argparser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
+	argparser.add_argument("-alpha", "--alpha",  action='store_true', default=False, help="True if alpha, False if not")
 	argparser.add_argument("-total_batches", "--total_batches", type=int, help="total number of batches residual_name is spread across", default=100)
 	args = argparser.parse_args()
 
@@ -199,6 +202,8 @@ def main():
 		metrics = ["rmse", "llh"]
 	elif args.rsa:
 		metrics = ["rsa"]
+	elif args.alpha:
+		metrics = ["alpha"]
 	else:
 		metrics = ["ranking", "rmse", "llh"]
 	for layer in tqdm(range(1, args.num_layers+1)):

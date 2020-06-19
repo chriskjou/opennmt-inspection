@@ -34,6 +34,9 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	if args.neurosynth:
 		num_regions = 201
 		labels = scipy.io.loadmat("../../projects/opennmt-inspection/neurosynth_labels.mat")["initial"]
+	elif args.atlas:
+		num_regions = 116
+		labels = scipy.io.loadmat("../../projects/subj" + str(args.subject_number) + "_volaal.mat")["volaal"]
 	else:
 		num_regions = 8 
 		labels = scipy.io.loadmat("../../projects/subj" + str(args.subject_number) + "_vollangloc.mat")["vollangloc"]
@@ -210,8 +213,9 @@ def main():
 	argparser.add_argument("--permutation",  action='store_true', default=False, help="True if permutation, False if not")
 	argparser.add_argument("--permutation_region",  action='store_true', default=False, help="True if permutation by brain region, False if not")
 	argparser.add_argument("--add_bias",  action='store_true', default=True, help="True if add bias, False if not")
-	argparser.add_argument("--null",  action='store_true', default=False, help="True if adjust for null distribution, False if not")
+	argparser.add_argument("--null",  action='store_true', default=True, help="True if adjust for null distribution, False if not")
 	argparser.add_argument("--neurosynth",  action='store_true', default=False, help="True if calculate neurosynth, False if not")
+	argparser.add_argument("--atlas",  action='store_true', default=True, help="True if calculate atlas, False if not")
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:

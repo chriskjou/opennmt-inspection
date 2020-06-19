@@ -41,7 +41,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	rankings = []
 	llhs = []
 	# pvalues = []
-	# alphas = []
+	alphas = []
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	true_spotlights = []
@@ -91,12 +91,12 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		if args.rsa: 
 			res = rsa(nn_matrix, np.array(spotlights))
 		else: 
-			res, pred, llh, rank = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
+			res, pred, llh, rank, alpha = linear_model(embed_matrix, spotlights, args, kfold_split, alpha)
 			predictions.append(pred)
 			llhs.append(llh)
 			rankings.append(rank)
 			# pvalues.append(pval)
-			# alphas.append(alpha)
+			alphas.append(alpha)
 
 		# print("RES for SPOTLIGHT #", index, ": ", res)
 		# print("RANK : " + str(rank))
@@ -106,7 +106,7 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		
 		## DECODING ABOVE
 
-	return res_per_spotlight, llhs, rankings #predictions, true_spotlights,  #boolean_masks
+	return res_per_spotlight, llhs, rankings, alphas
 
 def standardize(X): 
 	return np.nan_to_num((X - np.mean(X, axis=0)) / np.std(X, axis=0))
@@ -199,7 +199,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				rank_accuracy = 1 - (rank - 1) * 1.0 / (greatest_possible_rank - 1)
 				rankings.append(rank_accuracy)
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float64), np.mean(rankings).astype(np.float32)
+		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float64), np.mean(rankings).astype(np.float32), best_alpha
 	return
 
 def main():
@@ -290,12 +290,15 @@ def main():
 	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/llh/'):
 		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
 
+	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/alphas/'):
+		os.makedirs('/n/shieber_lab/Lab/users/cjou/alphas/')
+
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_residuals_part" + str(args.batch_num) + "of" + str(args.total_batches)
 	
 	# get residuals and predictions
 	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
-	all_residuals, llhs, rankings = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
+	all_residuals, llhs, rankings, alphas = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 
 	# dump
 	if args.rsa:
@@ -311,6 +314,10 @@ def main():
 		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
 		print("RESIDUALS FILE: " + str(altered_file_name))
 		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
+
+		altered_file_name = "/n/shieber_lab/Lab/users/cjou/alphas/" +  temp_file_name
+		print("ALPHAS FILE: " + str(altered_file_name))
+		pickle.dump( alphas, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
 		# alphas_file_name = "/n/shieber_lab/Lab/users/cjou/alphas/" +  temp_file_name
 		# print("ALPHAS FILE: " + str(alphas_file_name))
