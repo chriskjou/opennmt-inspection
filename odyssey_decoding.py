@@ -163,7 +163,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		if args.permutation:
 			np.random.shuffle(from_regress)
 
-		alphas = np.logspace(-10, 1, 11, endpoint=False)
+		alphas = np.logspace(-10, 20, 31, endpoint=False)
 		clf = RidgeCV(alphas=alphas).fit(from_regress, to_regress)
 		best_alpha = clf.alpha_
 		print("BEST ALPHA: " + str(best_alpha))

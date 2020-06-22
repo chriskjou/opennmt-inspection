@@ -168,6 +168,7 @@ done
 			eflag = "" if (elabel == "") else "--" + str(elabel)
 			memmap_flag = "" if not args.memmap else " --memmap"
 			rsaflag = "" if not args.rsa else " --rsa"
+			spotlight = "odyssey" if args.spotlight else "nested"
 			if args.rsa:
 				mem = "4500"
 				timelimit = "0-6:00"
@@ -192,7 +193,7 @@ done
 module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
-python ../../projects/opennmt-inspection/odyssey_decoding.py \
+python ../../projects/opennmt-inspection/{19}_decoding.py \
 --embedding_layer {1} \
 --subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{2}/examplesGLM.mat \
 {3} {4} \
@@ -220,7 +221,8 @@ python ../../projects/opennmt-inspection/odyssey_decoding.py \
 		memmap_flag,
 		rsaflag,
 		mem,
-		timelimit
+		timelimit,
+		spotlight
 	)
 )
 
@@ -234,7 +236,7 @@ def main():
 	parser.add_argument("-which_layer", "--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
 	parser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str, default='avg')
 	parser.add_argument("-subject_number", "--subject_number", help="fMRI subject number ([1:11])", type=int, default=1)
-	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=False)
+	parser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation", action='store_true', default=True)
 	parser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model", action='store_true', default=False)
 	parser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain", action='store_true', default=False)
 	parser.add_argument("-random",  "--random", action='store_true', default=False, help="True if initialize random brain activations, False if not")
@@ -247,7 +249,8 @@ def main():
 	parser.add_argument("-local", "--local", action='store_true', default=False, help="True if running locally, False if not")
 	parser.add_argument("-memmap", "--memmap",  action='store_true', default=False, help="True if memmep, False if not")
 	parser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
-	parser.add_argument("--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
+	parser.add_argument("-llh", "--llh",  action='store_true', default=False, help="True if calculate likelihood, False if not")
+	parser.add_argument("-spotlight", "--spotlight", action='store_true', default=False, help="True if spotlight, False if not")
 	args = parser.parse_args()
 
 	languages = ['spanish', 'german', 'italian', 'french', 'swedish']
@@ -288,6 +291,7 @@ def main():
 	if args.bert and args.which_layer not in range(13):
 		print("not a valid layer for bert. choose between 0-12 layers")
 		exit()
+
 	# if args.roberta and args.which_layer not in range(13):
 	# 	print("not a valid layer for roberta. choose between 0-12 layers")
 	# 	exit()
