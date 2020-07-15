@@ -157,7 +157,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 			# nested CV
 			inner_kf = KFold(n_splits=kfold_split, shuffle=True)
 			alphas = np.logspace(-10, 10, 21, endpoint=True) 
-			clf = RidgeCV(alphas=alphas).fit(X_train, y_train, cv=inner_kf)
+			clf = RidgeCV(alphas=alphas).fit(X_train, y_train)
 			best_alpha = clf.alpha_
 
 			# with ridge regression
@@ -186,7 +186,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 				rank_accuracy = 1 - (rank - 1) * 1.0 / (greatest_possible_rank - 1)
 				rankings.append(rank_accuracy)
 		errors = np.sqrt(np.sum(np.abs(np.array(predicted_trials) - to_regress)))
-		return errors.astype(np.float32), predicted_trials, np.mean(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
+		return errors.astype(np.float32), predicted_trials, np.sum(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
 	return
 
 def get_modified_activations(activations, volmask):

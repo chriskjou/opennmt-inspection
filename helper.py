@@ -166,7 +166,44 @@ def convert_matlab_to_np(metric, volmask):
 		x,y,z = nonzero_pts[pt]
 		values.append(metric[int(x)][int(y)][int(z)])
 	return values
+
+def convert_np_to_matlab(metric, volmask):
+	i,j,k = volmask.shape
+	nonzero_pts = np.transpose(np.nonzero(volmask))
+	metric_vals = np.zeros((i,j,k))
+	for pt in tqdm(range(len(nonzero_pts))):
+		x,y,z = nonzero_pts[pt]
+		metric_vals[int(x)][int(y)][int(z)] = metric[pt]
+	return metric_vals
 	
+
+def get_voxel_labels(args):
+	if args.local:
+		volmask = pickle.load( open( "../examplesGLM/subj1/volmask.p", "rb" ) )
+	else:
+		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj1/volmask.p", "rb" ) )
+
+	if args.aal:
+		num_regions = 116
+		if args.local:
+			aal_labels = pickle.load( open( "../examplesGLM/subj1/atlas_labels.p", "rb" ) )
+			vals = pickle.load( open( "../examplesGLM/subj1/atlas_vals.p", "rb" ) )
+		else:
+			aal_labels = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/fmri/subj1/atlas_labels.p", "rb" ) )
+			vals = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/fmri/subj1/atlas_vals.p", "rb" ) )
+		labels = [str(elem[0][0]) for elem in aal_labels]
+		print(labels)
+		file_name = "aal_"
+	else:
+		num_regions = 8
+		labels = ['LMidPostTemp', 'LPostTemp', 'LMidAntTemp', 'LIFG', 'LAntTemp', 'LIFGorb', 'LAngG', 'LMFG']
+		if args.local:
+			vals = pickle.load( open( "../examplesGLM/subj1/roi_vals.p", "rb" ) )
+		else:
+			vals = pickle.load( open( "/n/shieber_lab/Lab/users/cjou/fmri/subj1/roi_vals.p", "rb" ) )
+		file_name = "roi_"
+	return volmask, num_regions, labels, vals, file_name
+
 # fix labels
 def compare_labels(labels, volmask, subj_num=1, roi=False):
 	if roi:
@@ -326,6 +363,73 @@ python ../../projects/opennmt-inspection/neurosynth_rsa.py \
 		num_layer, 
 		args.subject_number,
 		time_limit
+	)
+)
+
+def create_nested_scripts(args, model, num_layer):
+	folder_name = "nested_cv_{}_subj{}".format(model, args.subject_number)
+	job_id = folder_name + "_layer" + str(num_layer)
+	fname = "../nested_cv/" + folder_name + "/" + job_id + ".sh"
+	print("FILE_NAME: " + str(fname))
+
+	time_limit = 10
+	with open(fname, 'w') as rsh:
+		if args.bert:
+			flags = " --bert"
+			file_loc = "{0}/layer{1}/avg.p".format(
+				model, 
+				num_layer
+			)
+		if args.glove:
+			flags = " --glove"
+			file_loc = "{0}/avg.p".format(
+				model, 
+				num_layer
+			)
+		if args.word2vec:
+			flags = " --word2vec"
+			file_loc = "{0}/avg.p".format(
+				model, 
+				num_layer
+			)
+		
+
+		if args.opennmt:
+			flags = ""
+			file_loc = "parallel/{0}/{1}layer-{2}/{3}/parallel-english-to-{0}-model-{1}layer-{2}-pred-layer{4}-{3}.mat".format(
+				"spanish", 
+				"4", 
+				"brnn", 
+				"avg", 
+				num_layer
+			)
+
+		rsh.write('''\
+#!/bin/bash
+#SBATCH -J {0}  								# Job name
+#SBATCH -p serial_requeue 						# partition (queue)
+#SBATCH --mem 4000 								# memory pool for all cores
+#SBATCH -t 0-{3}:00 							# time (D-HH:MM)
+#SBATCH --output=/n/home10/cjou/projects 		# file output location
+#SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
+#SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=ckjou@college.harvard.edu
+
+module load Anaconda3/5.0.1-fasrc02
+source activate virtualenv
+
+python ../../projects/opennmt-inspection/nested_decoding.py \
+--embedding_layer  /n/shieber_lab/Lab/users/cjou/embeddings/{4} \
+--subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{2}/examplesGLM.mat  \
+--model_to_brain   --cross_validation  --subject_number {2} --which_layer {1}  {5}
+'''.format(
+		job_id, 
+		num_layer, 
+		args.subject_number,
+		time_limit,
+		file_loc,
+		flags
 	)
 )
 

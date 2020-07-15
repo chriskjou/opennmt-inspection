@@ -7,7 +7,21 @@ import argparse
 import os
 import helper
 
-def get_file(args, file_name):
+def get_file(args, subj_num, file_name):
+
+	# IF NESTED CV LLH
+	if args.nested:
+		metric = "llh"
+		path = "../nested_llh/"
+
+	fname = path + str(file_name) + "_no_spotlight-llh.p"
+	fvalues = pickle.load(open(fname, "rb"))
+	volmask = pickle.load( open( f"../examplesGLM/subj{subj_num}/volmask.p", "rb" ) )
+	vals = helper.convert_np_to_matlab(fvalues, volmask)
+
+	return vals, []
+
+	# NOT NESTED CV
 	path = "../mat/"
 	if args.ranking:
 		metric = "ranking"	
@@ -21,6 +35,7 @@ def get_file(args, file_name):
 	else:
 		print("error: check for valid method of correlation")
 		path = ""
+
 	save_path = path + str(file_name) + "-3dtransform-" + str(metric)
 
 	# print("LOADING FILE: " + str(save_path) + ".mat")
@@ -43,7 +58,7 @@ def generate_file_name(args, subject_number, which_layer, glove=False, word2vec=
 			args.agg_type,
 			which_layer
 		)
-	if baseline:
+	elif baseline:
 		if glove:
 			file_name = "glove" + str(direction) + str(validate) + "-subj{}-avg_layer1".format(
 				subject_number
@@ -62,6 +77,8 @@ def generate_file_name(args, subject_number, which_layer, glove=False, word2vec=
 				which_layer,
 				args.agg_type
 			)
+	else:
+		return "ERROR"
 	return file_name
 
 def main():
@@ -71,11 +88,11 @@ def main():
 
 	### SPECIFY MODEL PARAMETERS ###
 	argparser.add_argument("-cross_validation", "--cross_validation", help="Add flag if add cross validation",
-						   action='store_true', default=False)
+						   action='store_true', default=True)
 	argparser.add_argument("-brain_to_model", "--brain_to_model", help="Add flag if regressing brain to model",
 						   action='store_true', default=False)
 	argparser.add_argument("-model_to_brain", "--model_to_brain", help="Add flag if regressing model to brain",
-						   action='store_true', default=False)
+						   action='store_true', default=True)
 	argparser.add_argument("-agg_type", "--agg_type", help="Aggregation type ('avg', 'max', 'min', 'last')", type=str,
 						   default='avg')
 	argparser.add_argument("-language", "--language",
@@ -90,7 +107,7 @@ def main():
 						   help="True if initialize glove embeddings, False if not")
 	argparser.add_argument("-word2vec", "--word2vec", action='store_true', default=False,
 						   help="True if initialize word2vec embeddings, False if not")
-	argparser.add_argument("-bert", "--bert", action='store_true', default=False,
+	argparser.add_argument("-bert", "--bert", action='store_true', default=True,
 						   help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-normalize", "--normalize", action='store_true', default=False,
 						   help="True if add normalization across voxels, False if not")
@@ -127,6 +144,7 @@ def main():
 	argparser.add_argument("-rsa", "--rsa", action='store_true', default=False,
 						   help="True if calculate rsa, False if not")
 
+	argparser.add_argument("-nested",  "--nested", action='store_true', default=True, help="True if running nested")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	argparser.add_argument("-save_by_voxel",  "--save_by_voxel", action='store_true', default=False, help="True if save by voxel")
 	argparser.add_argument("-compare_models",  "--compare_models", action='store_true', default=True, help="True if compare models")
@@ -183,7 +201,7 @@ def main():
 			layer_file_name = generate_file_name(args, args.subject_number, layer_num)
 
 			print("retrieving file contents...")
-			layer, pvals = get_file(args, layer_file_name)
+			layer, pvals = get_file(args, args.subject_number, layer_file_name)
 
 			if first:
 				updated_brain = layer
@@ -242,7 +260,7 @@ def main():
 			per_subject = []
 			for subj_num in subjects:
 				layer_file_name = generate_file_name(args, subj_num, layer_num)
-				layer, _ = get_file(args, layer_file_name)
+				layer, _ = get_file(args, subj_num, layer_file_name)
 				voxel_values = layer[np.nonzero(common_space)]
 				# print("LENGTH: " + str(len(voxel_values)))
 				per_subject.append(voxel_values)
@@ -267,7 +285,7 @@ def main():
 					a, b = options
 					for subj_num in subjects:
 						layer_file_name = generate_file_name(args, subj_num, layer_num, baseline=True, glove=a, word2vec=b)
-						layer, _ = get_file(args, layer_file_name)
+						layer, _ = get_file(args, subj_num, layer_file_name)
 						voxel_values = layer[np.nonzero(common_space)]
 						per_subject.append(voxel_values)
 					per_layer.append(0.5 * np.transpose(np.array(per_subject)))
@@ -280,7 +298,7 @@ def main():
 		print(per_voxel.shape)
 		print(per_voxel[0].shape)
 		print(per_voxel[0])
-		scipy.io.savemat("../mfit/all_best_" + str(metric) + "_by_voxel.mat", dict(metric = per_voxel.astype(np.float32)))
+		scipy.io.savemat("../mfit/nested_all_best_" + str(metric) + "_by_voxel.mat", dict(metric = per_voxel.astype(np.float32)))
 
 	print("done.")
 	return
