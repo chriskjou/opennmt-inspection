@@ -23,10 +23,10 @@ def get_counts(df):
 
 def get_file(args, batch_num, total_batches):
 	file_name = "bor_pxp{}of{}_bor_pxp.mat".format(batch_num, total_batches)
-	if args.family:
+	if args.family or args.bert:
 		file_name = "family_" + file_name
-	if args.bert:
-		file_name = "bert_only_" + file_name
+	# if args.bert:
+	# 	file_name = "bert_only_" + file_name
 	file_contents = scipy.io.loadmat("../nested_llh_mat/" + str(file_name))["llh"]
 	bor = file_contents["bor"][0][0][0]
 	pxp = file_contents["pxp"][0][0]
@@ -148,9 +148,13 @@ def main():
 		indices = np.where(sig_indices_bol == True)[0]
 		if args.family:
 			region_vals = np.take(family, indices, axis=0) 
+			# print("DF REGION: " + str(region_vals.shape))
 		if args.bert:
-			region_vals = np.take(pxp, indices, axis=0) 
-		# print("DF REGION: " + str(region_vals.shape))
+			all_model_region_vals = np.take(pxp, indices, axis=0) 
+			region_vals = all_model_region_vals[:, :12]
+			# print("DF REGION: " + str(region_vals.shape))
+		# if args.bert:
+		# 	region_vals = np.take(pxp, indices, axis=0) 
 		plot_count_graphs(args, region_vals, "llh", file_name + str(labels[region-1]))
 
 	print("done.")
