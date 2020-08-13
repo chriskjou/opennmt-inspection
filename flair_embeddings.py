@@ -37,11 +37,10 @@ def get_embeddings(file, model):
 
 def main():
 	argparser = argparse.ArgumentParser(description="download embeddings for models")
-	argparser.add_argument("-num_layers", "--num_layers", type=int, help="num_layers", required=True)
-	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="bert embeddings (0-12 layers)")
-	argparser.add_argument("-roberta", "--roberta", action='store_true', default=False, help="roberta embeddings (0-12 layers)")
-	argparser.add_argument("-gpt2", "--gpt2", action='store_true', default=False, help="gpt2 embeddings (0-12 layers)")
-	argparser.add_argument("-xlm", "--xlm", action='store_true', default=False, help="xlm embeddings (0-24 layers)")
+	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="bert embeddings (12 layers)")
+	argparser.add_argument("-roberta", "--roberta", action='store_true', default=False, help="roberta embeddings (12 layers)")
+	argparser.add_argument("-gpt2", "--gpt2", action='store_true', default=False, help="gpt2 embeddings (12 layers)")
+	argparser.add_argument("-xlm", "--xlm", action='store_true', default=False, help="xlm embeddings (24 layers)")
 	argparser.add_argument("-local", "--local", action='store_true', default=False, help="if local")
 	args = argparser.parse_args()
 
@@ -53,25 +52,17 @@ def main():
 		print("select at least flag for model type from (bert, roberta, xlm)")
 		exit()
 
-	if args.bert and args.num_layers not in range(13):
-		print("not a valid layer for bert. choose between 0-12 layers")
-		exit()
-	if args.roberta and args.num_layers not in range(13):
-		print("not a valid layer for roberta. choose between 0-12 layers")
-		exit()
-	if args.xlm and args.num_layers not in range(25):
-		print("not a valid layer for xlm. choose between 0-24 layers")
-		exit()
-	if args.gpt2 and args.num_layers not in range(49):
-		print("not a valid layer for gpt2. choose between 0-48 layers")
-		exit()
+	if args.bert or args.roberta or args.gpt2:
+		num_layers = 12
+	if args.xlm:
+		num_layers = 24
 
 	# open sentences
 	file = open("cleaned_sentencesGLM.txt","r").read().splitlines()
 
 	# specify model
 	print("uploading model...")
-	for layer in [1]: # tqdm(range(args.num_layers)):
+	for layer in tqdm(range(num_layers)):
 		print(layer)
 		if args.bert:
 			embeddings = BertEmbeddings("bert-base-multilingual-cased", layers="-{}".format(layer))
@@ -83,7 +74,7 @@ def main():
 			embeddings = XLMEmbeddings("xlm-mlm-en-2048", layers="-{}".format(layer))
 			model_type = "xlm"
 		elif args.gpt2:
-			embeddings = TransformerWordEmbeddings("gpt2-xl", layers="-{}".format(layer))
+			embeddings = TransformerWordEmbeddings("gpt2", layers="-{}".format(layer))
 			model_type = "gpt2"
 		else:
 			print("error on calling embeddings")
@@ -93,9 +84,9 @@ def main():
 
 		print("aggregating types...")
 		avg_sentence = process_sentence(embed_matrix, "avg")
-		# max_sentence = process_sentence(embed_matrix, "max")
-		# min_sentence = process_sentence(embed_matrix, "min")
-		# last_sentence = process_sentence(embed_matrix, "last")
+		max_sentence = process_sentence(embed_matrix, "max")
+		min_sentence = process_sentence(embed_matrix, "min")
+		last_sentence = process_sentence(embed_matrix, "last")
 
 		methods = ['avg', 'max', 'min', 'last']
 		mats = [avg_sentence, max_sentence, min_sentence, last_sentence]
@@ -106,7 +97,7 @@ def main():
 		if args.local:
 			file_path = '../embeddings/{}/layer{}/'.format(model_type, layer)
 		else:
-			file_path = "/n/shieber_lab/Lab/users/cjou//embeddings/{}/layer{}/".format(model_type, layer)
+			file_path = "/n/shieber_lab/Lab/users/cjou/embeddings/{}/layer{}/".format(model_type, layer)
 
 		if not os.path.exists(file_path):
 			os.makedirs(file_path)
