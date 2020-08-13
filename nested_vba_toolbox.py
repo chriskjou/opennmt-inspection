@@ -125,15 +125,35 @@ def main():
 		scipy.io.savemat("../nested_bert_layer.mat", dict(metric = vals_3d))
 
 	# get significant values
-	bor_3d = helper.convert_np_to_matlab(bor, common_space)
+	sig_bor = (bor < 0.05)
+	sig_bor_3d = helper.convert_np_to_matlab(bor, common_space)
 	# plot_bors(bor[~np.isnan(bor)], "all_bor")
 	sig_pvals_05 = (np.array(bor) < 0.05).astype(bool)
+
+	if args.family:
+		max_values = np.argmax(family, axis=1)
+		best_bert = (max_values == 0)
+		best_pretrained = (max_values == 1)
+		best_opennmt = (max_values == 2)
+		best_bert3d = helper.convert_np_to_matlab(best_bert, common_space)
+		best_pretrained3d = helper.convert_np_to_matlab(best_pretrained, common_space)
+		best_opennmt3d = helper.convert_np_to_matlab(best_opennmt, common_space)
+		for_bert = sig_bor_3d.astype(bool) & best_bert3d.astype(bool)
+		for_pretrained = sig_bor_3d.astype(bool) & best_pretrained3d.astype(bool)
+		for_opennmt = sig_bor_3d.astype(bool) & best_opennmt3d.astype(bool)
+		scipy.io.savemat("../bms_best_bert.mat", dict(vals=for_bert.astype(np.int16)))
+		scipy.io.savemat("../bms_best_pretrained.mat", dict(vals=for_pretrained.astype(np.int16)))
+		scipy.io.savemat("../bms_best_opennmt.mat", dict(vals=for_opennmt.astype(np.int16)))
+		print("saved best family.")
+
 	# print("bor_3d: " + str(bor_3d.shape))
 	# print("sig_pvals_05: " + str(sig_pvals_05.shape))
 	# sig05 = bor[sig_pvals_05]
 	# sig05vals = sig05[np.nonzero(sig05)]
 	# plot_bors(sig05vals[~np.isnan(sig05vals)], "significant_bor05")
 	# sig_pvals_05 = (np.array(bor) < 1).astype(bool)
+	scipy.io.savemat("../sig_bor_bms05.mat", dict(vals=sig_bor_3d))
+	asdf
 	print("SIG PVALS SHAPE:" + str(sig_pvals_05.shape))
 
 	print("aggregating...")

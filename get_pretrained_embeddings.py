@@ -49,7 +49,7 @@ def get_word2vec(file):
 		embed_matrix.append(np.array(vectors))
 
 	print("dumping individual words...")
-	pickle.dump( embed_matrix, open("pretrained/word2vec_pretrained_embeddings_individual_words.p", "wb" ) )
+	# pickle.dump( embed_matrix, open("word2vec_pretrained_embeddings_individual_words.p", "wb" ) )
 
 	# embed_matrix = pickle.load( open( "word2vec_pretrained_embeddings_individual_words.p", "rb" ) )
 	print("dumping sentence representations...")
@@ -93,7 +93,7 @@ def get_glove(file):
 		embed_matrix.append(np.array(vectors))
 
 	print("dumping individual words...")
-	pickle.dump( embed_matrix, open("pretrained/glove_pretrained_embeddings_individual_words.p", "wb" ) )
+	# pickle.dump( embed_matrix, open("glove_pretrained_embeddings_individual_words.p", "wb" ) )
 
 	# embed_matrix = pickle.load( open( "word2vec_pretrained_embeddings_individual_words.p", "rb" ) )
 	print("dumping sentence representations...")
@@ -118,7 +118,10 @@ def get_glove(file):
 
 def main():
 	file = open("cleaned_sentencesGLM.txt","r").read().splitlines()
-	# get_word2vec(file)
+	
+	if not os.path.exists('../embeddings/'):
+		os.makedirs('../embeddings/')
+	get_word2vec(file)
 	get_glove(file)
 
 	return

@@ -1,4 +1,4 @@
-# OpenNMT-py with inspection & sentence representation
+# OpenNMT-py file modifcations (see WORKFLOW.md on how to run code)
 
 ## OpenNMT-py modifications (TBD)
 This is a modification of a OpenNMT-py fork that creates sentence representations in a MAT file. The following scripts have been added. Your sentence representations must be formatted such that each sentence is on a new line; an example format is included in `examplesGLM.txt`. The flags mentioned below for `separate-layers` and `dump-layers` must be true when running `train.py` and `translate.py`, respectively.
@@ -68,7 +68,7 @@ Visualizing relationship between residuals from linear decoding and region of br
 
 Also included in `residual_visualization.ipynb`.
 
-# Step-by-Step Walkthrough to generate Graphs
+# Step-by-Step Walkthrough for OpenNMT-py corpus preparation and model training
 
 There are three main phases to this project. First, translation data is used to create an NLP Model. Then the model's embeddings are captured on a prediction text ('examplesGLM.txt'). Then the embeddings are regressed & processed with brain activations. Finally the RMSEs from this regression are visualized.
 
@@ -158,7 +158,7 @@ Now simply follow the instructions from above to plot the residuals, etc.
 TBA.
 
 
-# OpenNMT-py with inspection
+# OpenNMT-py with inspection (from original)
 
 This is a fork of OpenNMT-py that allows for inspection of the activations of intermediate neurons, as well as manual modification of those neurons at inference time. Everything is known to work with the single-direction RNN encoder; others have not been tested. This fork adds the following option to `train.py`:
 

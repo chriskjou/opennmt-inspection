@@ -90,7 +90,6 @@ def main():
 		# 	print("HERE")
 		# print(pxps[coord_index])
 		# index = np.argmax(pxps[coord_index])
-		print("DFSDF")
 		print(pxps[coord_index])
 		print(pxps[coord_index].shape)
 		if np.max(pxps[index]) > 0.9:
