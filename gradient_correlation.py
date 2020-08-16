@@ -62,7 +62,7 @@ def calculate_gradient(args, arr):
 
 
 def main():
-	argparser = argparse.ArgumentParser(description="gradient coorelations")
+	argparser = argparse.ArgumentParser(description="gradient correlations")
 	argparser.add_argument("-contra", '--contra', action='store_true', default=False, help="contra")
 	argparser.add_argument("-spearman", '--spearman', action='store_true', default=False, help="spearman")
 	argparser.add_argument("-pearson", '--pearson', action='store_true', default=False, help="pearson")

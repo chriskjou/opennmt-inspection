@@ -74,48 +74,10 @@ There are three main phases to this project. First, translation data is used to 
 
 ## Phase 1: Training NLP Models & Inference on Text
 
-The translation data can be found at [this link](http://www.statmt.org/wmt16/translation-task.html) to the Europarl v7 corpus. After downloading via a preferred method, the corpus must first be multiparallelized (so that sentence *i* in the Czech, English, Spanish, etc. corpus all refer to the same idea). For example, one might run:
-```
-python multiparallelize_text.py ../corpus-data/czech/europarl-v7-en-cs.txt ../corpus-data/czech/europarl-v7-cs-en.txt ../corpus-data/spanish/europarl-v7-en-es.txt ../corpus-data/spanish/europarl-v7-es-en.txt
-```
-After saving the corpus data into a directory called corpus-data, and sorting into czech, spanish, etc. subfolders. Validation data also needs to be produced, which can be simply created by:
-```
-./make_validation.sh
-```
-Modify the variable *validation_num_lines* in ```make_validation.sh``` to be at ~5000 for good training results (see **step 2**) if you train on a large enough corpus for this to be possible.
-
-Next, we first create the NLP model based on the translation data, and then we save its embeddings on our prediction text. For example, we could choose to create a Spanish translation NLP model:
-```
-python preprocess.py -train_src ../multiparallelize/training/parallel_src-training.txt  -train_tgt -valid_src -valid_tgt -save ../multiparallelize
-```
-This produces, as per below, ```multiparallelize.train.pt, multiparallelize.val.pt,``` and ```multiparallelize.vocab.pt```. We then take these *.pt* files and train (using the **--separate_layers** flag).
-
-For example, we can train a English to Spanish model on the cluster with GPUs as follows:
-
-```
-python train.py -data data/english-to-spanish -save_model small-english-to-spanish-model -gpu 0 -separate_layers
-```
-
-At each epoch, a training model is saved with reference to accuracy in file name. Then, we want to run `translate.py` on the sentences read by the participants on the final model trained in 13th epoch and use the sentences read in the fMRI experiment (`cleaned_sentencesGLM.txt`) as follows 
-
-```
-python translate.py -model ../final_models/english-to-spanish-model_acc_61.26_ppl_6.28_e13.pt -src cleaned_sentencesGLM.txt -output ../predictions/english-to-spanish-model-pred.txt -replace_unk -verbose -dump_layers ../predictions/english-to-spanish-model-pred.pt
-```
-
-Embeddings in each layer are dumped into a corresponding `XX-pred.pt` which we have specified with the -dump_layers flag.
+See `Generating OpenNMT-py Embeddings` under `WORKFLOW.md`. 
 
 ## Phase 2: Regressing to Brain Data
-We need to download the brain fMRI scans (in this case, those captured when reading ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive via curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
-If you want, you can skip the earlier steps and download the NLP model embeddings from [this link](https://drive.google.com/drive/folders/1LNdXXD-W8ebm8WD1oIMKSw6Nt9rqsuWQ).
-If you have the embeddings already, we still need to convert the subjects' fMRI data (in *.mat* format) into a more readable *.p* format; run
-```
-python format_for_subject.py --subject_number [X1 X2 X3]
-```
-Where ```X``` is the number of the subject whose *.mat* file you intend to process; note you can process one or more subjects at a time by listing multiple subject numbers (default is just the first subject (subject 1)). Type
-```
-python format_for_subject.py --help
-```
-for more.
+See `Cleaning the fMRI data` under `WORKFLOW.md`. 
 
 We also need to prepare the embeddings created from the prediction model so we can run the brain regressions. We run `create_sentence_representations.py` to create the model embeddings aggregations that we can compare to the brain aggregations. See documentation above.
 
