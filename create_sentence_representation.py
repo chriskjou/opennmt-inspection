@@ -5,7 +5,7 @@ import scipy.io
 import pickle
 import os
 from get_dict import get_missing, get_missing_counts, find_missing_sentences, update_dict
-# import matlab
+import argparse
 
 def process_sentence(vocab, typ, num_layers):
 	nsentences = len(vocab)
@@ -68,17 +68,15 @@ def get_missing_bools(model, file_name):
 
 def main():
 	# get input
-	if len(sys.argv) != 5:
-		print("usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers")
-		exit()
+	argparser = argparse.ArgumentParser(description="create sentence representations for OpenNMT-py embeddings")
+	argparser.add_argument("-num_layers", '--num_layers', type=int, default=4, help="num_layers")
+	argparser.add_argument("-word_vocab", '--word_vocab', type=str, help="file path of the word model", required=True)
+	argparser.add_argument("-model", '--model', type=str, help="file path of the prediction model", required=True)
+	args = argparser.parse_args()
 
 	### GET MODEL VOCAB DICTIONARY
-	saved_before = False
-	sent_file_name = sys.argv[1]
-	word_vocab = sys.argv[2]
-	model = sys.argv[3]
-	num_layers = int(sys.argv[4])
-	without_pt = model.split("/")[-1].split(".")[0]
+	sent_file_name = "cleaned_examplesGLM.txt"
+	without_pt = args.model.split("/")[-1].split(".")[0]
 
 	methods = ['avg', 'max', 'min', 'last']
 
@@ -87,19 +85,19 @@ def main():
 			os.makedirs('embeddings/' + without_pt + '/' + method)
 
 	print(without_pt)
-	print(model)
+	print(args.model)
 
 	print('loading model...')
-	vocab = torch.load(model)
+	vocab = torch.load(args.model)
 
-	avg_sentence = process_sentence(vocab, "avg", num_layers)
-	max_sentence = process_sentence(vocab, "max", num_layers)
-	min_sentence = process_sentence(vocab, "min", num_layers)
-	last_sentence = process_sentence(vocab, "last", num_layers)
+	avg_sentence = process_sentence(vocab, "avg", args.num_layers)
+	max_sentence = process_sentence(vocab, "max", args.num_layers)
+	min_sentence = process_sentence(vocab, "min", args.num_layers)
+	last_sentence = process_sentence(vocab, "last", args.num_layers)
 
 	mats = [avg_sentence, max_sentence, min_sentence, last_sentence]
 	
-	bool_labels = get_missing_bools(word_vocab, sent_file_name)
+	bool_labels = get_missing_bools(args.word_vocab, sent_file_name)
 
 	for i in range(len(methods)):
 		save_to_mat("embeddings/" + without_pt + '/' + methods[i] + '/', mats[i], bool_labels, methods[i])

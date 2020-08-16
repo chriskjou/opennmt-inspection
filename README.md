@@ -1,6 +1,6 @@
-# OpenNMT-py file modifcations (see WORKFLOW.md on how to run code)
+# OpenNMT-py file modifcations 
+## (see WORKFLOW.md on how to run code)
 
-## OpenNMT-py modifications (TBD)
 This is a modification of a OpenNMT-py fork that creates sentence representations in a MAT file. The following scripts have been added. Your sentence representations must be formatted such that each sentence is on a new line; an example format is included in `examplesGLM.txt`. The flags mentioned below for `separate-layers` and `dump-layers` must be true when running `train.py` and `translate.py`, respectively.
 
 ```
@@ -14,7 +14,7 @@ Sentence representations are created for elementwise (1) average, (2) maximum, (
 ```
 -create_sentence_representation.py
   Creates MAT files of consisting of an array of shape (sentences) x (boolean, sentence embedding) for a single layer. Boolean is 1 if all words in sentence are in training vocabulary, and 0 if otherwise.
-  Usage: python create_sentence_representation.py -sentences.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers
+  Usage: python create_sentence_representation.py -word_vocab EXAMPLE.vocab.pt -model EXAMPLE.pred.pt -num_layers 4
 ```
 
 File names are saved as <b>"model name" + "which layer" + "method"</b> in the <b>embeddings/model/method</b> directory. Each MAT file has the same number of structs in the sentence data, labelled as <i>"sentenceX"</i> corresponding to (1) the boolean of if the all the words in the sentence are present in training + (2) the embedding of the Xth sentence based on order of the sentences in the txt file. The boolean is 1 if we are not missing any words, and 0 if otherwise. An example representation in the MAT file is `sentence1: [ 1, .123, .123, .123 ...]` with length 501.
@@ -79,7 +79,7 @@ See `Generating OpenNMT-py Embeddings` under `WORKFLOW.md`.
 ## Phase 2: Regressing to Brain Data
 See `Cleaning the fMRI data` under `WORKFLOW.md`. 
 
-We also need to prepare the embeddings created from the prediction model so we can run the brain regressions. We run `create_sentence_representations.py` to create the model embeddings aggregations that we can compare to the brain aggregations. See documentation above.
+To create OpenNMT-py embedding aggregations from the prediction model, run `create_sentence_representations.py` to create the model embeddings aggregations that we can compare to the brain aggregations. See documentation above.
 
 ```
 python create_sentence_representation.py -cleaned_sentencesGLM.txt -EXAMPLE.vocab.pt -EXAMPLE.pred.pt -num_layers

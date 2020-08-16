@@ -2,6 +2,7 @@ import torch
 import sys
 from collections import Counter
 import operator
+import argparse
 
 def get_missing(vocab, file_name, top_50k = False):
 	src_vocab = vocab[0][1]
@@ -87,13 +88,16 @@ def main():
 		print("usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt")
 		exit()
 
+	argparser = argparse.ArgumentParser(description="create sentence representations for OpenNMT-py embeddings")
+	argparser.add_argument("-model", '--model', type=str, help="file path of the prediction model", required=True)
+	args = argparser.parse_args()
+
 	### GET MODEL VOCAB DICTIONARY
-	sent_file_name = sys.argv[1]
-	model = sys.argv[2]
-	print(model)
+	sent_file_name = "cleaned_examplesGLM.txt"
+	print(args.model)
 
 	print("ALL")
-	vocab = torch.load(model)
+	vocab = torch.load(args.model)
 	missing = get_missing(vocab, sent_file_name)
 	missing_dict, sentences = get_missing_counts(missing, sent_file_name)
 	sentences_with_missing, missing_bools = find_missing_sentences(missing_dict, sentences)

@@ -1,46 +1,46 @@
-Project Organization
+# Project Organization
 ------------
 Folders will be generated one directory back from this current github repository; to keep all data, dependent program, and code centralized, it would be best to put this repo within its own folder. For example, part of my current setup is as shown below in a folder called `research`. When running on the Odyssey cluster, make sure the paths are still relative to each other in the same way or directly change the paths in the code.
 
 	└─ research
-	    ├── opennmt-inspection      					<- current github repo
-	    │   ├── scripts       							<- added temporary scripts for testing
-	    │   ├── notebooks								<- added jupyter notebooks
-	    │   └── ...   									<- all other folders were from original branch
-	    ├── bspmview          							<- dependency for MATLAB plotting
-	    ├── examplesGLM									<- fMRI data downloaded from Google Drive
-	    │   ├── subj1       							<- subfolder for subj1
-	    │   ├── subj2       
-	    │   ├── subj3    
-	    │   └── ...        
-	    ├── embeddings              					<- folder of embeddings generated from code
-	    │   ├── bert       								<- subfolder of generated embeddings
-	    │   ├── glove       
-	    │   ├── gpt2    
-	    │   └── ...        
-	    ├── ccnl-fmri              						<- dependency for MATLAB plotting
-	    ├── Language-fMRI          						<- dependency for MATLAB plotting
-	    ├── spm12          								<- dependency for MATLAB plotting
-	    ├── VBA-toolbox         						<- dependency for BMS library
-	    ├── visualizations          					<- folder of graphs generated from code
-	    ├── decoding_scripts   							<- folder of generated scripts for Odyssey from code
-	    │   ├── model1       
-	    │   ├── model2 
-	    │   └── ...   
-	    ├── mat           								<- downloaded folder from Odyssey
-	    ├── GoogleNews-vectors-negative300.bin.gz 		<- downloaded word2vec dependency
+		├── opennmt-inspection      					<- current github repo
+		│   ├── scripts       							<- added temporary scripts for testing
+		│   ├── notebooks								<- added jupyter notebooks
+		│   └── ...   									<- all other folders were from original branch
+		├── bspmview          							<- dependency for MATLAB plotting
+		├── examplesGLM									<- fMRI data downloaded from Google Drive
+		│   ├── subj1       							<- subfolder for subj1
+		│   ├── subj2       
+		│   ├── subj3    
+		│   └── ...        
+		├── embeddings              					<- folder of embeddings generated from code
+		│   ├── bert       								<- subfolder of generated embeddings
+		│   ├── glove       
+		│   ├── gpt2    
+		│   └── ...        
+		├── ccnl-fmri              						<- dependency for MATLAB plotting
+		├── Language-fMRI          						<- dependency for MATLAB plotting
+		├── spm12          								<- dependency for MATLAB plotting
+		├── VBA-toolbox         						<- dependency for BMS library
+		├── visualizations          					<- folder of graphs generated from code
+		├── decoding_scripts   							<- folder of generated scripts for Odyssey from code
+		│   ├── model1       
+		│   ├── model2 
+		│   └── ...   
+		├── mat           								<- downloaded folder from Odyssey
+		├── GoogleNews-vectors-negative300.bin.gz 		<- downloaded word2vec dependency
 		├── glove.6B 									<- downloaded glove dependency
-	    └── ...           
+		└── ...           
 
 Important added files are briefly described here with a more thorough description provided on file.
 
 	└─ opennmt-inpsection
-	    ├── calculate_slope_maps.py      				<- 									
-	    ├── find_best_likelihood.py						<- 
-	    ├── flair_embeddings.py          				<- 
-	    ├── format_for_subject.py						<- 
-	    ├── get_pretrained_embeddings.py           		<- 
-	    ├── helper.py 									<- 
+		├── calculate_slope_maps.py      				<- 									
+		├── find_best_likelihood.py						<- 
+		├── flair_embeddings.py          				<- 
+		├── format_for_subject.py						<- 
+		├── get_pretrained_embeddings.py           		<- 
+		├── helper.py 									<- 
 		├── make_nested_scripts.py 						<- 
 		├── make_scripts.py 							<- 
 		├── metric_across_layers.py 					<- 
@@ -53,14 +53,14 @@ Important added files are briefly described here with a more thorough descriptio
 		├── plot_residuals_locations.py 				<- 
 		├── significance_threshold.py 					<- 
 		├── significant_llh.py 							<- 
-	    └── ...    
+		└── ...    
 
-Set-up
+# Set-up
 ------------
 1. Getting the Embeddings
 2. Cleaning the fMRI data
 
-Do these things first before doing any analysis. If you want to skip step (1) Getting the Embeddings, download the `embeddings/` folder from the Google Drive. Step (2) is required to download and reformat the fMRI data from the original MATLAB file to readable python pickle files.
+Do these things first before doing any analysis. If you want to skip step (1) Getting the Embeddings, download the `embeddings/` folder from the Google Drive [here](https://drive.google.com/drive/folders/1LNdXXD-W8ebm8WD1oIMKSw6Nt9rqsuWQ). Step (2) is required to download and reformat the fMRI data from the original MATLAB file to readable python pickle files.
 
 # Getting the Embeddings
 Ensure that `cleaned_sentencesGLM.txt` is included in the `opennmt-inspection` repo. This was cleaned from original fMRI data provided in `examplesGLM` and processed with `clean_data.py`.
@@ -122,6 +122,11 @@ python translate.py -model ../final_models/english-to-spanish-model_acc_61.26_pp
 
 Embeddings in each layer are dumped into a corresponding `XX-pred.pt` which we have specified with the -dump_layers flag.
 
+Create the sentence representations with different aggregations for the OpenNMT-py layers by running the following code:
+```
+python create_sentence_representation.py -word_vocab EXAMPLE.vocab.pt -model EXAMPLE.pred.pt -num_layers 4
+```
+
 ## Generating Random Embeddings (not used in analyses)
 If desired to generate random embeddings uniformly distributed within a range, make sure you are within the `opennmt-inspection` directory and run
 ```
@@ -130,16 +135,15 @@ python random_embeddings.py
 
 # Cleaning the fMRI data
 We need to download the brain fMRI scans (in this case, those captured when reading ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive via curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
-If you want, you can skip the earlier steps and download the NLP model embeddings from [this link](https://drive.google.com/drive/folders/1LNdXXD-W8ebm8WD1oIMKSw6Nt9rqsuWQ).
-If you have the embeddings already, we still need to convert the subjects' fMRI data (in *.mat* format) into a more readable *.p* format; run
+
+Now that we have the embeddings, we still need to convert the subjects' fMRI data (in *.mat* format) into a more readable *.p* format; run
 ```
 python format_for_subject.py --subject_number [X1 X2 X3]
 ```
-Where ```X``` is the number of the subject whose *.mat* file you intend to process; note you can process one or more subjects at a time by listing multiple subject numbers (default is just the first subject (subject 1)). Type
+where ```X``` is the number of the subject whose *.mat* file you intend to process; note you can process one or more subjects at a time by listing multiple subject numbers (default is just the first subject (subject 1)). Run
 ```
 python format_for_subject.py --help
 ```
-for more.
 
 Analyses Overview
 ------------
