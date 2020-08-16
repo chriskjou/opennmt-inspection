@@ -2,7 +2,7 @@ import argparse
 
 def save_script(args):
 
-	folder_name = str(path) + "calculate_nested_significance"
+	folder_name = str(args.path) + "calculate_nested_significance"
 	script_to_open = str(folder_name) + ".sh"
 
 	if args.bert:
@@ -73,8 +73,8 @@ def main():
 	parser = argparse.ArgumentParser("make vba scripts")
 	parser.add_argument("-total_batches", "--total_batches", help="Total number of batches to run", type=int, default=100)
 	parser.add_argument("-bert", "--bert", action='store_true', default=False, help="use bert only")
-	parser.add_argument("-path", "--path", help="path to VBA directory", type=str, default="../VBA-toolbox/")
-	parser.add_argument("-email", "--email", help="email associated with Odyssey cluster", type=str, default="ckjou@college.harvard.edu")
+	parser.add_argument("-path", "--path", help="path to VBA directory", type=str, default="../VBA-toolbox/", required=True)
+	parser.add_argument("-email", "--email", help="email associated with Odyssey cluster", type=str, default="ckjou@college.harvard.edu", required=True)
 	parser.add_argument("-slurm_path", "--slurm_path", help="path for output/error files (default on home directory)", type=str, default="")
 	args = parser.parse_args()
 
