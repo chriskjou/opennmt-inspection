@@ -54,6 +54,8 @@ Important added files are briefly described here with a more thorough descriptio
 		├── significance_threshold.py 					<- 
 		├── significant_llh.py 							<- 
 		└── ...    
+# Dependencies
+Libaries that are used and required in all files that were added to the original opennmt-py fork are in `brain_nn_requirements.txt`. Original requirements maintained by the original opennmt-py fork are in `requirements.txt`.
 
 # Set-up
 ------------
@@ -284,7 +286,7 @@ Ensure that the entire experiment for all subjects and all layers of models have
 ```
 python find_best_likelihood.py -local -save_by_voxel -compare_models -llh
 ```
-This will create the proper MATLAB files in the `mfit/` directory (which was originally used in a previous analysis) and will be accessed when running the VBA-toolbox scripts.
+This will create the proper MATLAB files in the format of `voxel x model layers x number of subjects` for `VBA_groupBMC` in the `mfit/` directory (which was originally used in a previous analysis) and will be accessed when running the VBA-toolbox scripts.
 
 [BERT ONLY - not used - mfit only] To generate the same MATLAB file but only for values in the BERT model, do the following,
 ```
@@ -370,6 +372,8 @@ Extending the Analysis and Visualization
 2. Plotting in 3D Brain space
 3. Plotting initial embeddings and activations
 4. Heatmaps across layers
+5. Helpful Functions
+6. Older versions of files
 
 # Gradient Correlation
 To calculating an anatomical gradient index (1) BMS VBA-toolbox argmax; (2) RSA slope; or (3) RSA argmax, run the following line of code for respective analyses. Add the flag for `-contra` to calculate the gradient index for the same analysis but on the contralateral side of the brain. 
@@ -416,3 +420,13 @@ python compare_layers_and_subjects.py -group_level -across_layer -bert -num_laye
 ```
 python compare_layers_and_subjects.py -group_level -single_layer -which_layer 1
 ```
+
+# Helpful Functions
+When converting back a forth between the coordinates in the MATLAB file and in the either same format in Python or unraveled version, check out the helper functions in `helper.py` such as `convert_matlab_to_np` and `convert_np_to_matlab`. An example usage script for transforming coordinates is in `transform_coordinates_for_plotting.py`.
+
+Other helpful functions include finding the common space brain given a set of subjects (`load_common_space`) and cleaning atlas AAL or language ROI labels (`clean_atlas` and `clean_roi`). 
+
+# Older version of files
+These files are usually forks off the original file but modified slightly to reduce any code merging problems at the time. In the future, these files can be merged into the one file for optimal pipelining.
+
+`no_spotlight_decoding.py`: for both decoding and RSA experiments except no spotlights and only single voxel activations are used per relationship

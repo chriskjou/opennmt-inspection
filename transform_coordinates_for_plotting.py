@@ -30,6 +30,11 @@ def main():
 	argparser.add_argument("-fdr", "--fdr",  action='store_true', default=False, help="True if fdr, False if not")
 	argparser.add_argument("-rank", "--rank",  action='store_true', default=False, help="True if rank, False if not")
 	
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
+
 	args = argparser.parse_args()
 
 	# verify arguments
@@ -52,29 +57,29 @@ def main():
 		args.agg_type
 	)
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/3d-brain/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/3d-brain/')
-	save_location = '/n/shieber_lab/Lab/users/cjou/3d-brain/'
+	if not os.path.exists(str(args.to_save_path) + '3d-brain/'):
+		os.makedirs(str(args.to_save_path) + '3d-brain/')
+	save_location = str(args.to_save_path) + '3d-brain/'
 
 	# set save location
 	if args.rmse:
 		# TODO
-		open_location = "/n/shieber_lab/Lab/users/cjou/rmse/" + str(file_name) + "_subj" + str(args.subject_number)
+		open_location = str(args.to_save_path) + "rmse/" + str(file_name) + "_subj" + str(args.subject_number)
 		metric = "rmse"
 	elif args.fdr:
-		open_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number)
+		open_location = str(args.to_save_path) + "fdr/" + str(file_name) + "_subj" + str(args.subject_number)
 		metric = "fdr"
 		points = pickle.load(open(open_location + "_valid_correlations_2d_coordinates.p", "rb"))
 	elif args.rank:
 		# TODO
-		open_location = "/n/shieber_lab/Lab/users/cjou/rankings_od32/" + str(file_name) + "_subj" + str(args.subject_number)
+		open_location = str(args.to_save_path) + "rankings_od32/" + str(file_name) + "_subj" + str(args.subject_number)
 		metric = "rank"
 	else:
 		print("error")
 		exit()
 
 	# get volmask
-	file_path = "/n/home09/cjou/projects/examplesGLM/subj{}/volmask.p".format(args.subject_number)
+	file_path = str(args.fmri_path) + "examplesGLM/subj{}/volmask.p".format(args.subject_number)
 	volmask = pickle.load( open( file_path, "rb" ) )
 
 	# transform coordinates and save

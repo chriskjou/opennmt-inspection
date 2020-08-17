@@ -292,6 +292,12 @@ def main():
 	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--ranking",  action='store_true', default=True, help="True if calculate ranking, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
+	
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
+
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -307,9 +313,9 @@ def main():
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# get modified activations
-	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/modified_activations.p", "rb" ) )
+	activations = pickle.load( open( "{}subj{}/activations.p".format(args.fmri_path, args.subject_number), "rb" ) )
+	volmask = pickle.load( open( "{}subj{}/volmask.p".format(args.fmri_path, args.subject_number), "rb" ) )
+	modified_activations = pickle.load( open( "{}subj{}/modified_activations.p".format(args.fmri_path, args.subject_number), "rb" ) )
 
 	print("PERMUTATION: " + str(args.permutation))
 	print("PERMUTATION REGION: " + str(args.permutation_region))
@@ -326,25 +332,19 @@ def main():
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
 	# make file path
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals_od32/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/residuals_od32/')
+	if not os.path.exists(str(args.to_save_path) + 'residuals_od32/'):
+		os.makedirs(str(args.to_save_path) + 'residuals_od32/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions_od32/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions_od32/')
+	if not os.path.exists(str(args.to_save_path) + 'final_rankings/'):
+		os.makedirs(str(args.to_save_path) + 'final_rankings/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/')
+	if not os.path.exists(str(args.to_save_path) + 'rsa/'):
+		os.makedirs(str(args.to_save_path) + 'rsa/')
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rsa/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/rsa/')
-
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/llh/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/llh/')
+	if not os.path.exists(str(args.to_save_path) + 'llh/'):
+		os.makedirs(str(args.to_save_path) + 'llh/')
 
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_no_spotlight"
-	
-	# get residuals and predictions
-	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
 	if args.mixed_effects:
 		val = mixed_effects_analysis(args, embed_matrix)
@@ -353,21 +353,21 @@ def main():
 
 	# dump
 	if args.rsa:
-		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
+		file_name = str(args.to_save_path) + "rsa/" + str(temp_file_name) + ".p"
 		pickle.dump( all_residuals, open(file_name, "wb" ) )
 	
 	else:
 		if args.llh:
-			llh_file_name = "/n/shieber_lab/Lab/users/cjou/llh/" + temp_file_name
+			llh_file_name = str(args.to_save_path) + "llh/" + temp_file_name
 			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
 			pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
 
-		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
+		altered_file_name = str(args.to_save_path) + "residuals_od32/" +  temp_file_name
 		print("RESIDUALS FILE: " + str(altered_file_name))
 		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
 		if args.model_to_brain and args.ranking:
-			ranking_file_name = "/n/shieber_lab/Lab/users/cjou/final_rankings/" +  temp_file_name
+			ranking_file_name = str(args.to_save_path) + "final_rankings/" +  temp_file_name
 			print("RANKING FILE: " + str(ranking_file_name))
 			pickle.dump( rankings, open(ranking_file_name + ".p", "wb" ), protocol=-1 )
 
