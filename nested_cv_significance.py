@@ -137,10 +137,9 @@ def plot_count_graphs(args, df, metric, file_name):
 def main():
 	parser = argparse.ArgumentParser("calculate nested cv model significance")
 	parser.add_argument("-count", "--count", action='store_true', default=False, help="use counter")
-	parser.add_argument("-anova",  "--anova", action='store_true', default=False, help="True if anova")
 	parser.add_argument("-aal",  "--aal", action='store_true', default=False, help="True if use RSA aal")
 	parser.add_argument("-local",  "--local", action='store_true', default=False, help="True if local")
-	parser.add_argument("-calculate_pval",  "--calculate_pval", action='store_true', default=False, help="True if calculate_pval")
+	parser.add_argument("-use_cache",  "--use_cache", action='store_true', default=False, help="True if use cache pval")
 	parser.add_argument("-avg",  "--avg", action='store_true', default=False, help="True if avg")
 	args = parser.parse_args()
 
@@ -174,11 +173,11 @@ def main():
 	print("DF FULL SHAPE: " + str(df_full.shape))
 
 	print("calculate significant voxels...")
-	if args.calculate_pval:
+	if args.use_cache:
+		sig_pvals = pickle.load( open( "../sig_pvals.p", "rb") )
+	else:
 		sig_pvals = calculate_anova(df_full)
 		pickle.dump( sig_pvals, open("../sig_pvals.p", "wb" ) )
-	else:
-		sig_pvals = pickle.load( open( "../sig_pvals.p", "rb") )
 
 	sig_pvals_05 = (np.array(sig_pvals) < 0.05).astype(bool)
 

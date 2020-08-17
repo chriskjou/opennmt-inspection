@@ -147,7 +147,7 @@ def main():
 	argparser.add_argument("-nested",  "--nested", action='store_true', default=True, help="True if running nested")
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
 	argparser.add_argument("-save_by_voxel",  "--save_by_voxel", action='store_true', default=False, help="True if save by voxel")
-	argparser.add_argument("-compare_models",  "--compare_models", action='store_true', default=True, help="True if compare models")
+	argparser.add_argument("-compare_models",  "--compare_models", action='store_true', default=False, help="True if compare models")
 	args = argparser.parse_args()
 
 	if args.num_layers != 12 and args.bert:
@@ -170,18 +170,7 @@ def main():
 	voxel_coordinates = np.transpose(np.nonzero(common_space))
 	print(voxel_coordinates.shape)
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
-	# print("generating file names...")
-	# layer1_file_name = generate_file_name(args, args.layer1)
-	# layer2_file_name = generate_file_name(args, args.layer2)
 
-	# print("retrieving file contents...")
-	# layer1 = get_file(args, layer1_file_name)
-	# layer2 = get_file(args, layer2_file_name)
-
-	# print("evaluating layers...")
-	# diff = compare_layers(layer1, layer2)
-	# print("DIFF")
-	# print(np.sum(diff))
 	if args.fdr:
 		metric = "fdr"
 	if args.rmse:
@@ -193,7 +182,6 @@ def main():
 	if args.llh:
 		metric = "llh"
 
-	# generate heatmap
 	if args.single_subject and args.across_layer:
 		first = True
 		for layer_num in list(range(1, args.num_layers + 1)):

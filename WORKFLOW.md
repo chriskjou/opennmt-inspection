@@ -37,11 +37,11 @@ Important added files are briefly described here with a more thorough descriptio
 	└─ opennmt-inpsection
 		├── calculate_slope_maps.py      				<- 									
 		├── find_best_likelihood.py						<- 
-		├── flair_embeddings.py          				<- 
-		├── format_for_subject.py						<- 
-		├── get_pretrained_embeddings.py           		<- 
-		├── helper.py 									<- 
-		├── make_nested_scripts.py 						<- 
+		├── flair_embeddings.py          				<- embeddings from NLP models
+		├── format_for_subject.py						<- formatting fMRI data from MATLAB to python
+		├── get_pretrained_embeddings.py           		<- embeddings from GloVe and word2vec
+		├── helper.py 									<- important helper functions
+		├── make_nested_scripts.py 						<- script generation for nested cv for decoding and RSA
 		├── make_scripts.py 							<- 
 		├── metric_across_layers.py 					<- 
 		├── nested_convert_np_to_matlab.py 				<- 
@@ -130,11 +130,13 @@ Create the sentence representations with different aggregations for the OpenNMT-
 python create_sentence_representation.py -word_vocab EXAMPLE.vocab.pt -model EXAMPLE.pred.pt -num_layers 4
 ```
 
-## Generating Random Embeddings (not used in analyses)
+## Generating Rando/Permutation Embeddings (not used in analyses)
 If desired to generate random embeddings uniformly distributed within a range, make sure you are within the `opennmt-inspection` directory and run
 ```
 python random_embeddings.py
 ```
+
+Permutation embeddings also generated from `permutation.py`.
 
 # Cleaning the fMRI data
 We need to download the brain fMRI scans (in this case, those captured when reading ```examplesGLM.txt```). The fMRI scans are found [here](https://drive.google.com/drive/folders/1dfwmC6F8FuXlz_3fu2Q1SiSsZR_BY8RP) (you can use [this link](https://github.com/circulosmeos/gdown.pl) to download from drive via curl, wget, etc. ) *Note in the codebase we only regress to subject 1's embeddings because of computational tractability, but this is easily amended* (in ```odyssey_decoding.py``` and ```make_scripts.py```)
@@ -190,7 +192,7 @@ Experiments
 3. Getting the Experimental results
 
 # Setting up the Experiment scripts
-For both experiments, update the relevant file paths for the fMRI data and the save path in `nested_decoding.py` under the argument parser. Update the same respective paths in `convert_np_to_matlab.py`.
+For both experiments, update the relevant file paths for the fMRI data and the save path in `nested_decoding.py` under the argument parser. Update the same respective paths in `nested_convert_np_to_matlab.py`.
 
 ## Decoding
 
@@ -205,14 +207,24 @@ Likelihood, ranks, and RMSEs are calculated and saved for model-to-brain, and li
 
 ## Representational Similarity Analysis (RSA)
 
+### Spotlights
 Computation for RSA is the same as the above part for `make_nested_scripts.py` with an added `-rsa` flag. Make relevent nested scripts according to model as follows:
 
 ```
 python make_nested_scripts.py -num_layers 12 -bert -email ckjou@college.harvard.edu -file_path projects/ -embedding_path /n/shieber_lab/Lab/users/cjou/embeddings/ -rsa
 ```
+### By Region
+
+Specifically for calculating RSA by region (by Federenko's labels), generate scripts for RSA for BERT as
+```
+python make_neurosynth_rsa_scripts.py -subject_number 1
+```
+
+Scripts will be generated in the same way as with RSA spotlights but under the folder `neurosynth_rsa/`. Run once as dictated by the next part and then again by modifying the flag in `neurosynth_rsa.py` for `null` to be `True`. The first run without the flag will calculate the RSA correlations per region, and then with the flag, will calculate the standard deviation, mean, and pval for 100 trials randomly permutated.
+
 # Running the Experiment
 
-Once all the scripts are generated for the model type and experiment desired, rsync the scripts to the Odyssey cluster. Then from the `nested_cv/` directory, the experiments should be organized by folder. Both locally and on the cluster, the folder organization looks like the following:
+Once all the scripts are generated for the model type and experiment desired, rsync the scripts to the Odyssey cluster. Then from the `nested_cv/` directory, the experiments should be organized by folder. Both locally and on the cluster, the folder organization looks similar to the following:
 
 	├── nested_cv     								 
 	│   ├── nested_cv_bert_subj1 
@@ -247,25 +259,47 @@ That should launch the experiment subscripts within that corresponding folder. A
 
 # Getting the Experimental results
 
-Once the all parts of the experiments are completed, the results need to be concatenated (for LLH, RMSEs, ranking, etc). Check to make sure the file paths in the argparser have been updated and run the code corresponding to the experiment.
+Once the all parts of the experiments are completed, the results need to be concatenated (for LLH, RMSEs, ranking, etc). Check to make sure the file paths in the argparser have been updated and run the code corresponding to the experiment. For specifically concatenating the LLH for the decoding of model-to-brain with nested cross-validation, run 
 
 ```
-python convert_np_to_matlab.py -bert -num_layers 12 -model_to_brain
-python convert_np_to_matlab.py -bert -num_layers 12 -rsa
+python nested_convert_np_to_matlab.py -bert -subject_number 1			# model-to-brain LLH
+python nested_convert_np_to_matlab.py -bert -subject_number 1 -rsa 		# RSA
 ```
 
-This will generate the proper MATLAB file of the experimental results in 3D brain space in the folder `../mat/`.
+This will generate the proper MATLAB file of the experimental results in 3D brain space in the folder `../mat/`. Reference code if RSA takes too long or needs to check previous code, files without the `nested` prefix can be used instead. For example, instead of `make_nested_scripts.py`, `make_scripts.py` can be used; instead of `nested_decoding.py`, `odyssey_decoding.py` can be used; and instead of `nested_convert_np_to_matlab.py`, `convert_np_to_matlab.py` can be used. The original files without `nested` include batching instead and for decoding, includes nested cross validation (but is not applicable to RSA).
 
 Analyses Overview
 ------------
 1. Bayesian Model Comparison
 2. RSA by region
 3. RSA by spotlight (slope/argmax)
+4. GLM by scanner runs (older analysis not shown in slides)
 
 # Bayesian Model Comparison (BMS)
 
-## Dependencies
-[VBA toolbox](https://github.com/MBB-team/VBA-toolbox)
+## Preparing the data
+Ensure that the entire experiment for all subjects and all layers of models have successfully run and are concatenated.
+
+[COMPARE MODELS] To generate a MATLAB file in preperation for VBA-toolbox, make sure the BERT, baseline, and opennmt models have successfully run. Then execute
+```
+python find_best_likelihood.py -local -save_by_voxel -compare_models -llh
+```
+This will create the proper MATLAB files in the `mfit/` directory (which was originally used in a previous analysis) and will be accessed when running the VBA-toolbox scripts.
+
+[BERT ONLY - not used - mfit only] To generate the same MATLAB file but only for values in the BERT model, do the following,
+```
+python find_best_likelihood.py -local -save_by_voxel -llh
+```
+
+[not used - mfit only] After running the entire experiment for all subjects and all layers of a particular model (such as BERT), we can put the LLH values into a MATLAB file with 
+```
+python find_best_likelihood.py -local -single_subject -across_layer -subject_number 1 -which_layer 1 -bert _num_layers 12 -llh
+```
+
+This generates 12 MATLAB files (one for each layer) with boolean values denoting whether that layer was the best fit for that particular voxel for that specific subject.
+
+## Generating scripts
+Make sure that [VBA toolbox](https://github.com/MBB-team/VBA-toolbox) is downloaded upstream one directory from `opennmt-inspection` both locally and on the cluster if desired to run there.
 
 Create VBA scripts by running the following line of code within the current directory. Make sure that you have downloaded the VBA toolbox and the respective file path is set.
 ```
@@ -282,7 +316,33 @@ sbatch calculate_nested_significance.sh
 ```
 within the VBA-toolbox directory.
 
-# RSA by region
+## Comparing and visualizing model families
+
+To generate a count graph for all significant voxels in each language ROI for best representation of a model (bert vs. baseline vs. opennmt), run
+```
+python nested_cv_significance.py -local -count
+```
+After you have run the code at least once, you can run commands with the flag `-use_cache` to avoid computing ANOVA pvalue significances again.
+
+Other uses of plotting include averaging the LLH metric across all significant voxels in each brain atlas AAL and then plotting the metric value for each of the models as
+```
+python nested_cv_significance.py -local -aal -avg
+```
+
+## [Deprecated from] mfit
+[mfit](https://github.com/sjgershm/mfit) replaced by VBA-toolbox analysis.
+Original files to plot BOR and PXP per subject/layer in 2D and 3D brain space: `significant_llh.py`
+
+# RSA by region 
+
+## Correlation Plots
+To plot the RSA correlations of the language ROI or all atlas AAL for BERT, run the following with corrected null distrbution for one subject or across subject as:
+```
+python null_rsa_distribution.py -subject_number 1
+python null_rsa_distribution.py -across_subjects -aal
+```
+
+## Slope and Argmax
 Run `calculate_slope_maps.py` with flags to specify if for language ROIs or all atlas AAL (-aal) and if for slope or argmax analysis
 ```
 python calculate_slope_maps.py -null -slope -local
@@ -300,10 +360,16 @@ python calculate_slope_maps.py -argmax -aal
 ```
 The usage of the analysis is similar to the part above of `RSA by region` except we do not include the `-null` flag.
 
-Extending the Analysis
+# GLM by scanner runs (older analysis not shown in slides)
+
+Used in `significance_threshold.py` but no conclusive or concrete evidence for any claims. Similar to `mixed_effects.py`.
+
+Extending the Analysis and Visualization
 ------------
 1. Gradient Correlation
 2. Plotting in 3D Brain space
+3. Plotting initial embeddings and activations
+4. Heatmaps across layers
 
 # Gradient Correlation
 To calculating an anatomical gradient index (1) BMS VBA-toolbox argmax; (2) RSA slope; or (3) RSA argmax, run the following line of code for respective analyses. Add the flag for `-contra` to calculate the gradient index for the same analysis but on the contralateral side of the brain. 
@@ -319,3 +385,34 @@ Redirect to the `Language-fMRI` folder. Make sure dependencies of `spm12`, `ccnl
 Load the corresponding .mat file into MATLAB. Follow the directions under `save_vol.m` to plot values in 3D brain space and generate brain slice/surface rendering photos.
 
 Note: Current plots are not entirely exact due to missing MNI coordinates. Values less than 1 are also often clipped; make sure the proper data values are being plotted and the range on the plot is not cut off.
+
+# Plotting initial embeddings and activations
+Graphs are created in `visualizations/`. Ensure that the fMRI data and the embedding paths are updated where noted in each of the files used.
+
+For plotting initial embeddings:
+```
+python plot_initial_embeddings.py -bert 	# plot initial bert embeddings for all aggregations types for specific dimensions 
+```
+
+For plotting initial fMRI brain activations:
+```
+python plot_initial_activations.py -brain_map -subjects 1,2,4,5 -sentences 1,2,3 	# saving activations for sentences 1, 2, 3 in common brain space of given subjects
+python plot_initial_activations.py -hist -aal -subject_number 1						# saving histograms for each AAL region for a specific subject
+python plot_initial_activations.py -subject_number 1								# plot graph per language ROI region for specific subject								
+```
+
+# Heatmaps across layers
+To generate heatmaps for a single subject across layers for a metric (LLH, ranking, RMSE, etc), run
+```
+python compare_layers_and_subjects.py -single_subject -across_layers -bert -num_layers 12 -subject_number 1 -rmse
+```
+
+To generate heatmaps at a group level across layers for a metric (LLH, ranking, RMSE, etc in the common brain space of the specified subjects, run
+```
+python compare_layers_and_subjects.py -group_level -across_layer -bert -num_layers 12
+```
+
+[deprecated] To generate MATLAB files for 3D brain space to see the heatmap for a single layer of metric values, run
+```
+python compare_layers_and_subjects.py -group_level -single_layer -which_layer 1
+```

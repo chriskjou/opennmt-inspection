@@ -200,6 +200,11 @@ def main():
 	argparser.add_argument("-searchlight", "--searchlight", help="if searchlight", action='store_true', default=True)
 	argparser.add_argument("-fdr", "--fdr", help="if apply FDR", action='store_true', default=False)
 	argparser.add_argument("-subjects", "--subjects", help="subject numbers", type=str, default="")
+
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
 	args = argparser.parse_args()
 
 	### check conditions
@@ -215,18 +220,17 @@ def main():
 		print("must specify subject numbers in group level analysis")
 		exit()
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/mat/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/mat/')
+	if not os.path.exists(str(args.to_save_path) + 'mat/'):
+		os.makedirs(str(args.to_save_path) + 'mat/')
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
 		embed_loc = args.embedding_layer
-		# embed_loc = "/Users/christinejou/Documents/research/embeddings/parallel/spanish/2layer-brnn/avg/parallel-english-to-spanish-model-2layer-brnn-pred-layer1-avg.mat"
 		file_name = embed_loc.split("/")[-1].split(".")[0]
 		embedding = scipy.io.loadmat(embed_loc)
 		embed_matrix = helper.get_embed_matrix(embedding)
 	else:
 		embed_loc = args.embedding_layer
-		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(args.which_layer) # aggregation type + which layer
+		file_name = embed_loc.split("/")[-1].split(".")[0].split("-")[-1] + "_layer" + str(args.which_layer)
 		embed_matrix = pickle.load( open( embed_loc , "rb" ) )
 		if args.word2vec:
 			file_name += "word2vec"
@@ -245,8 +249,8 @@ def main():
 		else:
 			search = ""
 
-		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_subj" + str(args.subject_number) + str(search)
-		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+		save_location = str(args.to_save_path) + "fdr/" + str(file_name) + "_subj" + str(args.subject_number) + str(search)
+		volmask = pickle.load( open( str(args.to_save_path) + "subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
 		space_to_index_dict, index_to_space_dict, volmask_shape = get_spotlights(volmask)
 
 		# 1. z-score
@@ -271,7 +275,7 @@ def main():
 
 	if args.group_level:
 
-		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(file_name) + "_group_analysis"
+		save_location = str(args.to_save_path) + "fdr/" + str(file_name) + "_group_analysis"
 		subject_numbers = [int(subj_num) for subj_num in args.subjects.split(",")]  
 
 		print("loading brain common space...") 
@@ -286,7 +290,7 @@ def main():
 		fdr_corr_list = []
 		for subj_num in tqdm(subject_numbers):
 			print("adding subject: " + str(subj_num))
-			file_name = "/n/shieber_lab/Lab/users/cjou/fdr/" + str(args.agg_type) + "_layer" + str(args.which_layer) + "bert_subj" + str(args.subject_number) + "_searchlight-3dtransform-fdr"
+			file_name = str(args.to_save_path) + "fdr/" + str(args.agg_type) + "_layer" + str(args.which_layer) + "bert_subj" + str(args.subject_number) + "_searchlight-3dtransform-fdr"
 			fdr_corr = scipy.io.loadmat(file_name + ".mat")
 			fdr_corr_vals = fdr_corr["metric"]
 			common_corr = np.ma.array(fdr_corr_vals, mask=volmask)

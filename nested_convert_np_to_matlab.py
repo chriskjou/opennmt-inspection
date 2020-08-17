@@ -19,6 +19,13 @@ def main():
 	argparser.add_argument("-bert", "--bert", action='store_true', default=False, help="True if initialize bert embeddings, False if not")
 	argparser.add_argument("-opennmt", "--opennmt", action='store_true', default=False, help="True if initialize opennmt embeddings, False if not")
 	argparser.add_argument("-local", "--local", action='store_true', default=False, help="True if running local, False if not")
+	argparser.add_argument("-rsa", "--rsa",  action='store_true', default=False, help="True if rsa, False if not")
+	
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
+
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.opennmt:
@@ -29,7 +36,7 @@ def main():
 	if args.local:
 		volmask = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/volmask.p", "rb" ) )
 	else:
-		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+		volmask = pickle.load( open( "{}subj{}/volmask.p".format(args.fmri_path, args.subject_number), "rb" ) )
 	
 	### MAKE PATHS ###
 	print("making paths...")
@@ -51,7 +58,10 @@ def main():
 
 	for layer in tqdm(range(1, num_layers+1)):
 		print("LAYER: " + str(layer))
-		file_path = "/n/shieber_lab/Lab/users/cjou/nested_llh/"
+		if args.rsa:
+			file_path = "{}rsa/".format(args.to_save_path)
+		else:
+			file_path = "{}nested_llh/".format(args.to_save_path)
 		if args.bert or args.word2vec or args.glove:
 			file_name = "{}model2brain_cv_-subj{}-avg_layer{}_no_spotlight-llh".format(
 				model, 

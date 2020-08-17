@@ -184,7 +184,13 @@ def main():
 	argparser.add_argument("-local", "--local",  action='store_true', default=False, help="True if local False if not")
 	argparser.add_argument("-brain_map", "--brain_map",  action='store_true', default=False, help="True if for 3d brain map if not")
 	argparser.add_argument("-hist", "--hist",  action='store_true', default=False, help="True if for histogram of voxels if not")
-	argparser.add_argument("-sentences", "--sentences",  help="sentence numbers", type=str, default="")
+	argparser.add_argument("-sentences", "--sentences",  help="sentence numbers in numbers with commas", type=str, default="", required=True)
+	argparser.add_argument("-aal", "--aal",  action='store_true', default=False, help="True if all brain AAL regions False if not")
+
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("-fmri_path", "--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
+
 	args = argparser.parse_args()
 
 	if args.brain_map:
@@ -239,9 +245,10 @@ def main():
 		df = pd.DataFrame(df_dict)
 
 		# PLOT ALTAS
-		plot_voxel_num(df, "atlas_labels")
-		# plot_voxel_num(df, "roi_labels")
-		pass
+		if args.aal:
+			plot_voxel_num(df, "atlas_labels")
+		else:
+			plot_voxel_num(df, "roi_labels")
 	else:
 		# get atlas and roi
 		if args.local:
@@ -252,12 +259,12 @@ def main():
 			roi_vals = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) +  "/roi_vals.p", "rb" ) )
 			roi_labels = pickle.load( open( "../examplesGLM/subj" + str(args.subject_number) + "/roi_labels.p", "rb" ) )
 		else:
-			volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
-			activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
-			atlas_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
-			atlas_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
-			roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
-			roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+			volmask = pickle.load( open( "{}subj{}/volmask.p".format(args.fmri_path, args.subject_number), "rb" ) )
+			activations = pickle.load( open( "{}subj{}/activations.p".format(args.fmri_path, args.subject_number), "rb" ) )
+			atlas_vals = pickle.load( open( "{}subj{}/atlas_vals.p".format(args.fmri_path, args.subject_number), "rb" ) )
+			atlas_labels = pickle.load( open( "{}subj{}/atlas_labels.p".format(args.fmri_path, args.subject_number), "rb" ) )
+			roi_vals = pickle.load( open( "{}subj{}/roi_vals.p".format(args.fmri_path, args.subject_number), "rb" ) )
+			roi_labels = pickle.load( open( "{}subj{}/roi_labels.p".format(args.fmri_path, args.subject_number), "rb" ) )
 
 		print("INITIAL:")
 		print(len(atlas_vals))

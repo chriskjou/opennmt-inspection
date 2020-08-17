@@ -47,15 +47,6 @@ Script used to generate for all possible models:
   Specify which models to make bash scripts when given the number of batches desired.
   Usage: python make_scripts.py -language -num_layers -type -which_layer -agg_type -subj_num -num_batches
 ```
-
-## Residuals (updating)
-### Concatenating residual batches
-```
--get_residuals.py
-  Concatenating residuals from all batches
-  Usage: python get_residuals.py -residual_name -total_batches
-```
-
 ### Plotting
 Visualizing relationship between residuals from linear decoding and region of brain.
 
@@ -120,7 +111,7 @@ Now simply follow the instructions from above to plot the residuals, etc.
 TBA.
 
 
-# OpenNMT-py with inspection (from original)
+# OpenNMT-py with inspection (from original repo)
 
 This is a fork of OpenNMT-py that allows for inspection of the activations of intermediate neurons, as well as manual modification of those neurons at inference time. Everything is known to work with the single-direction RNN encoder; others have not been tested. This fork adds the following option to `train.py`:
 

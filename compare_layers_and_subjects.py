@@ -159,6 +159,11 @@ def main():
 	argparser.add_argument("-rsa", "--rsa", action='store_true', default=False,
 						   help="True if calculate rsa, False if not")
 
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
+
 	args = argparser.parse_args()
 
 	if args.num_layers != 12 and args.bert:
@@ -324,8 +329,8 @@ def main():
 		group_pvals = np.apply_along_axis(calculate_ttest, 0, pvalues)
 		group_corrs = np.mean(corr, axis=0)
 
-		save_location = "/n/shieber_lab/Lab/users/cjou/fdr/group_level_single_layer_" + str(args.which_layer)
-		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
+		save_location = str(args.to_save_path) + "fdr/group_level_single_layer_" + str(args.which_layer)
+		volmask = pickle.load( open( str(args.to_save_path) + "subj" + str(args.subject_number) + "/volmask.p", "rb" ) )
 		_ = helper.transform_coordinates(group_corrs, volmask, save_location, "fdr", pvals=group_pvals)
 
 	print("done.")
