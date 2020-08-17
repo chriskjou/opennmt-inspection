@@ -8,7 +8,7 @@ import sys
 import argparse
 
 # get initial information from MATLAB
-def get_activations(info, save_path=""):
+def get_activations(info, subj_num, save_path=""):
 	print("getting activations...")
 	mat = scipy.io.loadmat(info)
 
@@ -18,6 +18,10 @@ def get_activations(info, save_path=""):
 	roi_vals = mat["multimask_group"]
 	roi_labels = mat["labels_langloc"]
 	atlas_labels = mat["labels_aal"]
+
+	vollangloc = mat["vollangloc"]
+	volaal = mat["volaal"]
+
 	# individual_activations = mat["examples_sentences_individual"]
 
 	print("writing to file...")
@@ -30,11 +34,27 @@ def get_activations(info, save_path=""):
 	pickle.dump(roi_vals, open(save_path+"roi_vals.p", "wb") )
 	pickle.dump(roi_labels, open(save_path+"roi_labels.p", "wb") )
 
+	scipy.io.savemat("../subj{}_vollangloc.mat".format(subj_num), dict(vollangloc = vollangloc))
+	scipy.io.savemat("../subj{}_volaal.mat".format(subj_num), dict(volaal = volaal))
+
+	contralateral(vollangloc, subj_num)
+	contralateral(volaal, subj_num, aal=True)
+
 	# pickle.dump( individual_activations, open(save_path+"individual-activations.p", "wb" ) )
 
 	print("finished.")
 	return activations, volmask
 
+def contralateral(contents, subj_num, aal=False):
+	a, b, c = contents.shape
+	print("SHAPE: {} {} {}".format(a,b,c))
+	contra = np.flip(contents, 0)
+
+	file_name = "../contra_subj{}_{}.mat".format(
+		subj_num,
+		"volaal" if aal else "vollangloc"
+		)
+	scipy.io.savemat(file_name, dict(coords = contra))
 
 def get_modified_activations(activations, volmask, save_path=""):
 	i,j,k = volmask.shape
@@ -62,7 +82,7 @@ def main():
     for subj_num in args.subject_number:
         save_location = f'../examplesGLM/subj{subj_num}/'
         glm_sentences_path = save_location + 'examplesGLM.mat'
-        activations, volmask = get_activations(glm_sentences_path, save_path=save_location)
+        activations, volmask = get_activations(glm_sentences_path, subj_num, save_path=save_location)
         print("saved activations.")
         modified_activations = get_modified_activations(activations, volmask, save_path=save_location)
         print("saved modified activations.")

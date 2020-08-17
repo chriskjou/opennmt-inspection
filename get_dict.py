@@ -84,9 +84,9 @@ def update_dict():
 	return
 
 def main():
-	if len(sys.argv) != 3:
-		print("usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt")
-		exit()
+	# if len(sys.argv) != 3:
+	# 	print("usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt")
+	# 	exit()
 
 	argparser = argparse.ArgumentParser(description="create sentence representations for OpenNMT-py embeddings")
 	argparser.add_argument("-model", '--model', type=str, help="file path of the prediction model", required=True)

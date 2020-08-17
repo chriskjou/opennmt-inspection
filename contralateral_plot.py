@@ -6,7 +6,6 @@ import sys
 import argparse
 import os
 import helper
-import scipy.stats as stats
 
 global a, b, c
 def get_file(args):

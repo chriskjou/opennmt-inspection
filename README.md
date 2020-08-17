@@ -6,7 +6,7 @@ This is a modification of a OpenNMT-py fork that creates sentence representation
 ```
 -get_dict.py
   Find words present in your sentence data but not the source training vocab after preprocess.py. Includes corresponding sentence and all missing words with its occurrences.
-  Usage: python get_dict.py -sentences.txt -EXAMPLE.vocab.pt
+  Usage: python get_dict.py -model EXAMPLE.vocab.pt
 ```
 
 Sentence representations are created for elementwise (1) average, (2) maximum, (3) minimum, and (4) last word of all words in the sentence. Each word embedding is of length 500.

@@ -366,8 +366,8 @@ python ../../projects/opennmt-inspection/neurosynth_rsa.py \
 	)
 )
 
-def create_nested_scripts(args, model, num_layer):
-	folder_name = "nested_cv_{}_subj{}".format(model, args.subject_number)
+def create_nested_scripts(args, model, num_layer, subject_number):
+	folder_name = "nested_cv_{}_subj{}".format(model, subject_number)
 	job_id = folder_name + "_layer" + str(num_layer)
 	fname = "../nested_cv/" + folder_name + "/" + job_id + ".sh"
 	print("FILE_NAME: " + str(fname))
@@ -392,6 +392,10 @@ def create_nested_scripts(args, model, num_layer):
 				model, 
 				num_layer
 			)
+		if args.rsa:
+			rsa_flag = "-rsa"
+		else:
+			rsa_flag = ""
 		
 
 		if args.opennmt:
@@ -410,26 +414,29 @@ def create_nested_scripts(args, model, num_layer):
 #SBATCH -p serial_requeue 						# partition (queue)
 #SBATCH --mem 4000 								# memory pool for all cores
 #SBATCH -t 0-{3}:00 							# time (D-HH:MM)
-#SBATCH --output=/n/home10/cjou/projects 		# file output location
-#SBATCH -o ../../logs/outpt_{0}.txt 			# File that STDOUT writes to
-#SBATCH -e ../../logs/err_{0}.txt				# File that STDERR writes to
+#SBATCH -o {7}outpt_{0}.txt 			# File that STDOUT writes to
+#SBATCH -e {7}err_{0}.txt				# File that STDERR writes to
 #SBATCH --mail-type=ALL
-#SBATCH --mail-user=ckjou@college.harvard.edu
+#SBATCH --mail-user={6}
 
 module load Anaconda3/5.0.1-fasrc02
 source activate virtualenv
 
-python ../../projects/opennmt-inspection/nested_decoding.py \
---embedding_layer  /n/shieber_lab/Lab/users/cjou/embeddings/{4} \
---subject_mat_file /n/shieber_lab/Lab/users/cjou/fmri/subj{2}/examplesGLM.mat  \
---model_to_brain   --cross_validation  --subject_number {2} --which_layer {1}  {5}
+python {8}opennmt-inspection/nested_decoding.py \
+--embedding_layer  {9}{4} \
+--model_to_brain   --cross_validation  --subject_number {2} --which_layer {1}  {5} {10}
 '''.format(
 		job_id, 
 		num_layer, 
-		args.subject_number,
+		subject_number,
 		time_limit,
 		file_loc,
-		flags
+		flags,
+		args.email,
+		args.slurm_path,
+		args.file_path, 
+		args.embedding_path,
+		rsa_flag
 	)
 )
 

@@ -15,32 +15,6 @@ import scipy.stats as stats
 from sklearn.model_selection import train_test_split
 # import statsmodels.api as sm
 
-def chunkify(lst, num, total):
-	if len(lst) % total == 0:
-		chunk_size = len(lst) // total
-	else:
-		chunk_size = len(lst) // total + 1
-
-	start = num * chunk_size
-	if num != total - 1:
-		end = num * chunk_size + chunk_size
-	else:
-		end = len(lst)
-	return lst[start:end]
-
-def pad_along_axis(array, target_length, axis=0):
-	pad_size = target_length - array.shape[axis]
-	axis_nb = len(array.shape)
-	if pad_size < 0:
-		return array
-	npad = [(0, 0) for x in range(axis_nb)]
-	npad[axis] = (0, pad_size)
-	b = np.pad(array, pad_width=npad, mode='constant', constant_values=0)
-	return b
-
-def get_dimensions(data):
-	return int(data[0])+1, int(data[1]), int(data[2])
-
 def all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args, radius=5, kfold_split=5, alpha=1):
 	global temp_file_name
 
@@ -52,8 +26,6 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 	a,b,c = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
 	true_spotlights = []
-	# CHUNK = chunkify(nonzero_pts, 1, 100)
-	# CHUNK_SIZE = len(CHUNK)
 
 	# iterate over spotlight
 	print("for each spotlight...")
@@ -90,11 +62,9 @@ def all_activations_for_all_sentences(modified_activations, volmask, embed_matri
 		index+=1
 		## DECODING ABOVE
 
-	return res_per_spotlight, llhs, rankings, #predictions, true_spotlights,  #boolean_masks
+	return res_per_spotlight, llhs, rankings
 
-def standardize(X): 
-	return np.nan_to_num((X - np.mean(X, axis=0)) / np.std(X, axis=0))
-
+### RSA ###
 def calculate_dist_matrix(matrix_embeddings): 
 	n = matrix_embeddings.shape[0]
 	mat = np.zeros(shape=(n*(n-1)//2,))
@@ -111,6 +81,7 @@ def rsa(embed_matrix, spotlights):
 	corr, _ = spearmanr(spotlight_mat, embed_matrix)
 	return corr
 
+### LIKELIHOOD ###
 def find_log_pdf(arr, sigmas):
 	val = stats.norm.logpdf(arr, 0, sigmas)
 	return np.nansum(val)
@@ -120,6 +91,7 @@ def vectorize_llh(pred, data, sigmas):
 	llh = np.nansum(stats.norm.logpdf(residuals, 0, sigmas))
 	return llh
 
+### SPECIFYING THE LINEAR MODEL ### 
 def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 	global predicted_trials
 
@@ -189,6 +161,7 @@ def linear_model(embed_matrix, spotlight_activations, args, kfold_split, alpha):
 		return errors.astype(np.float32), predicted_trials, np.sum(llhs).astype(np.float32), np.mean(rankings).astype(np.float32)
 	return
 
+### MIXED EFFECTS ANALYSIS ###
 def get_modified_activations(activations, volmask):
 	i,j,k = volmask.shape
 	nonzero_pts = np.transpose(np.nonzero(volmask))
@@ -276,7 +249,6 @@ def main():
 	argparser = argparse.ArgumentParser(description="Decoding (linear reg). step for correlating NN and brain")
 	argparser.add_argument('--embedding_layer', type=str, help="Location of NN embedding (for a layer)", required=True)
 	argparser.add_argument("--rsa", action='store_true', default=False, help="True if RSA is used to generate residual values")
-	argparser.add_argument("--subject_mat_file", type=str, help=".mat file ")
 	argparser.add_argument("--brain_to_model", action='store_true', default=False, help="True if regressing brain to model, False if not")
 	argparser.add_argument("--model_to_brain", action='store_true', default=False, help="True if regressing model to brain, False if not")
 	argparser.add_argument("--which_layer", help="Layer of interest in [1: total number of layers]", type=int, default=1)
@@ -294,6 +266,12 @@ def main():
 	argparser.add_argument("--llh",  action='store_true', default=True, help="True if calculate likelihood, False if not")
 	argparser.add_argument("--ranking",  action='store_true', default=False, help="True if calculate ranking, False if not")
 	argparser.add_argument("--mixed_effects",  action='store_true', default=False, help="True if calculate mixed effects, False if not")
+
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
+	
 	args = argparser.parse_args()
 
 	if not args.glove and not args.word2vec and not args.bert and not args.rand_embed:
@@ -309,9 +287,9 @@ def main():
 	direction, validate, rlabel, elabel, glabel, w2vlabel, bertlabel, plabel, prlabel = helper.generate_labels(args)
 
 	# get modified activations
-	activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/activations.p", "rb" ) )
-	volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
-	modified_activations = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/modified_activations.p", "rb" ) )
+	activations = pickle.load( open( "{}subj{}/activations.p".format(args.fmri_path, args.subject_number), "rb" ) )
+	volmask = pickle.load( open( "{}subj{}/volmask.p".format(args.fmri_path, args.subject_number), "rb" ) )
+	modified_activations = pickle.load( open( "{}subj{}/modified_activations.p".format(args.fmri_path, args.subject_number), "rb" ) )
 
 	print("PERMUTATION: " + str(args.permutation))
 	print("PERMUTATION REGION: " + str(args.permutation_region))
@@ -328,25 +306,19 @@ def main():
 		modified_activations = np.random.randint(-20, high=20, size=(240, 79, 95, 68))
 
 	# make file path
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/residuals_od32/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/residuals_od32/')
+	if not os.path.exists('{}residuals_od32/'.format(args.to_save_path)):
+		os.makedirs('{}residuals_od32/'.format(args.to_save_path))
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/predictions_od32/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/predictions_od32/')
+	if not os.path.exists('{}final_rankings/'.format(args.to_save_path)):
+		os.makedirs('{}final_rankings/'.format(args.to_save_path))
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/')
+	if not os.path.exists('{}rsa/'.format(args.to_save_path)):
+		os.makedirs('{}rsa/'.format(args.to_save_path))
 
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/rsa/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/rsa/')
-
-	if not os.path.exists('/n/shieber_lab/Lab/users/cjou/nested_llh/'):
-		os.makedirs('/n/shieber_lab/Lab/users/cjou/nested_llh/')
+	if not os.path.exists('{}nested_llh/'.format(args.to_save_path)):
+		os.makedirs('{}nested_llh/'.format(args.to_save_path))
 
 	temp_file_name = str(plabel) + str(prlabel) + str(rlabel) + str(elabel) + str(glabel) + str(w2vlabel) + str(bertlabel) + str(direction) + str(validate) + "-subj" + str(args.subject_number) + "-" + str(file_name) + "_no_spotlight"
-	
-	# get residuals and predictions
-	# all_residuals, predictions, true_spotlights, llhs = all_activations_for_all_sentences(modified_activations, volmask, embed_matrix, args)
 	
 	if args.mixed_effects:
 		val = mixed_effects_analysis(args, embed_matrix)
@@ -355,31 +327,23 @@ def main():
 
 	# dump
 	if args.rsa:
-		file_name = "/n/shieber_lab/Lab/users/cjou/rsa/" + str(temp_file_name) + ".p"
+		file_name = '{}rsa/'.format(args.to_save_path) + str(temp_file_name) + ".p"
 		pickle.dump( all_residuals, open(file_name, "wb" ) )
 	
 	else:
 		if args.llh:
-			llh_file_name = "/n/shieber_lab/Lab/users/cjou/nested_llh/" + temp_file_name
+			llh_file_name = '{}nested_llh/'.format(args.to_save_path) + temp_file_name
 			print("LLH SPOTLIGHTS FILE: " + str(llh_file_name))
 			pickle.dump( llhs, open(llh_file_name+"-llh.p", "wb" ), protocol=-1 )
 
-		altered_file_name = "/n/shieber_lab/Lab/users/cjou/residuals_od32/" +  temp_file_name
+		altered_file_name = '{}residuals_od32/'.format(args.to_save_path) +  temp_file_name
 		print("RESIDUALS FILE: " + str(altered_file_name))
 		pickle.dump( all_residuals, open(altered_file_name + ".p", "wb" ), protocol=-1 )
 
 		if args.model_to_brain and args.ranking:
-			ranking_file_name = "/n/shieber_lab/Lab/users/cjou/final_rankings/" +  temp_file_name
+			ranking_file_name = '{}final_rankings/'.format(args.to_save_path) +  temp_file_name
 			print("RANKING FILE: " + str(ranking_file_name))
 			pickle.dump( rankings, open(ranking_file_name + ".p", "wb" ), protocol=-1 )
-
-			# pred_file_name = "/n/shieber_lab/Lab/users/cjou/predictions_od32/" + temp_file_name
-			# print("PREDICTIONS FILE: " + str(pred_file_name))
-			# pickle.dump( predictions, open(pred_file_name+"-decoding-predictions.p", "wb" ), protocol=-1 )
-
-			# spot_file_name = "/n/shieber_lab/Lab/users/cjou/true_spotlights_od32/" + temp_file_name
-			# print("TRUE SPOTLIGHTS FILE: " + str(spot_file_name))
-			# pickle.dump( true_spotlights, open(spot_file_name+"-true-spotlights.p", "wb" ), protocol=-1 )
 
 	print("done.")
 

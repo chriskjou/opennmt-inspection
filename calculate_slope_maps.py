@@ -197,8 +197,8 @@ def plot_histograms(args, metric, file_name, slope_avgs, pvals):
 	if args.slope:
 		plot_vals = plot_vals[np.nonzero(plot_vals)]
 
-	plot_graphs(plot_vals, metric, "../" + str(file_name) + "_before")
-	plot_graphs(plot_pvals, "pval", "../" + str(file_name) + "_pval_before")
+	plot_graphs(plot_vals, metric, "../visualizations/" + str(file_name) + "_before")
+	plot_graphs(plot_pvals, "pval", ".../visualizations/" + str(file_name) + "_pval_before")
 
 	# after
 	thres1 = slope_avgs * (pvals < 0.1).astype(bool)
@@ -215,9 +215,9 @@ def plot_histograms(args, metric, file_name, slope_avgs, pvals):
 		thres05 = thres05[np.nonzero(thres05)]
 
 	if not args.null:
-		plot_graphs(thres1, metric, "../" + str(file_name) + "after1")
-		plot_graphs(thres01, metric, "../" + str(file_name) + "after01")
-		plot_graphs(thres05, metric, "../" + str(file_name) + "after05")
+		plot_graphs(thres1, metric, "../visualizations/" + str(file_name) + "after1")
+		plot_graphs(thres01, metric, "../visualizations/" + str(file_name) + "after01")
+		plot_graphs(thres05, metric, "../visualizations/" + str(file_name) + "after05")
 		
 	return metric, slope_avgs * (pvals < 0.05).astype(bool)
 
@@ -268,11 +268,11 @@ def plot_across_subjects(args, metric, file_name, thres05):
 	else:
 		plt.figure(figsize=(10, 9))
 		g = sns.barplot(x="ROI", y=metric, data=df, ci=68)
-	plt.savefig("../" + str(file_name) + "_barplot_" + str(metric) + ".png", bbox_inches='tight')
+	plt.savefig("../visualizations/" + str(file_name) + "_barplot_" + str(metric) + ".png", bbox_inches='tight')
 	return
 
 def main():
-	parser = argparse.ArgumentParser("calculate slope maps")
+	parser = argparse.ArgumentParser("calculate slope/argmax maps")
 	parser.add_argument("-num_layers", "--num_layers", help="Total number of layers", type=int, default=12)
 	parser.add_argument("-slope", "--slope", action='store_true', default=False, help="slope map")
 	parser.add_argument("-argmax", "--argmax", action='store_true', default=False, help="argmax")
