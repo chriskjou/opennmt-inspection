@@ -2,60 +2,60 @@
 ------------
 Folders will be generated one directory back from this current github repository; to keep all data, dependent program, and code centralized, it would be best to put this repo within its own folder. For example, part of my current setup is as shown below in a folder called `research`. When running on the Odyssey cluster, make sure the paths are still relative to each other in the same way or directly change the paths in the code.
 
-	└─ research
-		├── opennmt-inspection      					<- current github repo
-		│   ├── scripts       							<- added temporary scripts for testing
-		│   ├── notebooks								<- added jupyter notebooks
-		│   └── ...   									<- all other folders were from original branch
-		├── bspmview          							<- dependency for MATLAB plotting
-		├── examplesGLM									<- fMRI data downloaded from Google Drive
-		│   ├── subj1       							<- subfolder for subj1
-		│   ├── subj2       
-		│   ├── subj3    
-		│   └── ...        
-		├── embeddings              					<- folder of embeddings generated from code
-		│   ├── bert       								<- subfolder of generated embeddings
-		│   ├── glove       
-		│   ├── gpt2    
-		│   └── ...        
-		├── ccnl-fmri              						<- dependency for MATLAB plotting
-		├── Language-fMRI          						<- dependency for MATLAB plotting
-		├── spm12          								<- dependency for MATLAB plotting
-		├── VBA-toolbox         						<- dependency for BMS library
-		├── visualizations          					<- folder of graphs generated from code
-		├── decoding_scripts   							<- folder of generated scripts for Odyssey from code
-		│   ├── model1       
-		│   ├── model2 
-		│   └── ...   
-		├── mat           								<- downloaded folder from Odyssey
-		├── GoogleNews-vectors-negative300.bin.gz 		<- downloaded word2vec dependency
-		├── glove.6B 									<- downloaded glove dependency
-		└── ...           
+    └─ research
+        ├── opennmt-inspection                          <- current github repo
+        │   ├── scripts                                 <- added temporary scripts for testing
+        │   ├── notebooks                               <- added jupyter notebooks
+        │   └── ...                                     <- all other folders were from original branch
+        ├── bspmview                                    <- dependency for MATLAB plotting
+        ├── examplesGLM                                 <- fMRI data downloaded from Google Drive
+        │   ├── subj1                                   <- subfolder for subj1
+        │   ├── subj2       
+        │   ├── subj3    
+        │   └── ...        
+        ├── embeddings                                  <- folder of embeddings generated from code
+        │   ├── bert                                    <- subfolder of generated embeddings
+        │   ├── glove       
+        │   ├── gpt2    
+        │   └── ...        
+        ├── ccnl-fmri                                   <- dependency for MATLAB plotting
+        ├── Language-fMRI                               <- dependency for MATLAB plotting
+        ├── spm12                                       <- dependency for MATLAB plotting
+        ├── VBA-toolbox                                 <- dependency for BMS library
+        ├── visualizations                              <- folder of graphs generated from code
+        ├── decoding_scripts                            <- folder of generated scripts for Odyssey from code
+        │   ├── model1       
+        │   ├── model2 
+        │   └── ...   
+        ├── mat                                         <- downloaded folder from Odyssey
+        ├── GoogleNews-vectors-negative300.bin.gz       <- downloaded word2vec dependency
+        ├── glove.6B                                    <- downloaded glove dependency
+        └── ...           
 
 Important added files are briefly described here with a more thorough description provided on file or in workflow.
 
-	└─ opennmt-inpsection
-		├── calculate_slope_maps.py      				<- calculate argmax/slope across layers for a voxel
-		├── find_best_likelihood.py						<- prepare LLH for mfit or BMS model comparison in VBA
-		├── flair_embeddings.py          				<- embeddings from Huggingface NLP models
-		├── format_for_subject.py						<- formatting fMRI data from MATLAB to python
-		├── get_pretrained_embeddings.py           		<- embeddings from GloVe and word2vec
-		├── helper.py 									<- important helper functions
-		├── make_nested_scripts.py 						<- script generation for decoding/RSA with spotlights with nested cross-validation
-		├── make_neurosynth_rsa_scripts.py 				<- script generation for RSA by language region
-		├── make_scripts.py 							<- make scripts for decoding or RSA experiments with spotlight (original)
-		├── metric_across_layers.py 					<- 2D plot of a metric across layers in a NLP model
-		├── nested_convert_np_to_matlab.py 				<- convert pickle files from batches into MATLAB 3D space
-		├── nested_cv_significance.py 					<- create count/average graphs for BMS model family comparison (VBA-toolbox)
-		├── nested_decoding.py 							<- updated decoding/RSA experiment from odyssey_decoding with nested cross-validation
-		├── nested_vba_toolbox.py 						<- generate plots from PXP/BOR values in VBA BMS family
-		├── neurosynth_rsa.py 							<- RSA experiment by language region
-		├── plot_initial_activations.py 				<- plot graphs for initial fMRI activations
-		├── plot_initial_embeddings.py 					<- plot graphs for initial embeddings (pretrained, NLP, opennmt)
-		├── plot_residuals_locations.py 				<- [deprecated] original 2D plot of metric across models
-		├── significance_threshold.py 					<- [deprecated] original analysis of GLM across scanner runs
-		├── significant_llh.py 							<- [deprecated] original concatenate and plot mfit PXP/BOR and prepare for transform into 3D brain space
-		└── ...    
+    └─ opennmt-inpsection
+        ├── calculate_slope_maps.py                     <- calculate argmax/slope across layers for a voxel
+        ├── find_best_likelihood.py                     <- prepare LLH for mfit or BMS model comparison in VBA
+        ├── flair_embeddings.py                         <- embeddings from Huggingface NLP models
+        ├── format_for_subject.py                       <- formatting fMRI data from MATLAB to python
+        ├── get_pretrained_embeddings.py                <- embeddings from GloVe and word2vec
+        ├── helper.py                                   <- important helper functions
+        ├── make_nested_scripts.py                      <- script generation for decoding/RSA with spotlights with nested cross-validation
+        ├── make_neurosynth_rsa_scripts.py              <- script generation for RSA by language region
+        ├── make_scripts.py                             <- make scripts for decoding or RSA experiments with spotlight (original)
+        ├── metric_across_layers.py                     <- 2D plot of a metric across layers in a NLP model
+        ├── nested_convert_np_to_matlab.py              <- convert pickle files from batches into MATLAB 3D space
+        ├── nested_cv_significance.py                   <- create count/average graphs for BMS model family comparison (VBA-toolbox)
+        ├── nested_decoding.py                          <- updated decoding/RSA experiment from odyssey_decoding with nested cross-validation
+        ├── nested_vba_toolbox.py                       <- generate plots from PXP/BOR values in VBA BMS family
+        ├── neurosynth_rsa.py                           <- RSA experiment by language region
+        ├── plot_initial_activations.py                 <- plot graphs for initial fMRI activations
+        ├── plot_initial_embeddings.py                  <- plot graphs for initial embeddings (pretrained, NLP, opennmt)
+        ├── plot_residuals_locations.py                 <- [deprecated] original 2D plot of metric across models
+        ├── significance_threshold.py                   <- [deprecated] original analysis of GLM across scanner runs
+        ├── significant_llh.py                          <- [deprecated] original concatenate and plot mfit PXP/BOR and prepare for transform into 3D brain space
+        └── ...    
 # Dependencies
 Libaries that are used and required in all files that were added to the original opennmt-py fork are in `brain_nn_requirements.txt`. Original requirements maintained by the original opennmt-py fork are in `requirements.txt`.
 
@@ -176,16 +176,16 @@ rsync -avz cjou@odyssey.rc.fas.harvard.edu:~/projects/mat/ mat/
 
 Ensure that the Odyssey cluster directories are set up in a similar manner to the local directory. Scripts generated from code should maintain their own folder and relation to the github repository. Below is the project organization on my personal Odyssey cluster directory.
 
-	├── projects     								 
-	│   ├── opennmt-inspection       				<- current repo
-	│   ├── examplesGLM								<- fMRI data (can also be referenced from cluster storage instead)
-	│   ├── mfit									<- github from mfit (see under analysis)
-	│   ├── VBA-toolbox								<- github dependency for BMS model family analysis
-	│   └── ...   									
-	├── nested_cv          							<- example location for scripts for nested cross-validation decoding/RSA
-	├── decoding_scripts							<- example location for scripts for non-nested cross-validation decoding/RSA
-	├── logs              							<- empty folder for logs generated from Odyssey batch jobs
-	└── ...     
+    ├── projects                                     
+    │   ├── opennmt-inspection                      <- current repo
+    │   ├── examplesGLM                             <- fMRI data (can also be referenced from cluster storage instead)
+    │   ├── mfit                                    <- github from mfit (see under analysis)
+    │   ├── VBA-toolbox                             <- github dependency for BMS model family analysis
+    │   └── ...                                     
+    ├── nested_cv                                   <- example location for scripts for nested cross-validation decoding/RSA
+    ├── decoding_scripts                            <- example location for scripts for non-nested cross-validation decoding/RSA
+    ├── logs                                        <- empty folder for logs generated from Odyssey batch jobs
+    └── ...     
 
 Embeddings for the models and fMRI data is also saved within the lab's directory for storage space.
 
@@ -230,28 +230,28 @@ Scripts will be generated in the same way as with RSA spotlights but under the f
 
 Once all the scripts are generated for the model type and experiment desired, rsync the scripts to the Odyssey cluster. Then from the `nested_cv/` directory, the experiments should be organized by folder. Both locally and on the cluster, the folder organization looks similar to the following:
 
-	├── nested_cv     								 
-	│   ├── nested_cv_bert_subj1 
-	│	│   ├── nested_cv_bert_subj1.sh       								
-	│	│   ├── nested_cv_bert_subj1_layer1.sh       
-	│	│   ├── nested_cv_bert_subj1_layer2.sh 
-	│	│   ├── nested_cv_bert_subj1_layer3.sh 	   
-	│	│   └── ...  
-	│   ├── nested_cv_bert_subj2	
-	│	│   ├── nested_cv_bert_subj2.sh       								
-	│	│   ├── nested_cv_bert_subj2_layer1.sh       
-	│	│   ├── nested_cv_bert_subj2_layer2.sh 
-	│	│   ├── nested_cv_bert_subj2_layer3.sh 	   
-	│	│   └── ...  	
-	│   ├── nested_cv_bert_subj3
-	│	│   ├── nested_cv_bert_subj3.sh       								
-	│	│   ├── nested_cv_bert_subj3_layer1.sh       
-	│	│   ├── nested_cv_bert_subj3_layer2.sh 
-	│	│   ├── nested_cv_bert_subj3_layer3.sh 	   
-	│	│   └── ...  						
-	│   └── ... 
-	├── nested_cv_rsa
-	└── ...     
+    ├── nested_cv                                    
+    │   ├── nested_cv_bert_subj1 
+    │   │   ├── nested_cv_bert_subj1.sh                                     
+    │   │   ├── nested_cv_bert_subj1_layer1.sh       
+    │   │   ├── nested_cv_bert_subj1_layer2.sh 
+    │   │   ├── nested_cv_bert_subj1_layer3.sh     
+    │   │   └── ...  
+    │   ├── nested_cv_bert_subj2    
+    │   │   ├── nested_cv_bert_subj2.sh                                     
+    │   │   ├── nested_cv_bert_subj2_layer1.sh       
+    │   │   ├── nested_cv_bert_subj2_layer2.sh 
+    │   │   ├── nested_cv_bert_subj2_layer3.sh     
+    │   │   └── ...     
+    │   ├── nested_cv_bert_subj3
+    │   │   ├── nested_cv_bert_subj3.sh                                     
+    │   │   ├── nested_cv_bert_subj3_layer1.sh       
+    │   │   ├── nested_cv_bert_subj3_layer2.sh 
+    │   │   ├── nested_cv_bert_subj3_layer3.sh     
+    │   │   └── ...                         
+    │   └── ... 
+    ├── nested_cv_rsa
+    └── ...     
 
 Navigate to the proper folder and run the master script (which should have the same name as the folder).
 
@@ -266,8 +266,8 @@ That should launch the experiment subscripts within that corresponding folder. A
 Once the all parts of the experiments are completed, the results need to be concatenated (for LLH, RMSEs, ranking, etc). Check to make sure the file paths in the argparser have been updated and run the code corresponding to the experiment. For specifically concatenating the LLH for the decoding of model-to-brain with nested cross-validation, run 
 
 ```
-python nested_convert_np_to_matlab.py -bert -subject_number 1			# model-to-brain LLH
-python nested_convert_np_to_matlab.py -bert -subject_number 1 -rsa 		# RSA
+python nested_convert_np_to_matlab.py -bert -subject_number 1           # model-to-brain LLH
+python nested_convert_np_to_matlab.py -bert -subject_number 1 -rsa      # RSA
 ```
 
 This will generate the proper MATLAB file of the experimental results in 3D brain space in the folder `../mat/`. Reference code if RSA takes too long or needs to check previous code, files without the `nested` prefix can be used instead. For example, instead of `make_nested_scripts.py`, `make_scripts.py` can be used; instead of `nested_decoding.py`, `odyssey_decoding.py` can be used; and instead of `nested_convert_np_to_matlab.py`, `convert_np_to_matlab.py` can be used. The original files without `nested` include batching instead and for decoding, includes nested cross validation (but is not applicable to RSA).
@@ -381,9 +381,9 @@ Extending the Analysis and Visualization
 # Gradient Correlation
 To calculating an anatomical gradient index (1) BMS VBA-toolbox argmax; (2) RSA slope; or (3) RSA argmax, run the following line of code for respective analyses. Add the flag for `-contra` to calculate the gradient index for the same analysis but on the contralateral side of the brain. 
 ```
-python gradient_correlation.py -spearman 			# VBA argmax
-python gradient_correlation.py -pearson -slope 		# RSA slope
-python gradient_correlation.py -spearman -argmax	# RSA argmax
+python gradient_correlation.py -spearman            # VBA argmax
+python gradient_correlation.py -pearson -slope      # RSA slope
+python gradient_correlation.py -spearman -argmax    # RSA argmax
 ```
 
 # Plotting in 3D Brain space
@@ -398,14 +398,14 @@ Graphs are created in `visualizations/`. Ensure that the fMRI data and the embed
 
 For plotting initial embeddings:
 ```
-python plot_initial_embeddings.py -bert 	# plot initial bert embeddings for all aggregations types for specific dimensions 
+python plot_initial_embeddings.py -bert     # plot initial bert embeddings for all aggregations types for specific dimensions 
 ```
 
 For plotting initial fMRI brain activations:
 ```
-python plot_initial_activations.py -brain_map -subjects 1,2,4,5 -sentences 1,2,3 	# saving activations for sentences 1, 2, 3 in common brain space of given subjects
-python plot_initial_activations.py -hist -aal -subject_number 1						# saving histograms for each AAL region for a specific subject
-python plot_initial_activations.py -subject_number 1								# plot graph per language ROI region for specific subject								
+python plot_initial_activations.py -brain_map -subjects 1,2,4,5 -sentences 1,2,3    # saving activations for sentences 1, 2, 3 in common brain space of given subjects
+python plot_initial_activations.py -hist -aal -subject_number 1                     # saving histograms for each AAL region for a specific subject
+python plot_initial_activations.py -subject_number 1                                # plot graph per language ROI region for specific subject                               
 ```
 
 # Heatmaps across layers
