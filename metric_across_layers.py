@@ -71,8 +71,8 @@ def main():
 						   help="True if permutation by brain region, False if not")
 	
 	### SPECIFY FOR ONE LAYER OR DIFFERENCE IN LAYERS ###
-	argparser.add_argument("-across_layer", "--across_layer", help="if across layer depth significance",
-						   action='store_true', default=False)
+	# argparser.add_argument("-across_layer", "--across_layer", help="if across layer depth significance",
+	# 					   action='store_true', default=False)
 
 	### SPECIFY WHICH METRIC ### 
 	argparser.add_argument("-fdr", "--fdr", help="if apply FDR", action='store_true', default=False)
@@ -86,6 +86,12 @@ def main():
 						   help="True if calculate rsa, False if not")
 
 	argparser.add_argument("-local",  "--local", action='store_true', default=False, help="True if running locally")
+
+
+	### UPDATE FILE PATHS HERE ###
+	argparser.add_argument("--fmri_path", default="/n/shieber_lab/Lab/users/cjou/fmri/", type=str, help="file path to fMRI data on the Odyssey cluster")
+	argparser.add_argument("--to_save_path", default="/n/shieber_lab/Lab/users/cjou/", type=str, help="file path to and create rmse/ranking/llh on the Odyssey cluster")
+	### UPDATE FILE PATHS HERE ###
 
 	args = argparser.parse_args()
 
@@ -114,11 +120,11 @@ def main():
 		roi_vals = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/roi_vals.p", "rb" ) )
 		roi_labels = pickle.load( open( f"../examplesGLM/subj{args.subject_number}/roi_labels.p", "rb" ) )
 	else:
-		volmask = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/volmask.p", "rb" ) )
-		atlas_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_vals.p", "rb" ) )
-		atlas_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/atlas_labels.p", "rb" ) )
-		roi_vals = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_vals.p", "rb" ) )
-		roi_labels = pickle.load( open( f"/n/shieber_lab/Lab/users/cjou/fmri/subj{args.subject_number}/roi_labels.p", "rb" ) )
+		volmask = pickle.load( open( str(args.fmri_path) + "subj{args.subject_number}/volmask.p", "rb" ) )
+		atlas_vals = pickle.load( open( str(args.fmri_path) + "subj{args.subject_number}/atlas_vals.p", "rb" ) )
+		atlas_labels = pickle.load( open( str(args.fmri_path) + "subj{args.subject_number}/atlas_labels.p", "rb" ) )
+		roi_vals = pickle.load( open( str(args.fmri_path) + "subj{args.subject_number}/roi_vals.p", "rb" ) )
+		roi_labels = pickle.load( open( str(args.fmri_path) + "subj{args.subject_number}/roi_labels.p", "rb" ) )
 
 	true_roi_labels = helper.compare_labels(roi_labels, volmask, subj_num=args.subject_number, roi=True)
 	true_atlas_labels = helper.compare_labels(atlas_labels, volmask, subj_num=args.subject_number)
@@ -183,7 +189,7 @@ def main():
 					content = scipy.io.loadmat("../mat/" + str(file_name) + "-3dtransform-rsa.mat")["metric"]
 				values = helper.convert_matlab_to_np(content, volmask)
 			else:
-				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
+				values = pickle.load(open(str(args.to_save_path) + "final_rankings/" + str(file_name) + ".p", "rb"))
 			metric_info.extend(values)
 			layer_vals = len(values) * [layer]
 			layer_info.extend(layer_vals)
@@ -210,7 +216,7 @@ def main():
 				
 				values = helper.convert_matlab_to_np(content, volmask)
 			else:
-				values = pickle.load(open("/n/shieber_lab/Lab/users/cjou/final_rankings/" + str(file_name) + ".p", "rb"))
+				values = pickle.load(open(str(args.to_save_path) + "final_rankings/" + str(file_name) + ".p", "rb"))
 			metric_info.extend(values)
 			layer_vals = len(values) * [layer]
 			layer_info.extend(layer_vals)

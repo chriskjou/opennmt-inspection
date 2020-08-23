@@ -32,27 +32,29 @@ Folders will be generated one directory back from this current github repository
 		├── glove.6B 									<- downloaded glove dependency
 		└── ...           
 
-Important added files are briefly described here with a more thorough description provided on file.
+Important added files are briefly described here with a more thorough description provided on file or in workflow.
 
 	└─ opennmt-inpsection
-		├── calculate_slope_maps.py      				<- 									
-		├── find_best_likelihood.py						<- 
-		├── flair_embeddings.py          				<- embeddings from NLP models
+		├── calculate_slope_maps.py      				<- calculate argmax/slope across layers for a voxel
+		├── find_best_likelihood.py						<- prepare LLH for mfit or BMS model comparison in VBA
+		├── flair_embeddings.py          				<- embeddings from Huggingface NLP models
 		├── format_for_subject.py						<- formatting fMRI data from MATLAB to python
 		├── get_pretrained_embeddings.py           		<- embeddings from GloVe and word2vec
 		├── helper.py 									<- important helper functions
-		├── make_nested_scripts.py 						<- script generation for nested cv for decoding and RSA
-		├── make_scripts.py 							<- 
-		├── metric_across_layers.py 					<- 
-		├── nested_convert_np_to_matlab.py 				<- 
-		├── nested_cv_significance.py 					<- 
-		├── nested_decoding.py 							<- 
-		├── nested_vba_toolbox.py 						<- 
-		├── plot_initial_activations.py 				<- 
-		├── plot_initial_embeddings.py 					<- 
-		├── plot_residuals_locations.py 				<- 
-		├── significance_threshold.py 					<- 
-		├── significant_llh.py 							<- 
+		├── make_nested_scripts.py 						<- script generation for decoding/RSA with spotlights with nested cross-validation
+		├── make_neurosynth_rsa_scripts.py 				<- script generation for RSA by language region
+		├── make_scripts.py 							<- make scripts for decoding or RSA experiments with spotlight (original)
+		├── metric_across_layers.py 					<- 2D plot of a metric across layers in a NLP model
+		├── nested_convert_np_to_matlab.py 				<- convert pickle files from batches into MATLAB 3D space
+		├── nested_cv_significance.py 					<- create count/average graphs for BMS model family comparison (VBA-toolbox)
+		├── nested_decoding.py 							<- updated decoding/RSA experiment from odyssey_decoding with nested cross-validation
+		├── nested_vba_toolbox.py 						<- generate plots from PXP/BOR values in VBA BMS family
+		├── neurosynth_rsa.py 							<- RSA experiment by language region
+		├── plot_initial_activations.py 				<- plot graphs for initial fMRI activations
+		├── plot_initial_embeddings.py 					<- plot graphs for initial embeddings (pretrained, NLP, opennmt)
+		├── plot_residuals_locations.py 				<- [deprecated] original 2D plot of metric across models
+		├── significance_threshold.py 					<- [deprecated] original analysis of GLM across scanner runs
+		├── significant_llh.py 							<- [deprecated] original concatenate and plot mfit PXP/BOR and prepare for transform into 3D brain space
 		└── ...    
 # Dependencies
 Libaries that are used and required in all files that were added to the original opennmt-py fork are in `brain_nn_requirements.txt`. Original requirements maintained by the original opennmt-py fork are in `requirements.txt`.
@@ -175,14 +177,14 @@ rsync -avz cjou@odyssey.rc.fas.harvard.edu:~/projects/mat/ mat/
 Ensure that the Odyssey cluster directories are set up in a similar manner to the local directory. Scripts generated from code should maintain their own folder and relation to the github repository. Below is the project organization on my personal Odyssey cluster directory.
 
 	├── projects     								 
-	│   ├── opennmt-inspection       				<- 
-	│   ├── examplesGLM								<- 
-	│   ├── mfit									<- 
-	│   ├── VBA-toolbox								<- 
-	│   └── ...   									<- 
-	├── nested_cv          							<- 
-	├── decoding_scripts							<- 
-	├── logs              							<- 
+	│   ├── opennmt-inspection       				<- current repo
+	│   ├── examplesGLM								<- fMRI data (can also be referenced from cluster storage instead)
+	│   ├── mfit									<- github from mfit (see under analysis)
+	│   ├── VBA-toolbox								<- github dependency for BMS model family analysis
+	│   └── ...   									
+	├── nested_cv          							<- example location for scripts for nested cross-validation decoding/RSA
+	├── decoding_scripts							<- example location for scripts for non-nested cross-validation decoding/RSA
+	├── logs              							<- empty folder for logs generated from Odyssey batch jobs
 	└── ...     
 
 Embeddings for the models and fMRI data is also saved within the lab's directory for storage space.
@@ -372,8 +374,9 @@ Extending the Analysis and Visualization
 2. Plotting in 3D Brain space
 3. Plotting initial embeddings and activations
 4. Heatmaps across layers
-5. Helpful Functions
-6. Older versions of files
+5. Metric across layers (2D)
+6. Helpful Functions
+7. Older versions of files
 
 # Gradient Correlation
 To calculating an anatomical gradient index (1) BMS VBA-toolbox argmax; (2) RSA slope; or (3) RSA argmax, run the following line of code for respective analyses. Add the flag for `-contra` to calculate the gradient index for the same analysis but on the contralateral side of the brain. 
@@ -419,6 +422,14 @@ python compare_layers_and_subjects.py -group_level -across_layer -bert -num_laye
 [deprecated] To generate MATLAB files for 3D brain space to see the heatmap for a single layer of metric values, run
 ```
 python compare_layers_and_subjects.py -group_level -single_layer -which_layer 1
+```
+
+# Metric across layers
+First, update the default file paths for the fMRI data and the save path or provide as a argument.
+
+To generate a 2D plot of a metric across layers of a particular model, run
+```
+python metric_across_layers.py -local
 ```
 
 # Helpful Functions
